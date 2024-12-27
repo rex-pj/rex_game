@@ -1,0 +1,10 @@
+[package]
+name = "rex_game"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rex-game-api = { path = "./api" }
+
+[workspace]
+members = [".", "api", "application", "api", "domain", "infrastructure"]
