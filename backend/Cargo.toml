@@ -1,19 +1,20 @@
 [package]
-name = "rex-game-api"
+name = "rex_game"
 version = "0.1.0"
 edition = "2021"
-publish = false
+debug = true
 
 [dependencies]
+config = "0.15.4"
 axum = "0.7.9"
 chrono = "0.4.38"
 axum-macros = "0.4.2"
 hyper = { version = "1.0", features = [] }
 tower-http = { version = "0.6.1", features = ["cors"] }
 tokio = { version = "1.42.0", features = ["full"] }
-rex-game-domain = { path = "../domain" }
-rex-game-infrastructure = { path = "../infrastructure" }
-rex-game-application = { path = "../application" }
+rex-game-domain = { path = "./domain" }
+rex-game-infrastructure = { path = "./infrastructure" }
+rex-game-application = { path = "./application" }
 # The core APIs, including the Serialize and Deserialize traits. Always
 # required when using Serde. The "derive" feature is only required when
 # using #[derive(Serialize, Deserialize)] to make Serde work with structs
@@ -23,3 +24,16 @@ serde = { version = "1.0", features = ["derive"] }
 # Each data format lives in its own crate; the sample code below uses JSON
 # but you may be using a different one.
 serde_json = "1.0"
+
+[dependencies.sea-orm]
+version = "1.1.0"
+features = [
+    "sqlx-postgres",
+    "runtime-tokio-native-tls",
+    "macros",
+    "debug-print",
+]
+
+
+[workspace]
+members = [".", "application", "domain", "infrastructure"]

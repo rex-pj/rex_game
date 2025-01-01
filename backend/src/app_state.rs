@@ -8,19 +8,20 @@ pub trait AppState: Clone + Send + Sync + 'static {
     type FlashcardRepository: TFlashcardRepository;
     type FlashcardUseCase: TFlashcardUseCase;
 
+    // fn db_connection(&self) -> &self::Arc<DatabaseConnection>;
     fn flashcard_repository(&self) -> &Self::FlashcardRepository;
     fn flashcard_usecase(&self) -> &Self::FlashcardUseCase;
 }
 
 #[derive(Clone)]
 pub struct RegularAppState {
+    // pub db_connection: Arc<DatabaseConnection>,
     pub flashcard_repository: FlashcardRepository,
     pub flashcard_usecase: FlashcardUseCase<FlashcardRepository>,
 }
 
 impl AppState for RegularAppState {
     type FlashcardRepository = FlashcardRepository;
-
     type FlashcardUseCase = FlashcardUseCase<FlashcardRepository>;
 
     fn flashcard_repository(&self) -> &Self::FlashcardRepository {
@@ -30,4 +31,8 @@ impl AppState for RegularAppState {
     fn flashcard_usecase(&self) -> &Self::FlashcardUseCase {
         &self.flashcard_usecase
     }
+
+    // fn db_connection(&self) -> &self::Arc<DatabaseConnection> {
+    //     &self.db_connection
+    // }
 }

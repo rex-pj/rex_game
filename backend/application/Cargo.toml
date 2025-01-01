@@ -8,3 +8,12 @@ publish = false
 chrono = "0.4.38"
 rex-game-domain = { path = "../domain" }
 serde = { version = "1.0", features = ["derive"] }
+
+# [dependencies.sea-orm]
+# version = "1.1.0"
+# features = [
+#     "sqlx-postgres",
+#     "runtime-tokio-native-tls",
+#     "macros",
+#     "debug-print",
+# ]

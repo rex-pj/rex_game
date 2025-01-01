@@ -1,10 +1,9 @@
 use std::{future::Future, pin::Pin};
 
+use super::flashcard_dto::FlashcardDto;
 use rex_game_domain::flashcards::flashcard::{
     CreateFlashcardError, CreateFlashcardRequest, Flashcard,
 };
-
-use super::flashcard_dto::FlashcardDto;
 
 pub trait TFlashcardUseCase {
     fn create_flashcard<'a>(
