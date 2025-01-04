@@ -1,29 +1,21 @@
 use axum::{extract::State, Json};
 use rex_game_application::flashcards::{
-    flashcard_dto::FlashcardDto, t_flashcard_usecase::TFlashcardUseCase,
+    flashcard_dto::FlashcardDto, flashcard_usecase_trait::FlashcardUseCaseTrait,
 };
 use serde_json::Value;
 
-use crate::app_state::AppState;
+use crate::app_state::AppStateTrait;
 
 impl FlashcardHandler {
-    pub async fn get_flashcard<S: AppState>(
-        State(app_state): State<S>,
+    pub async fn get_flashcards<T: AppStateTrait>(
+        State(_state): State<T>,
         payload: Option<Json<Value>>,
-    ) -> Json<FlashcardDto> {
-        if let Some(_payload) = payload {
-            let flashcard = app_state.flashcard_usecase().get_flashcard();
-            return match flashcard {
-                None => {
-                    let response = FlashcardDto::new();
-                    return Json(response);
-                }
-                Some(i) => Json(i),
-            };
-        }
-
-        let response = FlashcardDto::new();
-        return Json(response);
+    ) -> Json<Option<Vec<FlashcardDto>>> {
+        let flashcard = _state.flashcard_usecase().get_flashcards().await;
+        return match flashcard {
+            None => Json(None),
+            Some(i) => Json(Some(i)),
+        };
     }
 }
 

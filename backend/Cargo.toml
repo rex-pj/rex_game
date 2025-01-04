@@ -15,6 +15,7 @@ tokio = { version = "1.42.0", features = ["full"] }
 rex-game-domain = { path = "./domain" }
 rex-game-infrastructure = { path = "./infrastructure" }
 rex-game-application = { path = "./application" }
+rex-game-migration = { path = "./migration" }
 # The core APIs, including the Serialize and Deserialize traits. Always
 # required when using Serde. The "derive" feature is only required when
 # using #[derive(Serialize, Deserialize)] to make Serde work with structs
@@ -34,6 +35,5 @@ features = [
     "debug-print",
 ]
 
-
 [workspace]
-members = [".", "application", "domain", "infrastructure"]
+members = [".", "application", "domain", "infrastructure", "migration"]

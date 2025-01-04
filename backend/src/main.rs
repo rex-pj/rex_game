@@ -1,23 +1,20 @@
-use std::sync::Arc;
-
 use config::{Config, File};
 
-use app_state::{AppState, RegularAppState};
+use app_state::RegularAppState;
 use axum::{routing::get, Router};
 use handlers::flashcard_handler::FlashcardHandler;
 use rex_game_application::flashcards::flashcard_usecase::FlashcardUseCase;
 use rex_game_infrastructure::{
     repositories::flashcard_repository::FlashcardRepository, seaorm_connection::SeaOrmConnection,
 };
-use sea_orm::Database;
 use tokio::net::TcpListener;
 pub mod app_state;
 pub mod handlers;
 
-fn build<S: AppState>(state: S) -> Router {
+fn build_routers(app_state: RegularAppState) -> Router {
     Router::new().route(
-        "/",
-        get(FlashcardHandler::get_flashcard::<S>).with_state(state),
+        "/flash-cards",
+        get(FlashcardHandler::get_flashcards::<RegularAppState>).with_state(app_state),
     )
 }
 
@@ -35,7 +32,7 @@ async fn start() {
                 flashcard_usecase,
             };
 
-            let app = build(app_state);
+            let app = build_routers(app_state);
             let listener = TcpListener::bind("0.0.0.0:3400").await.unwrap();
             axum::serve(listener, app).await.unwrap();
         }
