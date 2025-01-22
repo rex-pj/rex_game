@@ -1,8 +1,8 @@
-use rex_game_domain::flashcards::{
-    flashcard::{self, Entity as Flashcard},
-    flashcard_repository_trait::FlashcardRepositoryTrait,
+use rex_game_domain::{
+    entities::flashcard::{self, Entity as Flashcard},
+    repositories::flashcard_repository_trait::FlashcardRepositoryTrait,
 };
-use sea_orm::{DatabaseConnection, DbErr, EntityTrait, PaginatorTrait};
+use sea_orm::{DatabaseConnection, DbErr, EntityTrait, InsertResult, PaginatorTrait};
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -19,7 +19,7 @@ impl FlashcardRepository {
 }
 
 impl FlashcardRepositoryTrait for FlashcardRepository {
-    async fn get_flashcards(
+    async fn get_list(
         &self,
         page: u64,
         page_size: u64,
@@ -29,5 +29,21 @@ impl FlashcardRepositoryTrait for FlashcardRepository {
 
         let num_pages = paginator.num_pages().await?;
         paginator.fetch_page(page - 1).await.map(|p| (p, num_pages))
+    }
+
+    async fn get_by_id(&self, id: i32) -> Result<Option<flashcard::Model>, DbErr> {
+        let db = self._db_connection.as_ref();
+        let flashcard = Flashcard::find_by_id(id).one(db).await;
+
+        return flashcard;
+    }
+
+    async fn create(
+        &self,
+        flashcard: flashcard::ActiveModel,
+    ) -> Result<InsertResult<flashcard::ActiveModel>, DbErr> {
+        let db = self._db_connection.as_ref();
+
+        return Flashcard::insert(flashcard).exec(db).await;
     }
 }

@@ -3,3 +3,5 @@
 pub mod prelude;
 
 pub mod flashcard;
+pub mod flashcard_type;
+pub mod flashcard_type_relation;

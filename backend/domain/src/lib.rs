@@ -1,4 +1,4 @@
-pub mod flashcards;
-pub mod repository;
+pub mod entities;
+pub mod repositories;
 
 pub trait Entity {}

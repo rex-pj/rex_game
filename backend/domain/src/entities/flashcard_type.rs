@@ -3,18 +3,26 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "flashcard")]
+#[sea_orm(table_name = "flashcard_type")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     pub name: String,
     pub description: Option<String>,
-    pub sub_description: String,
     pub created_date: DateTimeWithTimeZone,
     pub updated_date: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
+pub enum Relation {
+    #[sea_orm(has_many = "super::flashcard_type_relation::Entity")]
+    FlashcardTypeRelation,
+}
+
+impl Related<super::flashcard_type_relation::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::FlashcardTypeRelation.def()
+    }
+}
 
 impl ActiveModelBehavior for ActiveModel {}

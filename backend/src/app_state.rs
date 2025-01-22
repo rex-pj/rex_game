@@ -1,7 +1,7 @@
 use rex_game_application::flashcards::{
     flashcard_usecase::FlashcardUseCase, flashcard_usecase_trait::FlashcardUseCaseTrait,
 };
-use rex_game_domain::flashcards::flashcard_repository_trait::FlashcardRepositoryTrait;
+use rex_game_domain::repositories::flashcard_repository_trait::FlashcardRepositoryTrait;
 use rex_game_infrastructure::repositories::flashcard_repository::FlashcardRepository;
 
 pub trait AppStateTrait: Clone + Send + Sync + 'static {

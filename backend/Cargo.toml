@@ -6,7 +6,7 @@ debug = true
 
 [dependencies]
 config = "0.15.4"
-axum = "0.7.9"
+axum = { version = "0.7.9", features = ["multipart"] }
 chrono = "0.4.38"
 axum-macros = "0.4.2"
 hyper = { version = "1.0", features = [] }

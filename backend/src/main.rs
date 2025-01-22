@@ -1,7 +1,9 @@
-use config::{Config, File};
-
 use app_state::RegularAppState;
-use axum::{routing::get, Router};
+use axum::{
+    routing::{get, post},
+    Router,
+};
+use config::{Config, File};
 use handlers::flashcard_handler::FlashcardHandler;
 use rex_game_application::flashcards::flashcard_usecase::FlashcardUseCase;
 use rex_game_infrastructure::{
@@ -12,10 +14,18 @@ pub mod app_state;
 pub mod handlers;
 
 fn build_routers(app_state: RegularAppState) -> Router {
-    Router::new().route(
-        "/flash-cards",
-        get(FlashcardHandler::get_flashcards::<RegularAppState>).with_state(app_state),
-    )
+    Router::new()
+        .route(
+            "/flash-cards",
+            get(FlashcardHandler::get_flashcards::<RegularAppState>)
+                .post(FlashcardHandler::create_flashcard::<RegularAppState>)
+                .with_state(app_state.clone()),
+        )
+        .route(
+            "/flash-cards/:id",
+            get(FlashcardHandler::get_flashcard_by_id::<RegularAppState>)
+                .with_state(app_state.clone()),
+        )
 }
 
 #[tokio::main]
@@ -34,6 +44,7 @@ async fn start() {
 
             let app = build_routers(app_state);
             let listener = TcpListener::bind("0.0.0.0:3400").await.unwrap();
+            println!("The application is running at: http://localhost:3400");
             axum::serve(listener, app).await.unwrap();
         }
         Err(err) => {
