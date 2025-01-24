@@ -39,6 +39,40 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
+                    .table(FlashcardFile::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(FlashcardFile::Id)
+                            .integer()
+                            .not_null()
+                            .auto_increment()
+                            .primary_key(),
+                    )
+                    .col(ColumnDef::new(FlashcardFile::Name).string())
+                    .col(ColumnDef::new(FlashcardFile::FileName).string().not_null())
+                    .col(
+                        ColumnDef::new(FlashcardFile::ContentType)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(ColumnDef::new(FlashcardFile::Data).binary().not_null())
+                    .col(
+                        ColumnDef::new(FlashcardFile::CreatedDate)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(FlashcardFile::UpdatedDate)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
                     .table(Flashcard::Table)
                     .if_not_exists()
                     .col(
@@ -50,11 +84,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(Flashcard::Name).string().not_null())
                     .col(ColumnDef::new(Flashcard::Description).string())
-                    .col(
-                        ColumnDef::new(Flashcard::SubDescription)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(Flashcard::SubDescription).string())
                     .col(
                         ColumnDef::new(Flashcard::CreatedDate)
                             .timestamp_with_time_zone()
@@ -65,7 +95,13 @@ impl MigrationTrait for Migration {
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
-                    .col(ColumnDef::new(Flashcard::ImageData).binary().not_null())
+                    .col(ColumnDef::new(Flashcard::FileId).integer().not_null())
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk-flashcard-flashcard_file")
+                            .from(Flashcard::Table, Flashcard::FileId)
+                            .to(FlashcardFile::Table, FlashcardFile::Id),
+                    )
                     .to_owned(),
             )
             .await?;
@@ -141,6 +177,25 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
+enum FlashcardFile {
+    Table,
+    #[sea_orm(iden = "id")]
+    Id,
+    #[sea_orm(iden = "name")]
+    Name,
+    #[sea_orm(iden = "file_name")]
+    FileName,
+    #[sea_orm(iden = "content_type")]
+    ContentType,
+    #[sea_orm(iden = "created_date")]
+    CreatedDate,
+    #[sea_orm(iden = "updated_date")]
+    UpdatedDate,
+    #[sea_orm(iden = "data")]
+    Data,
+}
+
+#[derive(DeriveIden)]
 enum Flashcard {
     Table,
     #[sea_orm(iden = "id")]
@@ -155,8 +210,8 @@ enum Flashcard {
     CreatedDate,
     #[sea_orm(iden = "updated_date")]
     UpdatedDate,
-    #[sea_orm(iden = "image_data")]
-    ImageData,
+    #[sea_orm(iden = "file_id")]
+    FileId,
 }
 
 #[derive(DeriveIden)]

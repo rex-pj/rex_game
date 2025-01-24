@@ -13,4 +13,5 @@ pub trait FlashcardUseCaseTrait {
         &'a self,
         flashcard: FlashcardCreationDto,
     ) -> impl Future<Output = Option<i32>>;
+    fn get_image_by_file_id<'a>(&'a self, file_id: i32) -> impl Future<Output = Option<Vec<u8>>>;
 }

@@ -1,17 +1,17 @@
-use std::collections::HashMap;
-
 use axum::{
+    body::{Body, Bytes},
     extract::{Multipart, Path, Query, State},
+    http::StatusCode,
+    response::{IntoResponse, Response, Result},
     Json,
 };
-use config::Value;
 use rex_game_application::flashcards::{
     flashcard_creation_dto::FlashcardCreationDto, flashcard_dto::FlashcardDto,
     flashcard_usecase_trait::FlashcardUseCaseTrait,
 };
 use serde::Deserialize;
 
-use crate::app_state::AppStateTrait;
+use crate::{app_state::AppStateTrait, helpers::http_helper::HttpHelper};
 
 #[derive(Deserialize)]
 pub struct Pagination {
@@ -47,6 +47,24 @@ impl FlashcardHandler {
         };
     }
 
+    pub async fn get_flashcard_image<T: AppStateTrait>(
+        Path(file_id): Path<i32>,
+        State(_state): State<T>,
+    ) -> Result<Response<Body>, StatusCode> {
+        let flashcard_data = _state
+            .flashcard_usecase()
+            .get_image_by_file_id(file_id)
+            .await;
+        match flashcard_data {
+            None => Err(StatusCode::NOT_FOUND),
+            Some(file_data) => {
+                let response = HttpHelper::build_file_respone(file_data);
+
+                return Ok(response);
+            }
+        }
+    }
+
     pub async fn create_flashcard<T: AppStateTrait>(
         State(_state): State<T>,
         mut multipart: Multipart,
@@ -54,8 +72,10 @@ impl FlashcardHandler {
         let mut flashcard = FlashcardCreationDto {
             name: "".to_string(),
             description: None,
-            sub_description: "".to_string(),
+            sub_description: None,
             image_data: vec![],
+            content_type: "".to_string(),
+            file_name: "".to_string(),
         };
         while let Some(field) = multipart.next_field().await.unwrap() {
             match field.name() {
@@ -66,9 +86,11 @@ impl FlashcardHandler {
                     flashcard.description = Some(field.text().await.unwrap());
                 }
                 Some("sub_description") => {
-                    flashcard.sub_description = field.text().await.unwrap();
+                    flashcard.sub_description = Some(field.text().await.unwrap());
                 }
                 Some("image_data") => {
+                    flashcard.content_type = field.content_type().unwrap_or_default().to_string();
+                    flashcard.file_name = field.file_name().unwrap_or_default().to_string();
                     flashcard.image_data = field.bytes().await.unwrap().to_vec();
                 }
                 _ => {}

@@ -9,17 +9,30 @@ pub struct Model {
     pub id: i32,
     pub name: String,
     pub description: Option<String>,
-    pub sub_description: String,
+    pub sub_description: Option<String>,
     pub created_date: DateTimeWithTimeZone,
     pub updated_date: DateTimeWithTimeZone,
-    #[sea_orm(column_type = "VarBinary(StringLen::None)")]
-    pub image_data: Vec<u8>,
+    pub file_id: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::flashcard_file::Entity",
+        from = "Column::FileId",
+        to = "super::flashcard_file::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    FlashcardFile,
     #[sea_orm(has_many = "super::flashcard_type_relation::Entity")]
     FlashcardTypeRelation,
+}
+
+impl Related<super::flashcard_file::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::FlashcardFile.def()
+    }
 }
 
 impl Related<super::flashcard_type_relation::Entity> for Entity {

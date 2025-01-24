@@ -1,17 +1,19 @@
 use app_state::RegularAppState;
-use axum::{
-    routing::{get, post},
-    Router,
-};
+use axum::{routing::get, Router};
 use config::{Config, File};
 use handlers::flashcard_handler::FlashcardHandler;
 use rex_game_application::flashcards::flashcard_usecase::FlashcardUseCase;
 use rex_game_infrastructure::{
-    repositories::flashcard_repository::FlashcardRepository, seaorm_connection::SeaOrmConnection,
+    repositories::{
+        flashcard_file_repository::FlashcardFileRepository,
+        flashcard_repository::FlashcardRepository,
+    },
+    seaorm_connection::SeaOrmConnection,
 };
 use tokio::net::TcpListener;
 pub mod app_state;
 pub mod handlers;
+pub mod helpers;
 
 fn build_routers(app_state: RegularAppState) -> Router {
     Router::new()
@@ -26,6 +28,11 @@ fn build_routers(app_state: RegularAppState) -> Router {
             get(FlashcardHandler::get_flashcard_by_id::<RegularAppState>)
                 .with_state(app_state.clone()),
         )
+        .route(
+            "/flash-cards/images/:id",
+            get(FlashcardHandler::get_flashcard_image::<RegularAppState>)
+                .with_state(app_state.clone()),
+        )
 }
 
 #[tokio::main]
@@ -35,12 +42,11 @@ async fn start() {
     match db_connection {
         Ok(connection) => {
             println!("Successfully connected to the database.");
-            let flashcard_repository = FlashcardRepository::new(connection.pool);
-            let flashcard_usecase = FlashcardUseCase::new(flashcard_repository.clone());
-            let app_state = RegularAppState {
-                flashcard_repository: flashcard_repository.clone(),
-                flashcard_usecase,
-            };
+            let flashcard_repository = FlashcardRepository::new(connection.pool.clone());
+            let flashcard_file_repository = FlashcardFileRepository::new(connection.pool.clone());
+            let flashcard_usecase =
+                FlashcardUseCase::new(flashcard_repository, flashcard_file_repository);
+            let app_state = RegularAppState { flashcard_usecase };
 
             let app = build_routers(app_state);
             let listener = TcpListener::bind("0.0.0.0:3400").await.unwrap();
