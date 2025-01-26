@@ -8,4 +8,5 @@ pub struct FlashcardCreationDto {
     pub description: Option<String>,
     pub sub_description: Option<String>,
     pub image_data: Vec<u8>,
+    pub type_ids: Vec<i32>,
 }

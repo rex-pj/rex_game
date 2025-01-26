@@ -1,8 +1,8 @@
 use axum::{
-    body::{Body, Bytes},
+    body::Body,
     extract::{Multipart, Path, Query, State},
     http::StatusCode,
-    response::{IntoResponse, Response, Result},
+    response::{Response, Result},
     Json,
 };
 use rex_game_application::flashcards::{
@@ -14,23 +14,24 @@ use serde::Deserialize;
 use crate::{app_state::AppStateTrait, helpers::http_helper::HttpHelper};
 
 #[derive(Deserialize)]
-pub struct Pagination {
+pub struct FlashcardQuery {
     page: Option<u64>,
     page_size: Option<u64>,
+    type_name: Option<String>,
 }
 
 impl FlashcardHandler {
     pub async fn get_flashcards<T: AppStateTrait>(
         State(_state): State<T>,
-        Query(params): Query<Pagination>,
+        Query(params): Query<FlashcardQuery>,
     ) -> Json<Option<Vec<FlashcardDto>>> {
         let page = params.page.unwrap_or(1);
         let page_size = params.page_size.unwrap_or(10);
-        let flashcard = _state
+        let flashcards = _state
             .flashcard_usecase()
-            .get_flashcards(page, page_size)
+            .get_flashcards(params.type_name, page, page_size)
             .await;
-        return match flashcard {
+        return match flashcards {
             None => Json(None),
             Some(i) => Json(Some(i)),
         };
@@ -76,6 +77,7 @@ impl FlashcardHandler {
             image_data: vec![],
             content_type: "".to_string(),
             file_name: "".to_string(),
+            type_ids: vec![],
         };
         while let Some(field) = multipart.next_field().await.unwrap() {
             match field.name() {

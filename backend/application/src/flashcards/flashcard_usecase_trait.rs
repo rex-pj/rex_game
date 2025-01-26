@@ -5,6 +5,7 @@ use super::{flashcard_creation_dto::FlashcardCreationDto, flashcard_dto::Flashca
 pub trait FlashcardUseCaseTrait {
     fn get_flashcards<'a>(
         &'a self,
+        type_name: Option<String>,
         page: u64,
         page_size: u64,
     ) -> impl Future<Output = Option<Vec<FlashcardDto>>>;

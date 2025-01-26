@@ -6,6 +6,7 @@ use crate::entities::flashcard;
 pub trait FlashcardRepositoryTrait {
     fn get_list(
         &self,
+        type_name: Option<String>,
         page: u64,
         page_size: u64,
     ) -> impl Future<Output = Result<(Vec<flashcard::Model>, u64), DbErr>>;
