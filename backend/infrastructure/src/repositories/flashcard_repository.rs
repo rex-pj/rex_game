@@ -1,3 +1,4 @@
+use chrono::Utc;
 use rex_game_domain::{
     entities::{
         flashcard::{self, Entity as Flashcard},
@@ -7,9 +8,9 @@ use rex_game_domain::{
 };
 use sea_orm::{
     ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, InsertResult, JoinType,
-    PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, RelationTrait,
+    PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set,
 };
-use std::sync::Arc;
+use std::{f32::consts::E, sync::Arc};
 
 #[derive(Clone)]
 pub struct FlashcardRepository {
@@ -53,19 +54,34 @@ impl FlashcardRepositoryTrait for FlashcardRepository {
         paginator.fetch_page(page - 1).await.map(|p| (p, num_pages))
     }
 
-    async fn get_by_id(&self, id: i32) -> Result<Option<flashcard::Model>, DbErr> {
+    async fn get_by_id(&self, id: i32) -> Option<flashcard::Model> {
         let db = self._db_connection.as_ref();
-        let flashcard = Flashcard::find_by_id(id).one(db).await;
+        let existing = Flashcard::find_by_id(id).one(db).await;
 
-        return flashcard;
+        match existing {
+            Ok(i) => i,
+            Err(_) => None,
+        }
     }
 
     async fn create(
         &self,
-        flashcard: flashcard::ActiveModel,
+        mut flashcard: flashcard::ActiveModel,
     ) -> Result<InsertResult<flashcard::ActiveModel>, DbErr> {
         let db = self._db_connection.as_ref();
 
+        flashcard.created_date = Set(Utc::now().fixed_offset());
+        flashcard.updated_date = Set(Utc::now().fixed_offset());
         return Flashcard::insert(flashcard).exec(db).await;
+    }
+
+    async fn update(
+        &self,
+        mut flashcard: flashcard::ActiveModel,
+    ) -> Result<flashcard::Model, DbErr> {
+        let db = self._db_connection.as_ref();
+
+        flashcard.updated_date = Set(Utc::now().fixed_offset());
+        return Flashcard::update(flashcard).exec(db).await;
     }
 }

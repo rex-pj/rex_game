@@ -9,8 +9,10 @@ pub trait FlashcardFileRepositoryTrait {
         flashcard: flashcard_file::ActiveModel,
     ) -> impl Future<Output = Result<InsertResult<flashcard_file::ActiveModel>, DbErr>>;
 
-    fn get_by_id(
+    fn update(
         &self,
-        id: i32,
-    ) -> impl Future<Output = Result<Option<flashcard_file::Model>, DbErr>>;
+        flashcard: flashcard_file::ActiveModel,
+    ) -> impl Future<Output = Result<flashcard_file::Model, DbErr>>;
+
+    fn get_by_id(&self, id: i32) -> impl Future<Output = Option<flashcard_file::Model>>;
 }

@@ -1,10 +1,11 @@
+use chrono::Utc;
 use rex_game_domain::{
     entities::flashcard_type::{self, Entity as FlashcardType},
     repositories::flashcard_type_repository_trait::FlashcardTypeRepositoryTrait,
 };
 use sea_orm::{
     ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, InsertResult, PaginatorTrait,
-    QueryFilter, QueryOrder,
+    QueryFilter, QueryOrder, Set,
 };
 use std::sync::Arc;
 
@@ -51,19 +52,22 @@ impl FlashcardTypeRepositoryTrait for FlashcardTypeRepository {
 
     async fn create(
         &self,
-        flashcard_type: flashcard_type::ActiveModel,
+        mut flashcard_type: flashcard_type::ActiveModel,
     ) -> Result<InsertResult<flashcard_type::ActiveModel>, DbErr> {
         let db = self._db_connection.as_ref();
 
+        flashcard_type.created_date = Set(Utc::now().fixed_offset());
+        flashcard_type.updated_date = Set(Utc::now().fixed_offset());
         return FlashcardType::insert(flashcard_type).exec(db).await;
     }
 
     async fn update(
         &self,
-        flashcard_type: flashcard_type::ActiveModel,
+        mut flashcard_type: flashcard_type::ActiveModel,
     ) -> Result<flashcard_type::Model, DbErr> {
         let db = self._db_connection.as_ref();
 
+        flashcard_type.updated_date = Set(Utc::now().fixed_offset());
         return FlashcardType::update(flashcard_type).exec(db).await;
     }
 }

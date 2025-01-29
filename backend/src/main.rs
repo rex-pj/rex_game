@@ -30,7 +30,8 @@ fn build_routers(app_state: RegularAppState) -> Router {
         )
         .route(
             "/flash-cards/:id",
-            get(FlashcardHandler::get_flashcard_by_id::<RegularAppState>),
+            get(FlashcardHandler::get_flashcard_by_id::<RegularAppState>)
+                .patch(FlashcardHandler::update_flashcard::<RegularAppState>),
         )
         .route(
             "/flash-cards/images/:id",

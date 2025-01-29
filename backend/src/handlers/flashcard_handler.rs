@@ -7,7 +7,7 @@ use axum::{
 };
 use rex_game_application::flashcards::{
     flashcard_creation_dto::FlashcardCreationDto, flashcard_dto::FlashcardDto,
-    flashcard_usecase_trait::FlashcardUseCaseTrait,
+    flashcard_updation_dto::FlashcardUpdationDto, flashcard_usecase_trait::FlashcardUseCaseTrait,
 };
 use serde::Deserialize;
 
@@ -74,10 +74,10 @@ impl FlashcardHandler {
             name: "".to_string(),
             description: None,
             sub_description: None,
-            image_data: vec![],
             content_type: "".to_string(),
             file_name: "".to_string(),
             type_ids: vec![],
+            ..Default::default()
         };
         while let Some(field) = multipart.next_field().await.unwrap() {
             match field.name() {
@@ -93,13 +93,74 @@ impl FlashcardHandler {
                 Some("image_data") => {
                     flashcard.content_type = field.content_type().unwrap_or_default().to_string();
                     flashcard.file_name = field.file_name().unwrap_or_default().to_string();
-                    flashcard.image_data = field.bytes().await.unwrap().to_vec();
+                    let bytes_data = field.bytes().await;
+                    match bytes_data {
+                        Ok(bytes) => {
+                            if bytes.len() > 0 {
+                                flashcard.image_data = Some(bytes.to_vec());
+                            }
+                        }
+                        Err(_) => {}
+                    }
                 }
                 _ => {}
             }
         }
 
         let result = _state.flashcard_usecase().create_flashcard(flashcard).await;
+        return match result {
+            None => Json(None),
+            Some(i) => Json(Some(i)),
+        };
+    }
+
+    pub async fn update_flashcard<T: AppStateTrait>(
+        State(_state): State<T>,
+        Path(id): Path<i32>,
+        mut multipart: Multipart,
+    ) -> Json<Option<i32>> {
+        let mut flashcard = FlashcardUpdationDto {
+            name: None,
+            description: None,
+            sub_description: None,
+            content_type: None,
+            file_name: None,
+            type_ids: None,
+            image_data: None,
+        };
+        while let Some(field) = multipart.next_field().await.unwrap() {
+            match field.name() {
+                Some("name") => {
+                    flashcard.name = Some(field.text().await.unwrap());
+                }
+                Some("description") => {
+                    flashcard.description = Some(field.text().await.unwrap());
+                }
+                Some("sub_description") => {
+                    flashcard.sub_description = Some(field.text().await.unwrap());
+                }
+                Some("image_data") => {
+                    flashcard.content_type =
+                        Some(field.content_type().unwrap_or_default().to_string());
+                    flashcard.file_name = Some(field.file_name().unwrap_or_default().to_string());
+                    let bytes_data = field.bytes().await;
+                    match bytes_data {
+                        Ok(bytes) => {
+                            if bytes.len() > 0 {
+                                flashcard.image_data = Some(bytes.to_vec());
+                            }
+                        }
+                        Err(_) => {}
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        let result = _state
+            .flashcard_usecase()
+            .update_flashcard(id, flashcard)
+            .await;
         return match result {
             None => Json(None),
             Some(i) => Json(Some(i)),
