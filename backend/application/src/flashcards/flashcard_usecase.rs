@@ -188,6 +188,9 @@ impl<
                 updating_flashcard.sub_description = Set(Some(sub_description));
             }
 
+            let updated_flashcard = self._flashcard_repository.update(updating_flashcard).await;
+            if let Ok(_) = updated_flashcard {}
+
             if let Some(req_type_ids) = flashcard_req.type_ids {
                 let existing_types = self
                     ._flashcard_type_relation_repository
