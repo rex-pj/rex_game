@@ -1,0 +1,64 @@
+use crate::{
+    errors::application_error::{ApplicationError, ErrorKind},
+    users::{user_creation_dto::UserCreationDto, user_usecase_trait::UserUseCaseTrait},
+};
+
+use super::{
+    identity_user_trait::IdentityUserTrait, identity_user_usecase_trait::IdentityUserUseCaseTrait,
+};
+use rex_game_domain::identities::password_hasher_trait::PasswordHasherTrait;
+
+#[derive(Clone)]
+pub struct IdentityUserUseCase<PH, US>
+where
+    PH: PasswordHasherTrait,
+    US: UserUseCaseTrait,
+{
+    _password_hasher: PH,
+    _user_usecase: US,
+}
+
+impl<PH: PasswordHasherTrait, US: UserUseCaseTrait> IdentityUserUseCase<PH, US> {
+    pub fn new(password_hasher: PH, user_usecase: US) -> Self {
+        Self {
+            _password_hasher: password_hasher,
+            _user_usecase: user_usecase,
+        }
+    }
+}
+
+impl<PH: PasswordHasherTrait, US: UserUseCaseTrait> IdentityUserUseCaseTrait
+    for IdentityUserUseCase<PH, US>
+{
+    async fn create_user<UT: IdentityUserTrait<K>, K>(
+        &self,
+        mut user: UT,
+        password: &str,
+    ) -> Result<UT, ApplicationError> {
+        let salt = self._password_hasher.generate_salt();
+        user.set_security_stamp(&salt);
+        let password_hash_result = self._password_hasher.hash(password, 16, salt);
+        match password_hash_result {
+            Ok(password_hash) => {
+                let password_hash_str: &str = password_hash.as_str();
+                user.set_password_hash(password_hash_str);
+
+                self._user_usecase
+                    .create_user(UserCreationDto {
+                        display_name: user.display_name().map(|f| String::from(f)),
+                        email: String::from(user.email()),
+                        name: String::from(user.name()),
+                        password: String::from(user.password_hash()),
+                        security_stamp: String::from(user.security_stamp()),
+                    })
+                    .await;
+                Ok(user)
+            }
+            Err(_) => Err(ApplicationError {
+                kind: ErrorKind::InvalidInput,
+                message: String::from("Password hash failed"),
+                details: None,
+            }),
+        }
+    }
+}

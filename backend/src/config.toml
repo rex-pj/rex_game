@@ -1,3 +1,5 @@
 [database]
 # postgres://user:password@localhost/db_name
 url = "postgres://user:password@localhost/db_name"
+rex_game_client_id = "clientid"
+rex_game_client_secret = "clientsecret"

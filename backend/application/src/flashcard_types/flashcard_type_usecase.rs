@@ -74,11 +74,11 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
 
     async fn create_flashcard_type<'a>(
         &'a self,
-        flashcard_req: FlashcardTypeCreationDto,
+        flashcard_type_req: FlashcardTypeCreationDto,
     ) -> Option<i32> {
         let active_flashcard_type = flashcard_type::ActiveModel {
-            name: Set(flashcard_req.name),
-            description: Set(flashcard_req.description),
+            name: Set(flashcard_type_req.name),
+            description: Set(flashcard_type_req.description),
             created_date: Set(Utc::now().fixed_offset()),
             updated_date: Set(Utc::now().fixed_offset()),
             ..Default::default()
@@ -96,15 +96,15 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
     async fn update_flashcard_type<'a>(
         &'a self,
         id: i32,
-        flashcard_req: FlashcardTypeUpdationDto,
+        flashcard_type_req: FlashcardTypeUpdationDto,
     ) -> Option<FlashcardTypeDto> {
         let existing = self._flashcard_type_repository.get_by_id(id).await;
         match existing {
             Ok(exist) => match exist {
                 Some(data) => {
                     let mut updating: flashcard_type::ActiveModel = data.into();
-                    updating.name = Set(flashcard_req.name);
-                    updating.description = Set(flashcard_req.description);
+                    updating.name = Set(flashcard_type_req.name);
+                    updating.description = Set(flashcard_type_req.description);
                     updating.updated_date = Set(Utc::now().fixed_offset());
                     let updated = self._flashcard_type_repository.update(updating).await;
                     match updated {

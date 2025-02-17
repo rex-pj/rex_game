@@ -10,7 +10,7 @@ use sea_orm::{
     ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, InsertResult, JoinType,
     PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set,
 };
-use std::{f32::consts::E, sync::Arc};
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct FlashcardRepository {

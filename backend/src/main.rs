@@ -1,18 +1,24 @@
 use app_state::RegularAppState;
-use axum::{routing::get, Router};
+use axum::{routing::get, routing::post, Router};
 use config::{Config, File};
-use handlers::flashcard_handler::FlashcardHandler;
 use handlers::flashcard_type_handler::FlashcardTypeHandler;
+use handlers::user_handler::UserHandler;
+use handlers::{
+    authentication_handler::AuthenticationHandler, flashcard_handler::FlashcardHandler,
+};
+use rex_game_application::identities::identity_login_usecase::IdentityLoginUseCase;
+use rex_game_application::identities::identity_user_usecase::IdentityUserUseCase;
 use rex_game_application::{
     flashcard_types::flashcard_type_usecase::FlashcardTypeUseCase,
-    flashcards::flashcard_usecase::FlashcardUseCase,
+    flashcards::flashcard_usecase::FlashcardUseCase, users::user_usecase::UserUseCase,
 };
+use rex_game_infrastructure::identities::identity_password_hasher::IdentityPasswordHasher;
 use rex_game_infrastructure::{
     repositories::{
         flashcard_file_repository::FlashcardFileRepository,
         flashcard_repository::FlashcardRepository,
         flashcard_type_relation_repository::FlashcardTypeRelationRepository,
-        flashcard_type_repository::FlashcardTypeRepository,
+        flashcard_type_repository::FlashcardTypeRepository, user_repository::UserRepository,
     },
     seaorm_connection::SeaOrmConnection,
 };
@@ -20,6 +26,7 @@ use tokio::net::TcpListener;
 pub mod app_state;
 pub mod handlers;
 pub mod helpers;
+pub mod view_models;
 
 fn build_routers(app_state: RegularAppState) -> Router {
     Router::new()
@@ -47,6 +54,11 @@ fn build_routers(app_state: RegularAppState) -> Router {
             get(FlashcardTypeHandler::get_flashcard_type_by_id::<RegularAppState>)
                 .put(FlashcardTypeHandler::update_flashcard_type::<RegularAppState>),
         )
+        .route("/users", post(UserHandler::create_user::<RegularAppState>))
+        .route(
+            "/auth",
+            post(AuthenticationHandler::login::<RegularAppState>),
+        )
         .with_state(app_state)
 }
 
@@ -61,6 +73,8 @@ async fn start() {
             let flashcard_file_repository = FlashcardFileRepository::new(connection.pool.clone());
             let flashcard_type_relation_repository =
                 FlashcardTypeRelationRepository::new(connection.pool.clone());
+            let user_repository = UserRepository::new(connection.pool.clone());
+            let identity_password_hasher = IdentityPasswordHasher::new();
 
             let flashcard_usecase = FlashcardUseCase::new(
                 flashcard_repository,
@@ -70,9 +84,17 @@ async fn start() {
 
             let flashcard_type_repository = FlashcardTypeRepository::new(connection.pool.clone());
             let flashcard_type_usecase = FlashcardTypeUseCase::new(flashcard_type_repository);
+            let user_usecase = UserUseCase::new(user_repository);
+            let identity_user_usecase =
+                IdentityUserUseCase::new(identity_password_hasher.clone(), user_usecase.clone());
+            let identity_login_usecase =
+                IdentityLoginUseCase::new(identity_password_hasher, user_usecase.clone());
             let app_state = RegularAppState {
                 flashcard_usecase,
                 flashcard_type_usecase,
+                user_usecase,
+                identity_user_usecase,
+                identity_login_usecase,
             };
 
             let app = build_routers(app_state);
