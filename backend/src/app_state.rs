@@ -15,7 +15,10 @@ use rex_game_application::{
     users::{user_usecase::UserUseCase, user_usecase_trait::UserUseCaseTrait},
 };
 use rex_game_infrastructure::{
-    identities::identity_password_hasher::IdentityPasswordHasher,
+    identities::{
+        identity_password_hasher::IdentityPasswordHasher,
+        identity_token_helper::IdentityTokenHelper,
+    },
     repositories::{
         flashcard_file_repository::FlashcardFileRepository,
         flashcard_repository::FlashcardRepository,
@@ -48,8 +51,11 @@ pub struct RegularAppState {
     pub user_usecase: UserUseCase<UserRepository>,
     pub identity_user_usecase:
         IdentityUserUseCase<IdentityPasswordHasher, UserUseCase<UserRepository>>,
-    pub identity_login_usecase:
-        IdentityLoginUseCase<IdentityPasswordHasher, UserUseCase<UserRepository>>,
+    pub identity_login_usecase: IdentityLoginUseCase<
+        IdentityPasswordHasher,
+        UserUseCase<UserRepository>,
+        IdentityTokenHelper,
+    >,
 }
 
 impl AppStateTrait for RegularAppState {
@@ -62,8 +68,11 @@ impl AppStateTrait for RegularAppState {
     type UserUseCase = UserUseCase<UserRepository>;
     type IdentityUserUseCase =
         IdentityUserUseCase<IdentityPasswordHasher, UserUseCase<UserRepository>>;
-    type IdentityLoginUseCase =
-        IdentityLoginUseCase<IdentityPasswordHasher, UserUseCase<UserRepository>>;
+    type IdentityLoginUseCase = IdentityLoginUseCase<
+        IdentityPasswordHasher,
+        UserUseCase<UserRepository>,
+        IdentityTokenHelper,
+    >;
 
     fn flashcard_usecase(&self) -> &Self::FlashcardUseCase {
         &self.flashcard_usecase

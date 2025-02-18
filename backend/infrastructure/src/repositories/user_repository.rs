@@ -1,11 +1,11 @@
 use chrono::Utc;
 use rex_game_domain::{
-    entities::user::{self, ActiveModel, Entity as User},
+    entities::user::{self, Entity as User},
     repositories::user_repository_trait::UserRepositoryTrait,
 };
 use sea_orm::{
     ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, InsertResult, QueryFilter, Set,
-    TransactionTrait, Update,
+    TransactionTrait,
 };
 use std::sync::Arc;
 

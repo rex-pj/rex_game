@@ -4,8 +4,7 @@ use sea_orm::{DbErr, Set};
 
 use super::{
     user_creation_dto::UserCreationDto, user_details_dto::UserDetailsDto,
-    user_login_parameter::UserLoginParameter, user_statuses::UserStatuses,
-    user_usecase_trait::UserUseCaseTrait,
+    user_statuses::UserStatuses, user_usecase_trait::UserUseCaseTrait,
 };
 
 #[derive(Clone)]
@@ -25,11 +24,8 @@ impl<UT: UserRepositoryTrait> UserUseCase<UT> {
 }
 
 impl<UT: UserRepositoryTrait> UserUseCaseTrait for UserUseCase<UT> {
-    async fn get_user_by_email<'a>(
-        &'a self,
-        parameters: UserLoginParameter,
-    ) -> Result<UserDetailsDto, DbErr> {
-        let existing = self._user_repository.get_by_email(parameters.email).await;
+    async fn get_user_by_email<'a>(&'a self, email: String) -> Result<UserDetailsDto, DbErr> {
+        let existing = self._user_repository.get_by_email(email).await;
         match existing {
             Ok(i) => match i {
                 Some(f) => Ok(UserDetailsDto {

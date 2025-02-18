@@ -1,6 +1,5 @@
 use app_state::RegularAppState;
 use axum::{routing::get, routing::post, Router};
-use config::{Config, File};
 use handlers::flashcard_type_handler::FlashcardTypeHandler;
 use handlers::user_handler::UserHandler;
 use handlers::{
@@ -12,7 +11,9 @@ use rex_game_application::{
     flashcard_types::flashcard_type_usecase::FlashcardTypeUseCase,
     flashcards::flashcard_usecase::FlashcardUseCase, users::user_usecase::UserUseCase,
 };
+use rex_game_infrastructure::helpers::configuration_helper::ConfigurationHelper;
 use rex_game_infrastructure::identities::identity_password_hasher::IdentityPasswordHasher;
+use rex_game_infrastructure::identities::identity_token_helper::IdentityTokenHelper;
 use rex_game_infrastructure::{
     repositories::{
         flashcard_file_repository::FlashcardFileRepository,
@@ -75,6 +76,7 @@ async fn start() {
                 FlashcardTypeRelationRepository::new(connection.pool.clone());
             let user_repository = UserRepository::new(connection.pool.clone());
             let identity_password_hasher = IdentityPasswordHasher::new();
+            let identity_token_helper = IdentityTokenHelper::new();
 
             let flashcard_usecase = FlashcardUseCase::new(
                 flashcard_repository,
@@ -87,8 +89,11 @@ async fn start() {
             let user_usecase = UserUseCase::new(user_repository);
             let identity_user_usecase =
                 IdentityUserUseCase::new(identity_password_hasher.clone(), user_usecase.clone());
-            let identity_login_usecase =
-                IdentityLoginUseCase::new(identity_password_hasher, user_usecase.clone());
+            let identity_login_usecase = IdentityLoginUseCase::new(
+                identity_password_hasher,
+                user_usecase.clone(),
+                identity_token_helper,
+            );
             let app_state = RegularAppState {
                 flashcard_usecase,
                 flashcard_type_usecase,
@@ -109,15 +114,7 @@ async fn start() {
 }
 
 fn get_connection_string() -> String {
-    let config_file = File::with_name("src/config.toml");
-    let settings = Config::builder()
-        .add_source(config_file)
-        .build()
-        .expect("Failed to load configuration");
-
-    settings
-        .get_string("database.url")
-        .expect("Database URL is missing")
+    ConfigurationHelper::get_value("database.url")
 }
 
 fn main() {
