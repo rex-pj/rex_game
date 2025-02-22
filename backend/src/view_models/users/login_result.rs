@@ -4,7 +4,4 @@ use serde::{Deserialize, Serialize};
 pub struct LoginResult {
     pub token: String,
     pub refresh_token: String,
-    pub user_id: i32,
-    pub user_email: String,
-    pub display_name: Option<String>,
 }

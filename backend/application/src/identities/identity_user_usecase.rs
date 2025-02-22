@@ -1,5 +1,5 @@
 use crate::{
-    errors::application_error::{ApplicationError, ErrorKind},
+    errors::application_error::ApplicationError,
     users::{user_creation_dto::UserCreationDto, user_usecase_trait::UserUseCaseTrait},
 };
 
@@ -37,28 +37,21 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait> IdentityUserUseCaseTrait
     ) -> Result<UT, ApplicationError> {
         let salt = self._password_hasher.generate_salt();
         user.set_security_stamp(&salt);
-        let password_hash_result = self._password_hasher.hash(password, 16, salt);
-        match password_hash_result {
-            Ok(password_hash) => {
-                let password_hash_str: &str = password_hash.as_str();
-                user.set_password_hash(password_hash_str);
+        let password_hash_result = self._password_hasher.hash(password, salt);
+        user.set_password_hash(&password_hash_result);
 
-                self._user_usecase
-                    .create_user(UserCreationDto {
-                        display_name: user.display_name().map(|f| String::from(f)),
-                        email: String::from(user.email()),
-                        name: String::from(user.name()),
-                        password: String::from(user.password_hash()),
-                        security_stamp: String::from(user.security_stamp()),
-                    })
-                    .await;
-                Ok(user)
-            }
-            Err(_) => Err(ApplicationError {
-                kind: ErrorKind::InvalidInput,
-                message: String::from("Password hash failed"),
-                details: None,
-            }),
-        }
+        let id = self
+            ._user_usecase
+            .create_user(UserCreationDto {
+                display_name: user.display_name().map(|f| String::from(f)),
+                email: String::from(user.email()),
+                name: String::from(user.name()),
+                password: String::from(user.password_hash()),
+                security_stamp: String::from(user.security_stamp()),
+            })
+            .await
+            .unwrap();
+        user.set_id(id);
+        Ok(user)
     }
 }

@@ -1,6 +1,7 @@
-use std::string::FromUtf8Error;
+use super::IdentityError;
 
 pub trait PasswordHasherTrait {
-    fn hash(&self, password: &str, key_size: usize, salt: String) -> Result<String, FromUtf8Error>;
+    fn hash(&self, password: &str, salt: String) -> String;
     fn generate_salt(&self) -> String;
+    fn verify_password(&self, password: &str, password_hash: &str) -> Result<(), IdentityError>;
 }

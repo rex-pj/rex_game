@@ -8,7 +8,7 @@ use rex_game_application::{
 use crate::{app_state::AppStateTrait, view_models::users::login_result::LoginResult};
 
 impl AuthenticationHandler {
-    pub async fn login<T: AppStateTrait>(
+    pub async fn authenticate<T: AppStateTrait>(
         State(_state): State<T>,
         Json(payload): Json<Option<UserLoginParameter>>,
     ) -> Result<Json<LoginResult>, StatusCode> {
@@ -21,11 +21,8 @@ impl AuthenticationHandler {
 
                 match login_result {
                     Ok(result) => Ok(Json(LoginResult {
-                        display_name: result.display_name,
-                        user_email: result.user_email,
                         refresh_token: result.refresh_token,
                         token: result.token,
-                        user_id: result.user_id,
                     })),
                     Err(_) => Err(StatusCode::UNAUTHORIZED),
                 }

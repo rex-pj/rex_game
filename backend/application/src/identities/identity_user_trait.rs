@@ -1,4 +1,5 @@
 pub trait IdentityUserTrait<K> {
+    fn set_id(&mut self, value: i32);
     fn set_password_hash(&mut self, value: &str);
     fn set_security_stamp(&mut self, value: &str);
     fn set_display_name(&mut self, value: &str);

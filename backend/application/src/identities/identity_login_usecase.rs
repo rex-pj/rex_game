@@ -46,31 +46,32 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait> Identi
             .await;
         match login_result {
             Ok(existing_user) => {
-                let password_hash = self
+                let verify_result = self
                     ._password_hasher
-                    .hash(password, 16, existing_user.security_stamp)
-                    .unwrap();
-                if existing_user.password_hash == password_hash {
-                    let token = self
-                        ._token_helper
-                        .generate_token(&existing_user.name, email)
-                        .unwrap();
+                    .verify_password(password, &existing_user.password_hash);
+                match verify_result {
+                    Ok(_) => {
+                        let token = self
+                            ._token_helper
+                            .generate_token(&existing_user.name, email)
+                            .unwrap();
 
-                    let refresh_token = self._token_helper.generate_refresh_token(email).unwrap();
-                    return Ok(LoginClaims {
-                        display_name: existing_user.display_name,
-                        token: token,
-                        user_email: existing_user.email,
-                        user_id: existing_user.id,
-                        refresh_token: refresh_token,
-                    });
+                        let refresh_token =
+                            self._token_helper.generate_refresh_token(email).unwrap();
+                        Ok(LoginClaims {
+                            display_name: existing_user.display_name,
+                            token: token,
+                            user_email: existing_user.email,
+                            user_id: existing_user.id,
+                            refresh_token: refresh_token,
+                        })
+                    }
+                    Err(e) => Err(ApplicationError {
+                        kind: ErrorKind::InvalidInput,
+                        message: e.message,
+                        details: None,
+                    }),
                 }
-
-                Err(ApplicationError {
-                    kind: ErrorKind::InvalidInput,
-                    message: String::from("Wrong information"),
-                    details: None,
-                })
             }
             Err(_) => Err(ApplicationError {
                 kind: ErrorKind::InvalidInput,

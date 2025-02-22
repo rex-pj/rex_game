@@ -57,8 +57,8 @@ fn build_routers(app_state: RegularAppState) -> Router {
         )
         .route("/users", post(UserHandler::create_user::<RegularAppState>))
         .route(
-            "/auth",
-            post(AuthenticationHandler::login::<RegularAppState>),
+            "/auth/authenticate",
+            post(AuthenticationHandler::authenticate::<RegularAppState>),
         )
         .with_state(app_state)
 }

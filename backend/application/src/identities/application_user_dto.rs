@@ -27,6 +27,10 @@ impl IdentityUserTrait<i32> for ApplicationUserDto {
         &self.security_stamp
     }
 
+    fn set_id(&mut self, value: i32) {
+        self.id = value;
+    }
+
     fn set_password_hash(&mut self, value: &str) {
         self.password_hash = String::from(value);
     }
