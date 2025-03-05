@@ -1,8 +1,9 @@
 [database]
+# postgres://user:password@localhost/db_name
 url = "postgres://user:password@localhost/db_name"
 [identity]
 app_name = "Rex Game"
-issuer = "rex_game"
-secret = "rex_game.clientsecret"
+client_id = "rex_game"
+client_secret = "rex_game.clientsecret"
 expiration = "10000000000"
 refresh_expiration = "1000000000000"

@@ -7,14 +7,15 @@ use rex_game_application::{
         flashcard_usecase::FlashcardUseCase, flashcard_usecase_trait::FlashcardUseCaseTrait,
     },
     identities::{
-        identity_login_usecase::IdentityLoginUseCase,
-        identity_login_usecase_trait::IdentityLoginUseCaseTrait,
+        identity_authenticate_usecase::IdentityAuthenticateUseCase,
+        identity_authenticate_usecase_trait::IdentityAuthenticateUseCaseTrait,
         identity_user_usecase::IdentityUserUseCase,
         identity_user_usecase_trait::IdentityUserUseCaseTrait,
     },
     users::{user_usecase::UserUseCase, user_usecase_trait::UserUseCaseTrait},
 };
 use rex_game_infrastructure::{
+    helpers::configuration_helper::ConfigurationHelper,
     identities::{
         identity_password_hasher::IdentityPasswordHasher,
         identity_token_helper::IdentityTokenHelper,
@@ -32,12 +33,12 @@ pub trait AppStateTrait: Clone + Send + Sync + 'static {
     type FlashcardTypeUseCase: FlashcardTypeUseCaseTrait;
     type UserUseCase: UserUseCaseTrait;
     type IdentityUserUseCase: IdentityUserUseCaseTrait;
-    type IdentityLoginUseCase: IdentityLoginUseCaseTrait;
+    type IdentityAuthenticateUseCase: IdentityAuthenticateUseCaseTrait;
     fn flashcard_usecase(&self) -> &Self::FlashcardUseCase;
     fn flashcard_type_usecase(&self) -> &Self::FlashcardTypeUseCase;
     fn user_usecase(&self) -> &Self::UserUseCase;
     fn identity_user_usecase(&self) -> &Self::IdentityUserUseCase;
-    fn identity_login_usecase(&self) -> &Self::IdentityLoginUseCase;
+    fn identity_authenticate_usecase(&self) -> &Self::IdentityAuthenticateUseCase;
 }
 
 #[derive(Clone)]
@@ -51,10 +52,10 @@ pub struct RegularAppState {
     pub user_usecase: UserUseCase<UserRepository>,
     pub identity_user_usecase:
         IdentityUserUseCase<IdentityPasswordHasher, UserUseCase<UserRepository>>,
-    pub identity_login_usecase: IdentityLoginUseCase<
+    pub identity_authenticate_usecase: IdentityAuthenticateUseCase<
         IdentityPasswordHasher,
         UserUseCase<UserRepository>,
-        IdentityTokenHelper,
+        IdentityTokenHelper<ConfigurationHelper>,
     >,
 }
 
@@ -68,10 +69,10 @@ impl AppStateTrait for RegularAppState {
     type UserUseCase = UserUseCase<UserRepository>;
     type IdentityUserUseCase =
         IdentityUserUseCase<IdentityPasswordHasher, UserUseCase<UserRepository>>;
-    type IdentityLoginUseCase = IdentityLoginUseCase<
+    type IdentityAuthenticateUseCase = IdentityAuthenticateUseCase<
         IdentityPasswordHasher,
         UserUseCase<UserRepository>,
-        IdentityTokenHelper,
+        IdentityTokenHelper<ConfigurationHelper>,
     >;
 
     fn flashcard_usecase(&self) -> &Self::FlashcardUseCase {
@@ -90,7 +91,7 @@ impl AppStateTrait for RegularAppState {
         &self.identity_user_usecase
     }
 
-    fn identity_login_usecase(&self) -> &Self::IdentityLoginUseCase {
-        &self.identity_login_usecase
+    fn identity_authenticate_usecase(&self) -> &Self::IdentityAuthenticateUseCase {
+        &self.identity_authenticate_usecase
     }
 }

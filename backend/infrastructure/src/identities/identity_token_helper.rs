@@ -1,62 +1,156 @@
-use crate::helpers::configuration_helper::ConfigurationHelper;
+use std::sync::Arc;
 
-use super::{IdentityRefreshTokenClaims, IdentityTokenClaims};
-use jsonwebtoken::{encode, EncodingKey, Header};
-use rex_game_domain::identities::token_helper_trait::TokenHelperTrait;
+use super::{IdentityAccessTokenClaims, IdentityRefreshTokenClaims};
+use chrono::{Duration, Utc};
+use jsonwebtoken::DecodingKey;
+use jsonwebtoken::EncodingKey;
+use jsonwebtoken::{
+    decode, encode,
+    errors::{Error, ErrorKind},
+    Header, Validation,
+};
+use rex_game_domain::{
+    helpers::configuration_helper_trait::ConfigurationHelperTrait,
+    identities::{
+        token_helper_trait::TokenHelperTrait, IdentityClaims, IdentityError, UserAccessClaims,
+    },
+};
 
-impl IdentityTokenHelper {
-    pub fn new() -> Self {
-        Self
+#[derive(Clone)]
+pub struct IdentityTokenHelper<CF: ConfigurationHelperTrait> {
+    _configuration_helper: Arc<CF>,
+    _client_id: Arc<String>,
+    _client_secret: String,
+    _app_name: Arc<String>,
+    _expiration: i64,
+    _refresh_expiration: i64,
+}
+
+impl<CF: ConfigurationHelperTrait> IdentityTokenHelper<CF> {
+    pub fn new(configuration_helper: Arc<CF>) -> Self {
+        return Self {
+            _client_id: Arc::new(configuration_helper.get_value("identity.client_id")),
+            _client_secret: configuration_helper.get_value("identity.client_secret"),
+            _app_name: Arc::new(configuration_helper.get_value("identity.app_name")),
+            _expiration: configuration_helper
+                .get_value("identity.expiration")
+                .parse()
+                .unwrap(),
+            _refresh_expiration: configuration_helper
+                .get_value("identity.refresh_expiration")
+                .parse()
+                .unwrap(),
+            _configuration_helper: configuration_helper,
+        };
     }
 }
 
-impl TokenHelperTrait for IdentityTokenHelper {
-    fn generate_token(&self, user_name: &str, email: &str) -> Option<String> {
-        let client_id = ConfigurationHelper::get_value("identity.issuer");
-        let app_name = ConfigurationHelper::get_value("identity.app_name");
-        let client_secret = ConfigurationHelper::get_value("identity.secret");
-        let expiration: u64 = ConfigurationHelper::get_value("identity.expiration")
-            .parse()
-            .unwrap();
+impl<CF: ConfigurationHelperTrait> IdentityTokenHelper<CF> {
+    fn get_access_token_claims(
+        &self,
+        access_token: &str,
+    ) -> Result<IdentityAccessTokenClaims, Error> {
+        let mut validation: Validation = Validation::default();
+        validation.set_audience(&[self._client_id.to_string()]);
+        validation.set_issuer(&[self._client_id.to_string()]);
+        match decode::<IdentityAccessTokenClaims>(
+            access_token,
+            &DecodingKey::from_secret(self._client_secret.as_bytes()),
+            &validation,
+        ) {
+            Ok(token_data) => Ok(token_data.claims),
+            Err(_) => return Err(Error::from(ErrorKind::InvalidToken)),
+        }
+    }
 
-        let claims = IdentityTokenClaims {
-            aud: user_name.to_owned(),
+    fn get_refresh_token_claims(
+        &self,
+        refresh_token: &str,
+    ) -> Result<IdentityRefreshTokenClaims, Error> {
+        let mut validation: Validation = Validation::default();
+        validation.set_audience(&[self._client_id.to_string()]);
+        validation.set_issuer(&[self._client_id.to_string()]);
+        let token_claims = match decode::<IdentityRefreshTokenClaims>(
+            refresh_token,
+            &DecodingKey::from_secret(self._client_secret.as_bytes()),
+            &validation,
+        ) {
+            Ok(token_data) => token_data.claims,
+            Err(_) => return Err(Error::from(ErrorKind::InvalidToken)),
+        };
+
+        let now = Utc::now().timestamp() as u64;
+        if token_claims.exp < now {
+            return Err(Error::from(ErrorKind::InvalidToken));
+        }
+
+        Ok(token_claims)
+    }
+}
+
+impl<CF: ConfigurationHelperTrait> TokenHelperTrait for IdentityTokenHelper<CF> {
+    fn generate_access_token(&self, user_name: &str, email: &str) -> Option<UserAccessClaims> {
+        let now = Utc::now();
+        let claims = IdentityAccessTokenClaims {
+            aud: self._client_id.to_string(),
             sub: email.to_owned(),
-            iss: client_id,
-            company: app_name,
-            exp: expiration,
+            iss: self._client_id.to_string(),
+            company: self._app_name.to_string(),
+            exp: (now + Duration::milliseconds(self._expiration)).timestamp() as u64,
             token_type: String::from("access"),
         };
 
         let token_result = encode(
             &Header::default(),
             &claims,
-            &EncodingKey::from_secret(client_secret.as_bytes()),
+            &EncodingKey::from_secret(self._client_secret.as_bytes()),
         );
 
         match token_result {
-            Ok(token) => Some(token),
+            Ok(token) => Some(UserAccessClaims {
+                access_token: token,
+                email: email.to_owned(),
+                name: user_name.to_owned(),
+                expiration: claims.exp,
+            }),
+            Err(_) => None,
+        }
+    }
+
+    fn refresh_access_token(
+        &self,
+        access_token: &str,
+        refresh_token: &str,
+    ) -> Option<UserAccessClaims> {
+        let access_claims = self.get_access_token_claims(access_token).unwrap();
+        let refresh_claims = self.get_refresh_token_claims(refresh_token);
+
+        match refresh_claims {
+            Ok(rf_token_claims) => {
+                if access_claims.sub != rf_token_claims.sub {
+                    return None;
+                }
+
+                self.generate_access_token(&access_claims.aud, &access_claims.sub)
+            }
             Err(_) => None,
         }
     }
 
     fn generate_refresh_token(&self, email: &str) -> Option<String> {
-        let client_id = ConfigurationHelper::get_value("identity.issuer");
-        let client_secret = ConfigurationHelper::get_value("identity.secret");
-        let refresh_expiration: u64 = ConfigurationHelper::get_value("identity.refresh_expiration")
-            .parse()
-            .unwrap();
+        let now = Utc::now();
         let claims = IdentityRefreshTokenClaims {
             sub: email.to_owned(),
             token_type: String::from("refresh"),
-            iss: client_id,
-            exp: refresh_expiration,
+            iss: self._client_id.to_string(),
+            aud: self._client_id.to_string(),
+            exp: (now + Duration::milliseconds(self._refresh_expiration)).timestamp() as u64,
         };
 
         let token_result = encode(
             &Header::default(),
             &claims,
-            &EncodingKey::from_secret(client_secret.as_bytes()),
+            &EncodingKey::from_secret(self._client_secret.as_bytes()),
         );
 
         match token_result {
@@ -64,7 +158,33 @@ impl TokenHelperTrait for IdentityTokenHelper {
             Err(_) => None,
         }
     }
-}
 
-#[derive(Clone)]
-pub struct IdentityTokenHelper;
+    fn validate_access_token(&self, access_token: &str) -> Result<IdentityClaims, IdentityError> {
+        let token_data_claims = match self.get_access_token_claims(access_token) {
+            Ok(claims) => claims,
+            Err(_) => {
+                return Err(IdentityError {
+                    kind: rex_game_domain::identities::IdentityErrorKind::Unauthorized,
+                    message: String::from("Token is invalid"),
+                    details: None,
+                })
+            }
+        };
+
+        let now = Utc::now().timestamp() as u64;
+        if token_data_claims.exp < now {
+            return Err(IdentityError {
+                kind: rex_game_domain::identities::IdentityErrorKind::Unauthorized,
+                message: String::from("Token is invalid or expired"),
+                details: None,
+            });
+        }
+
+        Ok(IdentityClaims {
+            exp: token_data_claims.exp,
+            iss: token_data_claims.iss,
+            sub: token_data_claims.sub,
+            token_type: token_data_claims.token_type,
+        })
+    }
+}

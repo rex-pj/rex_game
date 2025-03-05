@@ -8,4 +8,5 @@ pub enum ErrorKind {
     NotFound,
     InvalidInput,
     DatabaseError,
+    Unauthorized,
 }

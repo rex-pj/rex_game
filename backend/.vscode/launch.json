@@ -9,7 +9,7 @@
             "program": "${workspaceFolder}/target/debug/rex_game",
             "args": [],
             "stopAtEntry": false,
-            "externalConsole": false,
+            "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "environment": []
         }

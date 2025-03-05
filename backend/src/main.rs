@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use app_state::RegularAppState;
 use axum::{routing::get, routing::post, Router};
 use handlers::flashcard_type_handler::FlashcardTypeHandler;
@@ -5,7 +7,7 @@ use handlers::user_handler::UserHandler;
 use handlers::{
     authentication_handler::AuthenticationHandler, flashcard_handler::FlashcardHandler,
 };
-use rex_game_application::identities::identity_login_usecase::IdentityLoginUseCase;
+use rex_game_application::identities::identity_authenticate_usecase::IdentityAuthenticateUseCase;
 use rex_game_application::identities::identity_user_usecase::IdentityUserUseCase;
 use rex_game_application::{
     flashcard_types::flashcard_type_usecase::FlashcardTypeUseCase,
@@ -37,12 +39,12 @@ fn build_routers(app_state: RegularAppState) -> Router {
                 .post(FlashcardHandler::create_flashcard::<RegularAppState>),
         )
         .route(
-            "/flash-cards/:id",
+            "/flash-cards/{id}",
             get(FlashcardHandler::get_flashcard_by_id::<RegularAppState>)
                 .patch(FlashcardHandler::update_flashcard::<RegularAppState>),
         )
         .route(
-            "/flash-cards/images/:id",
+            "/flash-cards/images/{id}",
             get(FlashcardHandler::get_flashcard_image::<RegularAppState>),
         )
         .route(
@@ -51,70 +53,74 @@ fn build_routers(app_state: RegularAppState) -> Router {
                 .post(FlashcardTypeHandler::create_flashcard_type::<RegularAppState>),
         )
         .route(
-            "/flash-card-types/:id",
+            "/flash-card-types/{id}",
             get(FlashcardTypeHandler::get_flashcard_type_by_id::<RegularAppState>)
                 .put(FlashcardTypeHandler::update_flashcard_type::<RegularAppState>),
         )
         .route("/users", post(UserHandler::create_user::<RegularAppState>))
         .route(
-            "/auth/authenticate",
-            post(AuthenticationHandler::authenticate::<RegularAppState>),
+            "/auth/login",
+            post(AuthenticationHandler::login::<RegularAppState>),
+        )
+        .route(
+            "/auth/refresh",
+            post(AuthenticationHandler::refresh_access_token::<RegularAppState>),
+        )
+        .route(
+            "/auth/verify",
+            post(AuthenticationHandler::verify_access_token::<RegularAppState>),
         )
         .with_state(app_state)
 }
 
 #[tokio::main]
 async fn start() {
-    let connection_str = get_connection_string();
-    let db_connection = SeaOrmConnection::new(&connection_str).await;
-    match db_connection {
+    let configuration_helper = Arc::new(ConfigurationHelper::new());
+    let connection_str = configuration_helper.get_value("database.url");
+    let db_connection = match SeaOrmConnection::new(&connection_str).await {
         Ok(connection) => {
             println!("Successfully connected to the database.");
-            let flashcard_repository = FlashcardRepository::new(connection.pool.clone());
-            let flashcard_file_repository = FlashcardFileRepository::new(connection.pool.clone());
-            let flashcard_type_relation_repository =
-                FlashcardTypeRelationRepository::new(connection.pool.clone());
-            let user_repository = UserRepository::new(connection.pool.clone());
-            let identity_password_hasher = IdentityPasswordHasher::new();
-            let identity_token_helper = IdentityTokenHelper::new();
-
-            let flashcard_usecase = FlashcardUseCase::new(
-                flashcard_repository,
-                flashcard_file_repository,
-                flashcard_type_relation_repository,
-            );
-
-            let flashcard_type_repository = FlashcardTypeRepository::new(connection.pool.clone());
-            let flashcard_type_usecase = FlashcardTypeUseCase::new(flashcard_type_repository);
-            let user_usecase = UserUseCase::new(user_repository);
-            let identity_user_usecase =
-                IdentityUserUseCase::new(identity_password_hasher.clone(), user_usecase.clone());
-            let identity_login_usecase = IdentityLoginUseCase::new(
-                identity_password_hasher,
-                user_usecase.clone(),
-                identity_token_helper,
-            );
-            let app_state = RegularAppState {
-                flashcard_usecase,
-                flashcard_type_usecase,
-                user_usecase,
-                identity_user_usecase,
-                identity_login_usecase,
-            };
-
-            let app = build_routers(app_state);
-            let listener = TcpListener::bind("0.0.0.0:3400").await.unwrap();
-            println!("The application is running at: http://localhost:3400");
-            axum::serve(listener, app).await.unwrap();
+            connection
         }
-        Err(err) => {
-            eprintln!("Failed to connect to the database: {:?}", err);
-        }
-    }
-}
+        Err(err) => return eprintln!("Failed to connect to the database: {:?}", err),
+    };
 
-fn get_connection_string() -> String {
-    ConfigurationHelper::get_value("database.url")
+    let flashcard_repository = FlashcardRepository::new(Arc::clone(&db_connection.pool));
+    let flashcard_file_repository = FlashcardFileRepository::new(Arc::clone(&db_connection.pool));
+    let flashcard_type_relation_repository =
+        FlashcardTypeRelationRepository::new(Arc::clone(&db_connection.pool));
+    let user_repository = UserRepository::new(Arc::clone(&db_connection.pool));
+    let identity_password_hasher = IdentityPasswordHasher::new();
+    let identity_token_helper = IdentityTokenHelper::new(configuration_helper);
+
+    let flashcard_usecase = FlashcardUseCase::new(
+        flashcard_repository,
+        flashcard_file_repository,
+        flashcard_type_relation_repository,
+    );
+
+    let flashcard_type_repository = FlashcardTypeRepository::new(Arc::clone(&db_connection.pool));
+    let flashcard_type_usecase = FlashcardTypeUseCase::new(flashcard_type_repository);
+    let user_usecase = UserUseCase::new(user_repository);
+    let identity_user_usecase =
+        IdentityUserUseCase::new(identity_password_hasher.clone(), user_usecase.clone());
+    let identity_authenticate_usecase = IdentityAuthenticateUseCase::new(
+        identity_password_hasher,
+        user_usecase.clone(),
+        identity_token_helper,
+    );
+    let app_state = RegularAppState {
+        flashcard_usecase,
+        flashcard_type_usecase,
+        user_usecase,
+        identity_user_usecase,
+        identity_authenticate_usecase,
+    };
+
+    let app = build_routers(app_state);
+    let listener = TcpListener::bind("0.0.0.0:3400").await.unwrap();
+    println!("The application is running at: http://localhost:3400");
+    axum::serve(listener, app).await.unwrap();
 }
 
 fn main() {

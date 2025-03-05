@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 config = "0.15.4"
-axum = { version = "0.7.9", features = ["multipart", "macros"] }
+axum = { version = "0.8.1", features = ["multipart", "macros"] }
 chrono = "0.4.38"
 axum-macros = "0.4.2"
 hyper = { version = "1.0", features = [] }
@@ -24,6 +24,7 @@ serde = { version = "1.0", features = ["derive"] }
 # Each data format lives in its own crate; the sample code below uses JSON
 # but you may be using a different one.
 serde_json = "1.0"
+axum-extra = { version = "0.10.0", features = ["cookie"] }
 
 [dependencies.sea-orm]
 version = "1.1.0"

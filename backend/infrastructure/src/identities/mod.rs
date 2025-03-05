@@ -4,7 +4,7 @@ pub mod identity_token_helper;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct IdentityTokenClaims {
+pub struct IdentityAccessTokenClaims {
     pub aud: String,
     pub sub: String,
     pub company: String,
@@ -15,6 +15,7 @@ pub struct IdentityTokenClaims {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IdentityRefreshTokenClaims {
+    pub aud: String,
     pub sub: String,
     pub exp: u64,
     pub iss: String,

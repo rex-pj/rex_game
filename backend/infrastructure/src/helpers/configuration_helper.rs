@@ -1,8 +1,21 @@
 use config::{Config, File};
+use rex_game_domain::helpers::configuration_helper_trait::ConfigurationHelperTrait;
+
+#[derive(Clone)]
 pub struct ConfigurationHelper;
 
 impl ConfigurationHelper {
-    pub fn get_value(key: &str) -> String {
+    pub fn new() -> Self {
+        Self
+    }
+
+    pub fn get_value(&self, key: &str) -> String {
+        ConfigurationHelperTrait::get_value(self, key)
+    }
+}
+
+impl ConfigurationHelperTrait for ConfigurationHelper {
+    fn get_value(&self, key: &str) -> String {
         let config_file = File::with_name("src/config.toml");
         let settings = Config::builder()
             .add_source(config_file)

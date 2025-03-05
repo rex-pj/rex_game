@@ -8,11 +8,11 @@ pub struct SeaOrmConnection {
 
 impl SeaOrmConnection {
     // Create a connection pool
-    pub async fn new(database_url: &str) -> Result<SeaOrmConnection, DbErr> {
-        let pool = Database::connect(database_url).await;
-        match pool {
-            Ok(_) => Ok(SeaOrmConnection {
-                pool: Arc::new(pool.unwrap()),
+    pub async fn new(database_url: &str) -> Result<Self, DbErr> {
+        let db_pool = Database::connect(database_url).await;
+        match db_pool {
+            Ok(pool) => Ok(Self {
+                pool: Arc::new(pool),
             }),
             Err(err) => {
                 return Err(err);
