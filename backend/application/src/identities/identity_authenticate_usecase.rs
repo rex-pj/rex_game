@@ -49,13 +49,7 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
             .await
         {
             Ok(existing_user) => existing_user,
-            Err(_) => {
-                return Err(ApplicationError {
-                    kind: ErrorKind::InvalidInput,
-                    message: String::from("Login failed"),
-                    details: None,
-                })
-            }
+            Err(err) => return Err(err),
         };
 
         match self

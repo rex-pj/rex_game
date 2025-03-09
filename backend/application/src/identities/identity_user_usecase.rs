@@ -1,5 +1,5 @@
 use crate::{
-    errors::application_error::ApplicationError,
+    errors::application_error::{ApplicationError, ErrorKind},
     users::{user_creation_dto::UserCreationDto, user_usecase_trait::UserUseCaseTrait},
 };
 
@@ -40,7 +40,7 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait> IdentityUserUseCaseTrait
         let password_hash_result = self._password_hasher.hash(password, salt);
         user.set_password_hash(&password_hash_result);
 
-        let id = self
+        let created_id = match self
             ._user_usecase
             .create_user(UserCreationDto {
                 display_name: user.display_name().map(|f| String::from(f)),
@@ -50,8 +50,18 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait> IdentityUserUseCaseTrait
                 security_stamp: String::from(user.security_stamp()),
             })
             .await
-            .unwrap();
-        user.set_id(id);
+        {
+            Ok(id) => id,
+            Err(_) => {
+                return Err(ApplicationError::new(
+                    ErrorKind::InvalidInput,
+                    "Create user failed",
+                    None,
+                ))
+            }
+        };
+
+        user.set_id(created_id);
         Ok(user)
     }
 }

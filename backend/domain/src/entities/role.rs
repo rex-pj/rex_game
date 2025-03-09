@@ -3,47 +3,36 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "flashcard_file")]
+#[sea_orm(table_name = "role")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
-    pub name: Option<String>,
-    pub file_name: String,
-    pub content_type: String,
-    #[sea_orm(column_type = "VarBinary(StringLen::None)")]
-    pub data: Vec<u8>,
+    pub name: String,
+    pub description: Option<String>,
+    pub created_by_id: Option<i32>,
     pub created_date: DateTimeWithTimeZone,
     pub updated_date: DateTimeWithTimeZone,
-    pub created_by_id: Option<i32>,
     pub updated_by_id: Option<i32>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::flashcard::Entity")]
-    Flashcard,
     #[sea_orm(
-        belongs_to = "super::user::Entity",
+        belongs_to = "Entity",
         from = "Column::CreatedById",
-        to = "super::user::Column::Id",
+        to = "Column::Id",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    User2,
+    SelfRef2,
     #[sea_orm(
-        belongs_to = "super::user::Entity",
+        belongs_to = "Entity",
         from = "Column::UpdatedById",
-        to = "super::user::Column::Id",
+        to = "Column::Id",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    User1,
-}
-
-impl Related<super::flashcard::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Flashcard.def()
-    }
+    SelfRef1,
 }
 
 impl ActiveModelBehavior for ActiveModel {}

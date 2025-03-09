@@ -16,6 +16,8 @@ use rex_game_application::{
 use rex_game_infrastructure::helpers::configuration_helper::ConfigurationHelper;
 use rex_game_infrastructure::identities::identity_password_hasher::IdentityPasswordHasher;
 use rex_game_infrastructure::identities::identity_token_helper::IdentityTokenHelper;
+use rex_game_infrastructure::repositories::role_repository::RoleRepository;
+use rex_game_infrastructure::repositories::user_role_repository::UserRoleRepository;
 use rex_game_infrastructure::{
     repositories::{
         flashcard_file_repository::FlashcardFileRepository,
@@ -90,6 +92,8 @@ async fn start() {
     let flashcard_type_relation_repository =
         FlashcardTypeRelationRepository::new(Arc::clone(&db_connection.pool));
     let user_repository = UserRepository::new(Arc::clone(&db_connection.pool));
+    let role_repository = RoleRepository::new(Arc::clone(&db_connection.pool));
+    let user_role_repository = UserRoleRepository::new(Arc::clone(&db_connection.pool));
     let identity_password_hasher = IdentityPasswordHasher::new();
     let identity_token_helper = IdentityTokenHelper::new(configuration_helper);
 
@@ -101,7 +105,7 @@ async fn start() {
 
     let flashcard_type_repository = FlashcardTypeRepository::new(Arc::clone(&db_connection.pool));
     let flashcard_type_usecase = FlashcardTypeUseCase::new(flashcard_type_repository);
-    let user_usecase = UserUseCase::new(user_repository);
+    let user_usecase = UserUseCase::new(user_repository, role_repository, user_role_repository);
     let identity_user_usecase =
         IdentityUserUseCase::new(identity_password_hasher.clone(), user_usecase.clone());
     let identity_authenticate_usecase = IdentityAuthenticateUseCase::new(

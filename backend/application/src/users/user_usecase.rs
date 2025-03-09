@@ -1,6 +1,16 @@
+use std::f32::consts::E;
+
 use chrono::Utc;
-use rex_game_domain::{entities::user, repositories::user_repository_trait::UserRepositoryTrait};
+use rex_game_domain::{
+    entities::{role, user, user_role},
+    repositories::{
+        role_repository_trait::RoleRepositoryTrait, user_repository_trait::UserRepositoryTrait,
+        user_role_repository_trait::UserRoleRepositoryTrait,
+    },
+};
 use sea_orm::{DbErr, Set};
+
+use crate::errors::application_error::{ApplicationError, ErrorKind};
 
 use super::{
     user_creation_dto::UserCreationDto, user_details_dto::UserDetailsDto,
@@ -8,23 +18,32 @@ use super::{
 };
 
 #[derive(Clone)]
-pub struct UserUseCase<UT>
+pub struct UserUseCase<UT, RT, URT>
 where
     UT: UserRepositoryTrait,
+    RT: RoleRepositoryTrait,
 {
     _user_repository: UT,
+    _role_repository: RT,
+    _user_role_repository: URT,
 }
 
-impl<UT: UserRepositoryTrait> UserUseCase<UT> {
-    pub fn new(user_repository: UT) -> Self {
+impl<UT: UserRepositoryTrait, RT: RoleRepositoryTrait, URT: UserRoleRepositoryTrait>
+    UserUseCase<UT, RT, URT>
+{
+    pub fn new(user_repository: UT, role_repository: RT, user_role_repository: URT) -> Self {
         Self {
             _user_repository: user_repository,
+            _role_repository: role_repository,
+            _user_role_repository: user_role_repository,
         }
     }
 }
 
-impl<UT: UserRepositoryTrait> UserUseCaseTrait for UserUseCase<UT> {
-    async fn get_user_by_email<'a>(&'a self, email: String) -> Result<UserDetailsDto, DbErr> {
+impl<UT: UserRepositoryTrait, RT: RoleRepositoryTrait, URT: UserRoleRepositoryTrait>
+    UserUseCaseTrait for UserUseCase<UT, RT, URT>
+{
+    async fn get_user_by_email(&self, email: String) -> Result<UserDetailsDto, ApplicationError> {
         let existing = self._user_repository.get_by_email(email).await;
         match existing {
             Ok(i) => match i {
@@ -41,28 +60,79 @@ impl<UT: UserRepositoryTrait> UserUseCaseTrait for UserUseCase<UT> {
                     updated_by_id: f.updated_by_id,
                     status_id: f.status_id,
                 }),
-                None => Err(DbErr::RecordNotUpdated),
+                None => Err(ApplicationError::new(
+                    ErrorKind::NotFound,
+                    "User not found",
+                    None,
+                )),
             },
-            Err(err) => Err(err),
+            Err(_) => Err(ApplicationError::new(
+                ErrorKind::DatabaseError,
+                "Database error",
+                None,
+            )),
         }
     }
 
-    async fn create_user<'a>(&'a self, user_req: UserCreationDto) -> Option<i32> {
+    async fn create_user(&self, user_req: UserCreationDto) -> Result<i32, ApplicationError> {
         let active_user = user::ActiveModel {
             name: Set(user_req.name),
             display_name: Set(user_req.display_name),
             email: Set(user_req.email),
             status_id: Set(UserStatuses::Actived as i32),
-            created_date: Set(Utc::now().fixed_offset()),
-            updated_date: Set(Utc::now().fixed_offset()),
             password_hash: Set(user_req.password),
             security_stamp: Set(user_req.security_stamp),
             ..Default::default()
         };
         let created = self._user_repository.create(active_user).await;
         match created {
-            Err(_) => None,
-            Ok(i) => Some(i.id),
+            Err(_) => Err(ApplicationError::new(
+                ErrorKind::DatabaseError,
+                "Database error",
+                None,
+            )),
+            Ok(i) => Ok(i.id),
+        }
+    }
+
+    async fn assign_role(&self, user_id: i32, role_name: &str) -> Result<i32, ApplicationError> {
+        let role = match self._role_repository.get_by_name(role_name).await {
+            Ok(i) => match i {
+                Some(f) => f,
+                None => {
+                    return Err(ApplicationError::new(
+                        ErrorKind::NotFound,
+                        "Role not found",
+                        None,
+                    ))
+                }
+            },
+            Err(_) => {
+                return Err(ApplicationError::new(
+                    ErrorKind::DatabaseError,
+                    "Database error",
+                    None,
+                ))
+            }
+        };
+
+        match self
+            ._user_role_repository
+            .create(user_role::ActiveModel {
+                user_id: Set(user_id),
+                role_id: Set(role.id),
+                ..Default::default()
+            })
+            .await
+        {
+            Ok(inserted) => Ok(inserted.last_insert_id),
+            Err(_) => {
+                return Err(ApplicationError::new(
+                    ErrorKind::DatabaseError,
+                    "Assign role failed",
+                    None,
+                ))
+            }
         }
     }
 }

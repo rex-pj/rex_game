@@ -1,5 +1,6 @@
-use sea_orm::EnumIter;
 use sea_orm_migration::{async_trait::async_trait, prelude::*, sea_orm::Iterable};
+
+use crate::enums::{user::User, user_status::UserStatus};
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -67,41 +68,4 @@ impl MigrationTrait for Migration {
             .drop_table(Table::drop().table(User::Table).to_owned())
             .await
     }
-}
-
-#[derive(DeriveIden)]
-enum User {
-    Table,
-    #[sea_orm(iden = "id")]
-    Id,
-    #[sea_orm(iden = "name")]
-    Name,
-    #[sea_orm(iden = "display_name")]
-    DisplayName,
-    #[sea_orm(iden = "password_hash")]
-    PasswordHash,
-    #[sea_orm(iden = "security_stamp")]
-    SecurityStamp,
-    #[sea_orm(iden = "email")]
-    Email,
-    #[sea_orm(iden = "created_date")]
-    CreatedDate,
-    #[sea_orm(iden = "created_by_id")]
-    CreatedById,
-    #[sea_orm(iden = "updated_date")]
-    UpdatedDate,
-    #[sea_orm(iden = "updated_by_id")]
-    UpdatedById,
-    #[sea_orm(iden = "status_id")]
-    StatusId,
-}
-
-#[derive(Iden, EnumIter)]
-pub enum UserStatus {
-    #[iden = "Pending"]
-    Pending,
-    #[iden = "Actived"]
-    Actived,
-    #[iden = "Deleted"]
-    Deleted,
 }

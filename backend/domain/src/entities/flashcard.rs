@@ -13,6 +13,8 @@ pub struct Model {
     pub created_date: DateTimeWithTimeZone,
     pub updated_date: DateTimeWithTimeZone,
     pub file_id: i32,
+    pub created_by_id: Option<i32>,
+    pub updated_by_id: Option<i32>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -27,6 +29,22 @@ pub enum Relation {
     FlashcardFile,
     #[sea_orm(has_many = "super::flashcard_type_relation::Entity")]
     FlashcardTypeRelation,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::CreatedById",
+        to = "super::user::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    User2,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::UpdatedById",
+        to = "super::user::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    User1,
 }
 
 impl Related<super::flashcard_file::Entity> for Entity {

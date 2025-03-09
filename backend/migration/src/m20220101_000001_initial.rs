@@ -1,6 +1,11 @@
 use async_trait::async_trait;
 use sea_orm_migration::prelude::*;
 
+use crate::enums::{
+    flashcard::Flashcard, flashcard_file::FlashcardType, flashcard_type::FlashcardFile,
+    flashcard_type_relation::FlashcardTypeRelation,
+};
+
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
@@ -174,72 +179,4 @@ impl MigrationTrait for Migration {
             .await?;
         Ok(())
     }
-}
-
-#[derive(DeriveIden)]
-enum FlashcardFile {
-    Table,
-    #[sea_orm(iden = "id")]
-    Id,
-    #[sea_orm(iden = "name")]
-    Name,
-    #[sea_orm(iden = "file_name")]
-    FileName,
-    #[sea_orm(iden = "content_type")]
-    ContentType,
-    #[sea_orm(iden = "created_date")]
-    CreatedDate,
-    #[sea_orm(iden = "updated_date")]
-    UpdatedDate,
-    #[sea_orm(iden = "data")]
-    Data,
-}
-
-#[derive(DeriveIden)]
-enum Flashcard {
-    Table,
-    #[sea_orm(iden = "id")]
-    Id,
-    #[sea_orm(iden = "name")]
-    Name,
-    #[sea_orm(iden = "description")]
-    Description,
-    #[sea_orm(iden = "sub_description")]
-    SubDescription,
-    #[sea_orm(iden = "created_date")]
-    CreatedDate,
-    #[sea_orm(iden = "updated_date")]
-    UpdatedDate,
-    #[sea_orm(iden = "file_id")]
-    FileId,
-}
-
-#[derive(DeriveIden)]
-enum FlashcardType {
-    Table,
-    #[sea_orm(iden = "id")]
-    Id,
-    #[sea_orm(iden = "name")]
-    Name,
-    #[sea_orm(iden = "description")]
-    Description,
-    #[sea_orm(iden = "created_date")]
-    CreatedDate,
-    #[sea_orm(iden = "updated_date")]
-    UpdatedDate,
-}
-
-#[derive(DeriveIden)]
-enum FlashcardTypeRelation {
-    Table,
-    #[sea_orm(iden = "id")]
-    Id,
-    #[sea_orm(iden = "flashcard_id")]
-    FlashcardId,
-    #[sea_orm(iden = "flashcard_type_id")]
-    FlashcardTypeId,
-    #[sea_orm(iden = "created_date")]
-    CreatedDate,
-    #[sea_orm(iden = "updated_date")]
-    UpdatedDate,
 }

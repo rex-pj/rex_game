@@ -4,4 +4,6 @@ pub use super::flashcard::Entity as Flashcard;
 pub use super::flashcard_file::Entity as FlashcardFile;
 pub use super::flashcard_type::Entity as FlashcardType;
 pub use super::flashcard_type_relation::Entity as FlashcardTypeRelation;
+pub use super::role::Entity as Role;
 pub use super::user::Entity as User;
+pub use super::user_role::Entity as UserRole;
