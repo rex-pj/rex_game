@@ -5,8 +5,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IdentityAccessTokenClaims {
+    pub sub: i32,
     pub aud: String,
-    pub sub: String,
+    pub email: String,
     pub company: String,
     pub iss: String,
     pub exp: u64,
@@ -15,8 +16,9 @@ pub struct IdentityAccessTokenClaims {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IdentityRefreshTokenClaims {
+    pub sub: i32,
     pub aud: String,
-    pub sub: String,
+    pub email: String,
     pub exp: u64,
     pub iss: String,
     pub token_type: String,

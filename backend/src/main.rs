@@ -1,12 +1,15 @@
 use std::sync::Arc;
 
 use app_state::RegularAppState;
+use axum::routing::{patch, put};
 use axum::{routing::get, routing::post, Router};
 use handlers::flashcard_type_handler::FlashcardTypeHandler;
+use handlers::setup_handler::SetupHandler;
 use handlers::user_handler::UserHandler;
 use handlers::{
     authentication_handler::AuthenticationHandler, flashcard_handler::FlashcardHandler,
 };
+use middlewares::auth_middleware::{AuthLayer, AuthMiddleware};
 use rex_game_application::identities::identity_authenticate_usecase::IdentityAuthenticateUseCase;
 use rex_game_application::identities::identity_user_usecase::IdentityUserUseCase;
 use rex_game_application::{
@@ -28,50 +31,65 @@ use rex_game_infrastructure::{
     seaorm_connection::SeaOrmConnection,
 };
 use tokio::net::TcpListener;
+use tower::ServiceBuilder;
 pub mod app_state;
 pub mod handlers;
 pub mod helpers;
+pub mod middlewares;
 pub mod view_models;
 
 fn build_routers(app_state: RegularAppState) -> Router {
     Router::new()
         .route(
-            "/flash-cards",
-            get(FlashcardHandler::get_flashcards::<RegularAppState>)
-                .post(FlashcardHandler::create_flashcard::<RegularAppState>),
+            "/flashcards",
+            post(FlashcardHandler::create_flashcard::<RegularAppState>),
         )
         .route(
-            "/flash-cards/{id}",
-            get(FlashcardHandler::get_flashcard_by_id::<RegularAppState>)
-                .patch(FlashcardHandler::update_flashcard::<RegularAppState>),
+            "/flashcards/{id}",
+            patch(FlashcardHandler::update_flashcard::<RegularAppState>),
         )
         .route(
-            "/flash-cards/images/{id}",
-            get(FlashcardHandler::get_flashcard_image::<RegularAppState>),
+            "/flashcard-types",
+            post(FlashcardTypeHandler::create_flashcard_type::<RegularAppState>),
         )
         .route(
-            "/flash-card-types",
-            get(FlashcardTypeHandler::get_flashcard_types::<RegularAppState>)
-                .post(FlashcardTypeHandler::create_flashcard_type::<RegularAppState>),
-        )
-        .route(
-            "/flash-card-types/{id}",
-            get(FlashcardTypeHandler::get_flashcard_type_by_id::<RegularAppState>)
-                .put(FlashcardTypeHandler::update_flashcard_type::<RegularAppState>),
-        )
-        .route("/users", post(UserHandler::create_user::<RegularAppState>))
-        .route(
-            "/auth/login",
-            post(AuthenticationHandler::login::<RegularAppState>),
+            "/flashcard-types/{id}",
+            put(FlashcardTypeHandler::update_flashcard_type::<RegularAppState>),
         )
         .route(
             "/auth/refresh",
             post(AuthenticationHandler::refresh_access_token::<RegularAppState>),
         )
+        .layer(ServiceBuilder::new().layer(AuthLayer {
+            app_state: Arc::new(app_state.clone()),
+        }))
+        // public routes
         .route(
-            "/auth/verify",
-            post(AuthenticationHandler::verify_access_token::<RegularAppState>),
+            "/flashcards",
+            get(FlashcardHandler::get_flashcards::<RegularAppState>),
         )
+        .route(
+            "/flashcards/{id}",
+            get(FlashcardHandler::get_flashcard_by_id::<RegularAppState>),
+        )
+        .route(
+            "/flashcards/images/{id}",
+            get(FlashcardHandler::get_flashcard_image::<RegularAppState>),
+        )
+        .route(
+            "/flashcard-types",
+            get(FlashcardTypeHandler::get_flashcard_types::<RegularAppState>),
+        )
+        .route(
+            "/flashcard-types/{id}",
+            get(FlashcardTypeHandler::get_flashcard_type_by_id::<RegularAppState>),
+        )
+        .route(
+            "/auth/login",
+            post(AuthenticationHandler::login::<RegularAppState>),
+        )
+        .route("/users", post(UserHandler::create_user::<RegularAppState>))
+        .route("/setup", post(SetupHandler::setup::<RegularAppState>))
         .with_state(app_state)
 }
 

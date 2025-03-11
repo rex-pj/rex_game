@@ -1,16 +1,13 @@
-use std::f32::consts::E;
-
+use crate::errors::application_error::{ApplicationError, ErrorKind};
 use chrono::Utc;
 use rex_game_domain::{
-    entities::{role, user, user_role},
+    entities::{user, user_role},
     repositories::{
         role_repository_trait::RoleRepositoryTrait, user_repository_trait::UserRepositoryTrait,
         user_role_repository_trait::UserRoleRepositoryTrait,
     },
 };
-use sea_orm::{DbErr, Set};
-
-use crate::errors::application_error::{ApplicationError, ErrorKind};
+use sea_orm::Set;
 
 use super::{
     user_creation_dto::UserCreationDto, user_details_dto::UserDetailsDto,

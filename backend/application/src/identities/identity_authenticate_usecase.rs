@@ -1,5 +1,6 @@
 use rex_game_domain::identities::{
     password_hasher_trait::PasswordHasherTrait, token_helper_trait::TokenHelperTrait,
+    IdentityClaims,
 };
 
 use super::{
@@ -68,7 +69,7 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
 
         let access_token_claims = match self
             ._token_helper
-            .generate_access_token(&existing_user.name, email)
+            .generate_access_token(existing_user.id, email)
         {
             Some(claims) => claims,
             None => {
@@ -80,7 +81,10 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
             }
         };
 
-        let refresh_token = match self._token_helper.generate_refresh_token(email) {
+        let refresh_token = match self
+            ._token_helper
+            .generate_refresh_token(existing_user.id, email)
+        {
             Some(refresh_token) => refresh_token,
             None => {
                 return Err(ApplicationError {
@@ -95,7 +99,7 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
             access_token: access_token_claims.access_token,
             refresh_token: refresh_token,
             email: email.to_string(),
-            name: existing_user.name,
+            sub: access_token_claims.sub,
             expiration: access_token_claims.expiration,
         })
     }
@@ -121,7 +125,7 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
 
         let refresh_token = match self
             ._token_helper
-            .generate_refresh_token(&access_token_claims.email)
+            .generate_refresh_token(access_token_claims.sub, &access_token_claims.email)
         {
             Some(refresh_token) => refresh_token,
             None => {
@@ -137,16 +141,16 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
             access_token: access_token_claims.access_token,
             refresh_token: refresh_token,
             email: access_token_claims.email,
-            name: access_token_claims.name,
+            sub: access_token_claims.sub,
             expiration: access_token_claims.expiration,
         })
     }
 
-    async fn verify_access_token(&self, access_token: &str) -> Result<bool, ApplicationError> {
+    fn verify_access_token(&self, access_token: &str) -> Result<IdentityClaims, ApplicationError> {
         let verify_result = self._token_helper.validate_access_token(access_token);
 
         match verify_result {
-            Ok(_) => Ok(true),
+            Ok(claims) => Ok(claims),
             Err(_) => Err(ApplicationError {
                 kind: ErrorKind::Unauthorized,
                 message: String::from("Unauthorized"),

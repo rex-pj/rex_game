@@ -56,7 +56,7 @@ impl AuthenticationHandler {
             Err(_) => return Err(StatusCode::BAD_REQUEST),
         };
 
-        let access_token = access_token.replace("Bearer ", "");
+        let access_token = access_token.strip_prefix("Bearer ").unwrap();
         let req_refresh_token = match jar.get("refresh_token") {
             Some(refresh_token) => refresh_token.value().to_string(),
             None => return Err(StatusCode::UNAUTHORIZED),
@@ -80,33 +80,6 @@ impl AuthenticationHandler {
                 access_token: token_claims.access_token,
             }),
         ))
-    }
-
-    pub async fn verify_access_token<T: AppStateTrait>(
-        headers: HeaderMap,
-        State(_state): State<T>,
-    ) -> Result<Json<bool>, StatusCode> {
-        let access_token_header = match headers.get("authorization") {
-            Some(authorization) => authorization,
-            None => return Err(StatusCode::BAD_REQUEST),
-        };
-
-        let access_token = match access_token_header.to_str() {
-            Ok(authorization) => authorization,
-            Err(_) => return Err(StatusCode::BAD_REQUEST),
-        };
-
-        let access_token = access_token.replace("Bearer ", "");
-        let is_verified = match _state
-            .identity_authenticate_usecase()
-            .verify_access_token(&access_token)
-            .await
-        {
-            Ok(result) => result,
-            Err(_) => return Err(StatusCode::UNAUTHORIZED),
-        };
-
-        Ok(Json(is_verified))
     }
 }
 

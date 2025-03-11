@@ -188,6 +188,14 @@ impl<
                 updating_flashcard.sub_description = Set(Some(sub_description));
             }
 
+            if let Some(created_by_id) = flashcard_req.created_by_id {
+                updating_flashcard.created_by_id = Set(Some(created_by_id));
+            }
+
+            if let Some(updated_by_id) = flashcard_req.updated_by_id {
+                updating_flashcard.updated_by_id = Set(Some(updated_by_id));
+            }
+
             let updated_flashcard = self._flashcard_repository.update(updating_flashcard).await;
             if let Ok(_) = updated_flashcard {}
 

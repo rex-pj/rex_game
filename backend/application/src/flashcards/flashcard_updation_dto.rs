@@ -9,4 +9,6 @@ pub struct FlashcardUpdationDto {
     pub sub_description: Option<String>,
     pub image_data: Option<Vec<u8>>,
     pub type_ids: Option<Vec<i32>>,
+    pub created_by_id: Option<i32>,
+    pub updated_by_id: Option<i32>,
 }

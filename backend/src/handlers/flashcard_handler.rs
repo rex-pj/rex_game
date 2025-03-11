@@ -1,9 +1,11 @@
+use std::sync::Arc;
+
 use axum::{
     body::Body,
     extract::{Multipart, Path, Query, State},
     http::StatusCode,
     response::{Response, Result},
-    Json,
+    Extension, Json,
 };
 use rex_game_application::flashcards::{
     flashcard_creation_dto::FlashcardCreationDto, flashcard_dto::FlashcardDto,
@@ -11,7 +13,10 @@ use rex_game_application::flashcards::{
 };
 use serde::Deserialize;
 
-use crate::{app_state::AppStateTrait, helpers::http_helper::HttpHelper};
+use crate::{
+    app_state::AppStateTrait, helpers::http_helper::HttpHelper,
+    middlewares::auth_middleware::CurrentUser,
+};
 
 #[derive(Deserialize)]
 pub struct FlashcardQuery {
@@ -67,6 +72,7 @@ impl FlashcardHandler {
     }
 
     pub async fn create_flashcard<T: AppStateTrait>(
+        Extension(current_user): Extension<Arc<CurrentUser>>,
         State(_state): State<T>,
         mut multipart: Multipart,
     ) -> Json<Option<i32>> {
@@ -76,6 +82,8 @@ impl FlashcardHandler {
             sub_description: None,
             content_type: "".to_string(),
             file_name: "".to_string(),
+            created_by_id: Some(current_user.id),
+            updated_by_id: Some(current_user.id),
             type_ids: vec![],
             ..Default::default()
         };
@@ -115,6 +123,7 @@ impl FlashcardHandler {
     }
 
     pub async fn update_flashcard<T: AppStateTrait>(
+        Extension(current_user): Extension<Arc<CurrentUser>>,
         State(_state): State<T>,
         Path(id): Path<i32>,
         mut multipart: Multipart,
@@ -127,6 +136,8 @@ impl FlashcardHandler {
             file_name: None,
             type_ids: None,
             image_data: None,
+            created_by_id: Some(current_user.id),
+            updated_by_id: Some(current_user.id),
         };
         while let Some(field) = multipart.next_field().await.unwrap() {
             match field.name() {

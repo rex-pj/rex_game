@@ -89,11 +89,12 @@ impl<CF: ConfigurationHelperTrait> IdentityTokenHelper<CF> {
 }
 
 impl<CF: ConfigurationHelperTrait> TokenHelperTrait for IdentityTokenHelper<CF> {
-    fn generate_access_token(&self, user_name: &str, email: &str) -> Option<UserAccessClaims> {
+    fn generate_access_token(&self, user_id: i32, email: &str) -> Option<UserAccessClaims> {
         let now = Utc::now();
         let claims = IdentityAccessTokenClaims {
+            sub: user_id,
             aud: self._client_id.to_string(),
-            sub: email.to_owned(),
+            email: email.to_owned(),
             iss: self._client_id.to_string(),
             company: self._app_name.to_string(),
             exp: (now + Duration::milliseconds(self._expiration)).timestamp() as u64,
@@ -108,9 +109,9 @@ impl<CF: ConfigurationHelperTrait> TokenHelperTrait for IdentityTokenHelper<CF> 
 
         match token_result {
             Ok(token) => Some(UserAccessClaims {
+                sub: user_id,
                 access_token: token,
                 email: email.to_owned(),
-                name: user_name.to_owned(),
                 expiration: claims.exp,
             }),
             Err(_) => None,
@@ -131,16 +132,17 @@ impl<CF: ConfigurationHelperTrait> TokenHelperTrait for IdentityTokenHelper<CF> 
                     return None;
                 }
 
-                self.generate_access_token(&access_claims.aud, &access_claims.sub)
+                self.generate_access_token(access_claims.sub, &access_claims.email)
             }
             Err(_) => None,
         }
     }
 
-    fn generate_refresh_token(&self, email: &str) -> Option<String> {
+    fn generate_refresh_token(&self, id: i32, email: &str) -> Option<String> {
         let now = Utc::now();
         let claims = IdentityRefreshTokenClaims {
-            sub: email.to_owned(),
+            sub: id,
+            email: email.to_owned(),
             token_type: String::from("refresh"),
             iss: self._client_id.to_string(),
             aud: self._client_id.to_string(),
@@ -184,6 +186,7 @@ impl<CF: ConfigurationHelperTrait> TokenHelperTrait for IdentityTokenHelper<CF> 
             exp: token_data_claims.exp,
             iss: token_data_claims.iss,
             sub: token_data_claims.sub,
+            email: token_data_claims.email,
             token_type: token_data_claims.token_type,
         })
     }
