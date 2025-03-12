@@ -1,9 +1,10 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use axum::{
     extract::{Path, Query, State},
-    Json,
+    Extension, Json,
 };
+use hyper::StatusCode;
 use rex_game_application::flashcard_types::{
     flashcard_type_creation_dto::FlashcardTypeCreationDto, flashcard_type_dto::FlashcardTypeDto,
     flashcard_type_updation_dto::FlashcardTypeUpdationDto,
@@ -11,7 +12,10 @@ use rex_game_application::flashcard_types::{
 };
 use serde::Deserialize;
 
-use crate::app_state::AppStateTrait;
+use crate::{
+    app_state::AppStateTrait, middlewares::auth_middleware::CurrentUser,
+    view_models::flashcard_types::flashcard_type_create_request::FlashcardTypeCreateRequest,
+};
 
 #[derive(Deserialize)]
 pub struct FlashcardQuery {
@@ -52,60 +56,67 @@ impl FlashcardTypeHandler {
     }
 
     pub async fn create_flashcard_type<T: AppStateTrait>(
+        Extension(current_user): Extension<Arc<CurrentUser>>,
         State(_state): State<T>,
-        Json(payload): Json<Option<FlashcardTypeCreationDto>>,
-    ) -> Json<Option<i32>> {
-        match payload {
-            Some(req) => {
-                let inserted_id = _state
-                    .flashcard_type_usecase()
-                    .create_flashcard_type(req)
-                    .await;
+        Json(payload): Json<Option<FlashcardTypeCreateRequest>>,
+    ) -> Result<Json<i32>, StatusCode> {
+        let req = match payload {
+            Some(req) => req,
+            None => return Err(StatusCode::BAD_REQUEST),
+        };
 
-                match inserted_id {
-                    Some(id) => Json(Some(id)),
-                    None => Json(None),
-                }
-            }
-            None => Json(None),
+        let creation_request = FlashcardTypeCreationDto {
+            name: req.name,
+            description: req.description,
+            created_by_id: Some(current_user.id),
+            updated_by_id: Some(current_user.id),
+        };
+        let inserted_id = _state
+            .flashcard_type_usecase()
+            .create_flashcard_type(creation_request)
+            .await;
+
+        match inserted_id {
+            Some(id) => Ok(Json(id)),
+            None => return Err(StatusCode::INTERNAL_SERVER_ERROR),
         }
     }
 
     pub async fn update_flashcard_type<T: AppStateTrait>(
+        Extension(current_user): Extension<Arc<CurrentUser>>,
         State(_state): State<T>,
         Path(id): Path<i32>,
         Json(payload): Json<Option<HashMap<String, String>>>,
-    ) -> Json<Option<FlashcardTypeDto>> {
-        match payload {
-            Some(requests) => {
-                if requests.is_empty() {
-                    return Json(None);
-                }
+    ) -> Result<Json<FlashcardTypeDto>, StatusCode> {
+        let requests = match payload {
+            Some(req) => req,
+            None => return Err(StatusCode::BAD_REQUEST),
+        };
+        if requests.is_empty() {
+            return Err(StatusCode::BAD_REQUEST);
+        }
 
-                let mut updating = FlashcardTypeUpdationDto {
-                    description: Some("".to_string()),
-                    name: "".to_string(),
-                };
+        let mut updating = FlashcardTypeUpdationDto {
+            updated_by_id: Some(current_user.id),
+            ..Default::default()
+        };
 
-                for (key, value) in &requests {
-                    if key.to_lowercase() == "name" {
-                        updating.name = value.to_string();
-                    } else if key.to_lowercase() == "description" {
-                        updating.description = Some(value.to_string())
-                    }
-                }
-
-                let updated = _state
-                    .flashcard_type_usecase()
-                    .update_flashcard_type(id, updating)
-                    .await;
-
-                match updated {
-                    Some(u) => Json(Some(u)),
-                    None => Json(None),
-                }
+        for (key, value) in &requests {
+            if key.to_lowercase() == "name" {
+                updating.name = value.to_string();
+            } else if key.to_lowercase() == "description" {
+                updating.description = Some(value.to_string())
             }
-            None => Json(None),
+        }
+
+        let updated = _state
+            .flashcard_type_usecase()
+            .update_flashcard_type(id, updating)
+            .await;
+
+        match updated {
+            Some(u) => Ok(Json(u)),
+            None => return Err(StatusCode::INTERNAL_SERVER_ERROR),
         }
     }
 }

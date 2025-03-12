@@ -81,6 +81,8 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
             description: Set(flashcard_type_req.description),
             created_date: Set(Utc::now().fixed_offset()),
             updated_date: Set(Utc::now().fixed_offset()),
+            created_by_id: Set(flashcard_type_req.created_by_id),
+            updated_by_id: Set(flashcard_type_req.updated_by_id),
             ..Default::default()
         };
         let created = self
@@ -106,6 +108,7 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
                     updating.name = Set(flashcard_type_req.name);
                     updating.description = Set(flashcard_type_req.description);
                     updating.updated_date = Set(Utc::now().fixed_offset());
+                    updating.updated_by_id = Set(flashcard_type_req.updated_by_id);
                     let updated = self._flashcard_type_repository.update(updating).await;
                     match updated {
                         Ok(i) => Some(FlashcardTypeDto {

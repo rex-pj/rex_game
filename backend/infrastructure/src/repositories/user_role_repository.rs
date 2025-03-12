@@ -3,10 +3,7 @@ use rex_game_domain::{
     entities::user_role::{self, Entity as UserRole},
     repositories::user_role_repository_trait::UserRoleRepositoryTrait,
 };
-use sea_orm::{
-    ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, InsertResult, QueryFilter, Set,
-    TransactionTrait,
-};
+use sea_orm::{DatabaseConnection, DbErr, EntityTrait, InsertResult, Set, TransactionTrait};
 use std::sync::Arc;
 
 #[derive(Clone)]

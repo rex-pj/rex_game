@@ -4,7 +4,7 @@ use rex_game_domain::{
     repositories::user_repository_trait::UserRepositoryTrait,
 };
 use sea_orm::{
-    ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, InsertResult, QueryFilter, Set,
+    ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, QueryFilter, Set,
     TransactionTrait,
 };
 use std::sync::Arc;

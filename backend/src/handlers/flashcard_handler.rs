@@ -1,5 +1,7 @@
-use std::sync::Arc;
-
+use crate::{
+    app_state::AppStateTrait, helpers::http_helper::HttpHelper,
+    middlewares::auth_middleware::CurrentUser,
+};
 use axum::{
     body::Body,
     extract::{Multipart, Path, Query, State},
@@ -12,11 +14,7 @@ use rex_game_application::flashcards::{
     flashcard_updation_dto::FlashcardUpdationDto, flashcard_usecase_trait::FlashcardUseCaseTrait,
 };
 use serde::Deserialize;
-
-use crate::{
-    app_state::AppStateTrait, helpers::http_helper::HttpHelper,
-    middlewares::auth_middleware::CurrentUser,
-};
+use std::sync::Arc;
 
 #[derive(Deserialize)]
 pub struct FlashcardQuery {
@@ -45,11 +43,11 @@ impl FlashcardHandler {
     pub async fn get_flashcard_by_id<T: AppStateTrait>(
         Path(id): Path<i32>,
         State(_state): State<T>,
-    ) -> Json<Option<FlashcardDto>> {
+    ) -> Result<Json<FlashcardDto>, StatusCode> {
         let flashcard = _state.flashcard_usecase().get_flashcard_by_id(id).await;
         return match flashcard {
-            None => Json(None),
-            Some(i) => Json(Some(i)),
+            None => return Err(StatusCode::NOT_FOUND),
+            Some(i) => Ok(Json(i)),
         };
     }
 
@@ -57,17 +55,18 @@ impl FlashcardHandler {
         Path(file_id): Path<i32>,
         State(_state): State<T>,
     ) -> Result<Response<Body>, StatusCode> {
-        let flashcard_data = _state
+        let flashcard_file = match _state
             .flashcard_usecase()
             .get_image_by_file_id(file_id)
-            .await;
-        match flashcard_data {
-            None => Err(StatusCode::NOT_FOUND),
-            Some(file_data) => {
-                let response = HttpHelper::build_file_respone(file_data);
+            .await
+        {
+            Ok(file) => file,
+            Err(_) => return Err(StatusCode::NOT_FOUND),
+        };
 
-                return Ok(response);
-            }
+        match HttpHelper::build_file_respone(flashcard_file.data, &flashcard_file.content_type) {
+            Ok(response) => Ok(response),
+            Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
         }
     }
 
@@ -75,7 +74,7 @@ impl FlashcardHandler {
         Extension(current_user): Extension<Arc<CurrentUser>>,
         State(_state): State<T>,
         mut multipart: Multipart,
-    ) -> Json<Option<i32>> {
+    ) -> Result<Json<i32>, StatusCode> {
         let mut flashcard = FlashcardCreationDto {
             name: "".to_string(),
             description: None,
@@ -117,8 +116,8 @@ impl FlashcardHandler {
 
         let result = _state.flashcard_usecase().create_flashcard(flashcard).await;
         return match result {
-            None => Json(None),
-            Some(i) => Json(Some(i)),
+            Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+            Ok(i) => Ok(Json(i)),
         };
     }
 
@@ -127,17 +126,10 @@ impl FlashcardHandler {
         State(_state): State<T>,
         Path(id): Path<i32>,
         mut multipart: Multipart,
-    ) -> Json<Option<i32>> {
+    ) -> Result<Json<bool>, StatusCode> {
         let mut flashcard = FlashcardUpdationDto {
-            name: None,
-            description: None,
-            sub_description: None,
-            content_type: None,
-            file_name: None,
-            type_ids: None,
-            image_data: None,
-            created_by_id: Some(current_user.id),
             updated_by_id: Some(current_user.id),
+            ..Default::default()
         };
         while let Some(field) = multipart.next_field().await.unwrap() {
             match field.name() {
@@ -173,8 +165,8 @@ impl FlashcardHandler {
             .update_flashcard(id, flashcard)
             .await;
         return match result {
-            None => Json(None),
-            Some(i) => Json(Some(i)),
+            Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+            Ok(_) => Ok(Json(true)),
         };
     }
 }
