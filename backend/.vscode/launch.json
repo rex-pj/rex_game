@@ -7,11 +7,11 @@
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/target/debug/rex_game",
-            "args": [],
+            "args": ["host=dev"],            
             "stopAtEntry": false,
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
-            "environment": []
+            "environment": [{"name": "HOST", "value": "dev"}],
         }
     ]
 }
