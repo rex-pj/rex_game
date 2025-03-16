@@ -1,6 +1,5 @@
+use crate::enums::{role::Role, user::User, user_role::UserRole};
 use sea_orm_migration::{prelude::*, schema::*};
-
-use crate::enums::{role::Role, user_role::UserRole};
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -21,9 +20,9 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Role::CreatedById).integer())
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-role-created-by")
+                            .name("fk-role-created-by-id")
                             .from(Role::Table, Role::CreatedById)
-                            .to(Role::Table, Role::Id),
+                            .to(User::Table, User::Id),
                     )
                     .col(
                         ColumnDef::new(Role::CreatedDate)
@@ -38,9 +37,9 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Role::UpdatedById).integer())
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-role-updated-by")
+                            .name("fk-role-updated-by-id")
                             .from(Role::Table, Role::UpdatedById)
-                            .to(Role::Table, Role::Id),
+                            .to(User::Table, User::Id),
                     )
                     .to_owned(),
             )
@@ -57,7 +56,7 @@ impl MigrationTrait for Migration {
                         ForeignKey::create()
                             .name("fk-user-role-user-id")
                             .from(UserRole::Table, UserRole::UserId)
-                            .to(Role::Table, Role::Id),
+                            .to(User::Table, User::Id),
                     )
                     .col(ColumnDef::new(UserRole::RoleId).integer().not_null())
                     .foreign_key(
@@ -69,9 +68,9 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Role::CreatedById).integer())
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-role-created-by")
+                            .name("fk-role-created-by-id")
                             .from(Role::Table, Role::CreatedById)
-                            .to(Role::Table, Role::Id),
+                            .to(User::Table, User::Id),
                     )
                     .col(
                         ColumnDef::new(Role::CreatedDate)
@@ -86,9 +85,9 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Role::UpdatedById).integer())
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-role-updated-by")
+                            .name("fk-role-updated-by-id")
                             .from(Role::Table, Role::UpdatedById)
-                            .to(Role::Table, Role::Id),
+                            .to(User::Table, User::Id),
                     )
                     .to_owned(),
             )

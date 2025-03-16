@@ -10,6 +10,7 @@ pub struct IdentityError {
 pub enum IdentityErrorKind {
     NotFound,
     InvalidInput,
+    InternalServerError,
     DatabaseError,
     Unauthorized,
 }

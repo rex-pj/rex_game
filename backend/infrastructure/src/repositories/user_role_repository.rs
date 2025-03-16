@@ -28,8 +28,16 @@ impl UserRoleRepositoryTrait for UserRoleRepository {
 
         user_role.created_date = Set(Utc::now().fixed_offset());
         user_role.updated_date = Set(Utc::now().fixed_offset());
-        let inserted = UserRole::insert(user_role).exec(&db_transaction).await;
-
-        return inserted;
+        let inserted_user_role = UserRole::insert(user_role).exec(&db_transaction).await;
+        match inserted_user_role {
+            Ok(inserted) => {
+                db_transaction.commit().await?;
+                return Ok(inserted);
+            }
+            Err(err) => {
+                db_transaction.rollback().await?;
+                return Err(err);
+            }
+        }
     }
 }

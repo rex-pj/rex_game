@@ -14,8 +14,12 @@ use rex_game_application::{
     },
     users::{user_usecase::UserUseCase, user_usecase_trait::UserUseCaseTrait},
 };
+use rex_game_domain::helpers::file_helper_trait::FileHelperTrait;
 use rex_game_infrastructure::{
-    helpers::configuration_helper::ConfigurationHelper,
+    helpers::{
+        configuration_helper::ConfigurationHelper, file_helper::FileHelper,
+        file_helper_object_trait::FileHelperObjectTrait,
+    },
     identities::{
         identity_password_hasher::IdentityPasswordHasher,
         identity_token_helper::IdentityTokenHelper,
@@ -35,11 +39,13 @@ pub trait AppStateTrait: Clone + Send + Sync + 'static {
     type UserUseCase: UserUseCaseTrait;
     type IdentityUserUseCase: IdentityUserUseCaseTrait;
     type IdentityAuthenticateUseCase: IdentityAuthenticateUseCaseTrait;
+    type FileHelper: FileHelperTrait + FileHelperObjectTrait;
     fn flashcard_usecase(&self) -> &Self::FlashcardUseCase;
     fn flashcard_type_usecase(&self) -> &Self::FlashcardTypeUseCase;
     fn user_usecase(&self) -> &Self::UserUseCase;
     fn identity_user_usecase(&self) -> &Self::IdentityUserUseCase;
     fn identity_authenticate_usecase(&self) -> &Self::IdentityAuthenticateUseCase;
+    fn file_helper(&self) -> &Self::FileHelper;
 }
 
 #[derive(Clone)]
@@ -60,6 +66,7 @@ pub struct RegularAppState {
         UserUseCase<UserRepository, RoleRepository, UserRoleRepository>,
         IdentityTokenHelper<ConfigurationHelper>,
     >,
+    pub file_helper: FileHelper,
 }
 
 impl AppStateTrait for RegularAppState {
@@ -79,6 +86,7 @@ impl AppStateTrait for RegularAppState {
         UserUseCase<UserRepository, RoleRepository, UserRoleRepository>,
         IdentityTokenHelper<ConfigurationHelper>,
     >;
+    type FileHelper = FileHelper;
 
     fn flashcard_usecase(&self) -> &Self::FlashcardUseCase {
         &self.flashcard_usecase
@@ -98,5 +106,9 @@ impl AppStateTrait for RegularAppState {
 
     fn identity_authenticate_usecase(&self) -> &Self::IdentityAuthenticateUseCase {
         &self.identity_authenticate_usecase
+    }
+
+    fn file_helper(&self) -> &Self::FileHelper {
+        &self.file_helper
     }
 }

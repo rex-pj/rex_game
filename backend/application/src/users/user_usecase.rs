@@ -11,7 +11,8 @@ use sea_orm::Set;
 
 use super::{
     user_creation_dto::UserCreationDto, user_details_dto::UserDetailsDto,
-    user_statuses::UserStatuses, user_usecase_trait::UserUseCaseTrait,
+    user_role_creation_dto::UserRoleCreationDto, user_statuses::UserStatuses,
+    user_usecase_trait::UserUseCaseTrait,
 };
 
 #[derive(Clone)]
@@ -92,10 +93,17 @@ impl<UT: UserRepositoryTrait, RT: RoleRepositoryTrait, URT: UserRoleRepositoryTr
         }
     }
 
-    async fn assign_role(&self, user_id: i32, role_name: &str) -> Result<i32, ApplicationError> {
-        let role = match self._role_repository.get_by_name(role_name).await {
-            Ok(i) => match i {
-                Some(f) => f,
+    async fn assign_role(
+        &self,
+        user_role_req: UserRoleCreationDto,
+    ) -> Result<i32, ApplicationError> {
+        let role = match self
+            ._role_repository
+            .get_by_name(&user_role_req.role_name)
+            .await
+        {
+            Ok(role_model) => match role_model {
+                Some(role) => role,
                 None => {
                     return Err(ApplicationError::new(
                         ErrorKind::NotFound,
@@ -116,8 +124,10 @@ impl<UT: UserRepositoryTrait, RT: RoleRepositoryTrait, URT: UserRoleRepositoryTr
         match self
             ._user_role_repository
             .create(user_role::ActiveModel {
-                user_id: Set(user_id),
+                user_id: Set(user_role_req.user_id),
                 role_id: Set(role.id),
+                created_by_id: Set(user_role_req.created_by_id),
+                updated_by_id: Set(user_role_req.updated_by_id),
                 ..Default::default()
             })
             .await

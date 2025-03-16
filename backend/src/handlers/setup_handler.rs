@@ -1,3 +1,4 @@
+use crate::{app_state::AppStateTrait, view_models::users::signup_request::SignupRequest};
 use axum::{extract::State, Json};
 use hyper::StatusCode;
 use rex_game_application::{
@@ -5,10 +6,20 @@ use rex_game_application::{
         application_user_dto::ApplicationUserDto,
         identity_user_usecase_trait::IdentityUserUseCaseTrait,
     },
-    users::{roles::ROLE_ADMIN, user_statuses::UserStatuses, user_usecase_trait::UserUseCaseTrait},
+    users::{
+        roles::ROLE_ADMIN, user_role_creation_dto::UserRoleCreationDto,
+        user_statuses::UserStatuses, user_usecase_trait::UserUseCaseTrait,
+    },
 };
+use rex_game_infrastructure::helpers::file_helper_object_trait::FileHelperObjectTrait;
+use serde::{Deserialize, Serialize};
 
-use crate::{app_state::AppStateTrait, view_models::users::signup_request::SignupRequest};
+#[derive(Serialize, Deserialize)]
+struct InstallationState {
+    is_installed: bool,
+}
+
+const INSTALLATION_PATH: &str = "./src/app_data/installation_state.json";
 
 impl SetupHandler {
     pub async fn setup<T: AppStateTrait>(
@@ -19,6 +30,27 @@ impl SetupHandler {
             Some(req) => req,
             None => return Err(StatusCode::BAD_REQUEST),
         };
+
+        match _state
+            .file_helper()
+            .get_object::<InstallationState>(INSTALLATION_PATH)
+        {
+            Some(installed) => {
+                if installed.is_installed {
+                    return Err(StatusCode::CONFLICT);
+                }
+            }
+            _ => {}
+        };
+
+        if let Ok(_) = _state
+            .user_usecase()
+            .get_user_by_email(req.email.to_owned())
+            .await
+        {
+            return Err(StatusCode::CONFLICT);
+        };
+
         let new_user = ApplicationUserDto {
             email: req.email,
             name: req.name,
@@ -26,7 +58,8 @@ impl SetupHandler {
             status_id: UserStatuses::Actived as i32,
             ..Default::default()
         };
-        let signup_result = match _state
+
+        let created_result = match _state
             .identity_user_usecase()
             .create_user(new_user, &req.password)
             .await
@@ -35,14 +68,27 @@ impl SetupHandler {
             Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
         };
 
-        match _state
+        if let Err(_) = _state
             .user_usecase()
-            .assign_role(signup_result.id, ROLE_ADMIN)
+            .assign_role(UserRoleCreationDto {
+                user_id: created_result.id,
+                role_name: String::from(ROLE_ADMIN),
+                created_by_id: Some(created_result.id),
+                updated_by_id: Some(created_result.id),
+            })
             .await
         {
-            Ok(_) => Ok(Json(true)),
-            Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
         }
+
+        if let Err(_) = _state
+            .file_helper()
+            .save_object(INSTALLATION_PATH, &InstallationState { is_installed: true })
+        {
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+
+        return Ok(Json(true));
     }
 }
 

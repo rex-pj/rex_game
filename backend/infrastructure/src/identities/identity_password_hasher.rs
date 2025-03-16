@@ -5,7 +5,7 @@ use argon2::{
 };
 use argon2::{Algorithm, AssociatedData, KeyId, ParamsBuilder, PasswordHash, Version};
 use rex_game_domain::identities::password_hasher_trait::PasswordHasherTrait;
-use rex_game_domain::identities::IdentityError;
+use rex_game_domain::identities::{IdentityError, IdentityErrorKind};
 
 impl IdentityPasswordHasher {
     pub fn new() -> Self {
@@ -37,6 +37,14 @@ impl PasswordHasherTrait for IdentityPasswordHasher {
     }
 
     fn verify_password(&self, password: &str, password_hash: &str) -> Result<(), IdentityError> {
+        if password.is_empty() || password_hash.is_empty() {
+            return Err(IdentityError {
+                kind: IdentityErrorKind::InvalidInput,
+                message: String::from("Password verification failed"),
+                details: None,
+            });
+        }
+
         let parsed_hash = PasswordHash::new(&password_hash).unwrap();
         match self
             .hasher_context()
@@ -44,7 +52,7 @@ impl PasswordHasherTrait for IdentityPasswordHasher {
         {
             Ok(_) => Ok(()),
             Err(_) => Err(IdentityError {
-                kind: rex_game_domain::identities::IdentityErrorKind::InvalidInput,
+                kind: IdentityErrorKind::InternalServerError,
                 message: String::from("Password verification failed"),
                 details: None,
             }),

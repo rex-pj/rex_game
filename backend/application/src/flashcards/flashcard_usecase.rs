@@ -110,6 +110,8 @@ impl<
             data: Set(flashcard_req.image_data.unwrap()),
             created_by_id: Set(flashcard_req.created_by_id),
             updated_by_id: Set(flashcard_req.updated_by_id),
+            created_date: Set(Utc::now().fixed_offset()),
+            updated_date: Set(Utc::now().fixed_offset()),
             ..Default::default()
         };
 
@@ -230,6 +232,8 @@ impl<
 
         // Updating flashcard information
         let mut updating_flashcard: flashcard::ActiveModel = existing_flashcard.into();
+
+        updating_flashcard.updated_date = Set(Utc::now().fixed_offset());
         if let Some(name) = flashcard_req.name {
             updating_flashcard.name = Set(name);
         }

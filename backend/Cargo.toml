@@ -24,7 +24,6 @@ serde = { version = "1.0", features = ["derive"] }
 
 # Each data format lives in its own crate; the sample code below uses JSON
 # but you may be using a different one.
-serde_json = "1.0"
 axum-extra = { version = "0.10.0", features = ["cookie"] }
 
 [dependencies.sea-orm]

@@ -2,7 +2,10 @@ use std::future::Future;
 
 use crate::errors::application_error::ApplicationError;
 
-use super::{user_creation_dto::UserCreationDto, user_details_dto::UserDetailsDto};
+use super::{
+    user_creation_dto::UserCreationDto, user_details_dto::UserDetailsDto,
+    user_role_creation_dto::UserRoleCreationDto,
+};
 
 pub trait UserUseCaseTrait {
     fn get_user_by_email(
@@ -16,7 +19,6 @@ pub trait UserUseCaseTrait {
     ) -> impl Future<Output = Result<i32, ApplicationError>>;
     fn assign_role(
         &self,
-        user_id: i32,
-        role_name: &str,
+        user_role_req: UserRoleCreationDto,
     ) -> impl Future<Output = Result<i32, ApplicationError>>;
 }

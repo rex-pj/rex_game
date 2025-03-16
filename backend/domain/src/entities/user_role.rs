@@ -19,36 +19,42 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(
         belongs_to = "super::role::Entity",
-        from = "Column::CreatedById",
-        to = "super::role::Column::Id",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    Role4,
-    #[sea_orm(
-        belongs_to = "super::role::Entity",
-        from = "Column::UpdatedById",
-        to = "super::role::Column::Id",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    Role3,
-    #[sea_orm(
-        belongs_to = "super::role::Entity",
         from = "Column::RoleId",
         to = "super::role::Column::Id",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    Role2,
+    Role,
     #[sea_orm(
-        belongs_to = "super::role::Entity",
-        from = "Column::UserId",
-        to = "super::role::Column::Id",
+        belongs_to = "super::user::Entity",
+        from = "Column::CreatedById",
+        to = "super::user::Column::Id",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    Role1,
+    User3,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::UpdatedById",
+        to = "super::user::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    User2,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::UserId",
+        to = "super::user::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    User1,
+}
+
+impl Related<super::role::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Role.def()
+    }
 }
 
 impl ActiveModelBehavior for ActiveModel {}

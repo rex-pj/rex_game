@@ -9,6 +9,7 @@ use jsonwebtoken::{
     errors::{Error, ErrorKind},
     Header, Validation,
 };
+use rex_game_domain::identities::IdentityErrorKind;
 use rex_game_domain::{
     helpers::configuration_helper_trait::ConfigurationHelperTrait,
     identities::{
@@ -50,6 +51,9 @@ impl<CF: ConfigurationHelperTrait> IdentityTokenHelper<CF> {
         &self,
         access_token: &str,
     ) -> Result<IdentityAccessTokenClaims, Error> {
+        if access_token.is_empty() {
+            return Err(Error::from(ErrorKind::InvalidToken));
+        }
         let mut validation: Validation = Validation::default();
         validation.set_audience(&[self._client_id.to_string()]);
         validation.set_issuer(&[self._client_id.to_string()]);
@@ -67,6 +71,9 @@ impl<CF: ConfigurationHelperTrait> IdentityTokenHelper<CF> {
         &self,
         refresh_token: &str,
     ) -> Result<IdentityRefreshTokenClaims, Error> {
+        if refresh_token.is_empty() {
+            return Err(Error::from(ErrorKind::InvalidToken));
+        }
         let mut validation: Validation = Validation::default();
         validation.set_audience(&[self._client_id.to_string()]);
         validation.set_issuer(&[self._client_id.to_string()]);
@@ -90,6 +97,9 @@ impl<CF: ConfigurationHelperTrait> IdentityTokenHelper<CF> {
 
 impl<CF: ConfigurationHelperTrait> TokenHelperTrait for IdentityTokenHelper<CF> {
     fn generate_access_token(&self, user_id: i32, email: &str) -> Option<UserAccessClaims> {
+        if user_id == 0 || email.is_empty() {
+            return None;
+        }
         let now = Utc::now();
         let claims = IdentityAccessTokenClaims {
             sub: user_id,
@@ -123,6 +133,9 @@ impl<CF: ConfigurationHelperTrait> TokenHelperTrait for IdentityTokenHelper<CF> 
         access_token: &str,
         refresh_token: &str,
     ) -> Option<UserAccessClaims> {
+        if access_token.is_empty() || refresh_token.is_empty() {
+            return None;
+        }
         let access_claims = self.get_access_token_claims(access_token).unwrap();
         let refresh_claims = self.get_refresh_token_claims(refresh_token);
 
@@ -139,6 +152,9 @@ impl<CF: ConfigurationHelperTrait> TokenHelperTrait for IdentityTokenHelper<CF> 
     }
 
     fn generate_refresh_token(&self, id: i32, email: &str) -> Option<String> {
+        if id == 0 || email.is_empty() {
+            return None;
+        }
         let now = Utc::now();
         let claims = IdentityRefreshTokenClaims {
             sub: id,
@@ -162,11 +178,19 @@ impl<CF: ConfigurationHelperTrait> TokenHelperTrait for IdentityTokenHelper<CF> 
     }
 
     fn validate_access_token(&self, access_token: &str) -> Result<IdentityClaims, IdentityError> {
+        if access_token.is_empty() {
+            return Err(IdentityError {
+                kind: IdentityErrorKind::InvalidInput,
+                message: String::from("No token"),
+                details: None,
+            });
+        }
+
         let token_data_claims = match self.get_access_token_claims(access_token) {
             Ok(claims) => claims,
             Err(_) => {
                 return Err(IdentityError {
-                    kind: rex_game_domain::identities::IdentityErrorKind::Unauthorized,
+                    kind: IdentityErrorKind::Unauthorized,
                     message: String::from("Token is invalid"),
                     details: None,
                 })
@@ -176,7 +200,7 @@ impl<CF: ConfigurationHelperTrait> TokenHelperTrait for IdentityTokenHelper<CF> 
         let now = Utc::now().timestamp() as u64;
         if token_data_claims.exp < now {
             return Err(IdentityError {
-                kind: rex_game_domain::identities::IdentityErrorKind::Unauthorized,
+                kind: IdentityErrorKind::Unauthorized,
                 message: String::from("Token is invalid or expired"),
                 details: None,
             });

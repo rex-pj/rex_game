@@ -9,6 +9,7 @@ use rex_game_application::{
     flashcards::flashcard_usecase::FlashcardUseCase, users::user_usecase::UserUseCase,
 };
 use rex_game_infrastructure::helpers::configuration_helper::ConfigurationHelper;
+use rex_game_infrastructure::helpers::file_helper::FileHelper;
 use rex_game_infrastructure::identities::identity_password_hasher::IdentityPasswordHasher;
 use rex_game_infrastructure::identities::identity_token_helper::IdentityTokenHelper;
 use rex_game_infrastructure::repositories::role_repository::RoleRepository;
@@ -63,12 +64,15 @@ pub async fn start() {
         user_usecase.clone(),
         identity_token_helper,
     );
+
+    let file_helper = FileHelper::new();
     let app_state = RegularAppState {
         flashcard_usecase,
         flashcard_type_usecase,
         user_usecase,
         identity_user_usecase,
         identity_authenticate_usecase,
+        file_helper,
     };
 
     let authenticated_routes = AppRouting {

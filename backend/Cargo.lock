@@ -2504,6 +2504,7 @@ dependencies = [
  "rex-game-domain",
  "sea-orm",
  "serde",
+ "serde_json",
  "tokio",
 ]
 
@@ -2532,7 +2533,6 @@ dependencies = [
  "rex-game-migration",
  "sea-orm",
  "serde",
- "serde_json",
  "tokio",
  "tower",
  "tower-http",
