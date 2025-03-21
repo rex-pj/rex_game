@@ -12,6 +12,7 @@ use rex_game_application::{
     },
 };
 use rex_game_infrastructure::helpers::file_helper_object_trait::FileHelperObjectTrait;
+use sea_orm::TransactionTrait;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -59,25 +60,40 @@ impl SetupHandler {
             ..Default::default()
         };
 
+        let db_transaction = match _state.db_connection().begin().await {
+            Ok(transaction) => transaction,
+            Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+        };
         let created_result = match _state
             .identity_user_usecase()
-            .create_user(new_user, &req.password)
+            .create_user(new_user, &req.password, Some(&db_transaction))
             .await
         {
             Ok(created) => created,
-            Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+            Err(_) => {
+                if let Err(_) = db_transaction.rollback().await {
+                    return Err(StatusCode::INTERNAL_SERVER_ERROR);
+                }
+                return Err(StatusCode::INTERNAL_SERVER_ERROR);
+            }
         };
 
         if let Err(_) = _state
             .user_usecase()
-            .assign_role(UserRoleCreationDto {
-                user_id: created_result.id,
-                role_name: String::from(ROLE_ADMIN),
-                created_by_id: Some(created_result.id),
-                updated_by_id: Some(created_result.id),
-            })
+            .assign_role(
+                UserRoleCreationDto {
+                    user_id: created_result.id,
+                    role_name: String::from(ROLE_ADMIN),
+                    created_by_id: Some(created_result.id),
+                    updated_by_id: Some(created_result.id),
+                },
+                Some(&db_transaction),
+            )
             .await
         {
+            if let Err(_) = db_transaction.rollback().await {
+                return Err(StatusCode::INTERNAL_SERVER_ERROR);
+            }
             return Err(StatusCode::INTERNAL_SERVER_ERROR);
         }
 
@@ -85,9 +101,15 @@ impl SetupHandler {
             .file_helper()
             .save_object(INSTALLATION_PATH, &InstallationState { is_installed: true })
         {
+            if let Err(_) = db_transaction.rollback().await {
+                return Err(StatusCode::INTERNAL_SERVER_ERROR);
+            }
             return Err(StatusCode::INTERNAL_SERVER_ERROR);
         }
 
+        if let Err(_) = db_transaction.commit().await {
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
         return Ok(Json(true));
     }
 }

@@ -7,6 +7,7 @@ use super::{
     identity_user_trait::IdentityUserTrait, identity_user_usecase_trait::IdentityUserUseCaseTrait,
 };
 use rex_game_domain::identities::password_hasher_trait::PasswordHasherTrait;
+use sea_orm::DatabaseTransaction;
 
 #[derive(Clone)]
 pub struct IdentityUserUseCase<PH, US>
@@ -34,6 +35,7 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait> IdentityUserUseCaseTrait
         &self,
         mut user: UT,
         password: &str,
+        database_transaction: Option<&DatabaseTransaction>,
     ) -> Result<UT, ApplicationError> {
         let salt = self._password_hasher.generate_salt();
         user.set_security_stamp(&salt);
@@ -42,13 +44,16 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait> IdentityUserUseCaseTrait
 
         let created_id = match self
             ._user_usecase
-            .create_user(UserCreationDto {
-                display_name: user.display_name().map(|f| String::from(f)),
-                email: String::from(user.email()),
-                name: String::from(user.name()),
-                password: String::from(user.password_hash()),
-                security_stamp: String::from(user.security_stamp()),
-            })
+            .create_user(
+                UserCreationDto {
+                    display_name: user.display_name().map(|f| String::from(f)),
+                    email: String::from(user.email()),
+                    name: String::from(user.name()),
+                    password: String::from(user.password_hash()),
+                    security_stamp: String::from(user.security_stamp()),
+                },
+                database_transaction,
+            )
             .await
         {
             Ok(id) => id,

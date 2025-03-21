@@ -73,6 +73,7 @@ pub async fn start() {
         identity_user_usecase,
         identity_authenticate_usecase,
         file_helper,
+        db_connection: Arc::clone(&db_connection.pool),
     };
 
     let authenticated_routes = AppRouting {

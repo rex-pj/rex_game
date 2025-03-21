@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rex_game_application::{
     flashcard_types::{
         flashcard_type_usecase::FlashcardTypeUseCase,
@@ -32,6 +34,7 @@ use rex_game_infrastructure::{
         user_repository::UserRepository, user_role_repository::UserRoleRepository,
     },
 };
+use sea_orm::DatabaseConnection;
 
 pub trait AppStateTrait: Clone + Send + Sync + 'static {
     type FlashcardUseCase: FlashcardUseCaseTrait;
@@ -46,6 +49,7 @@ pub trait AppStateTrait: Clone + Send + Sync + 'static {
     fn identity_user_usecase(&self) -> &Self::IdentityUserUseCase;
     fn identity_authenticate_usecase(&self) -> &Self::IdentityAuthenticateUseCase;
     fn file_helper(&self) -> &Self::FileHelper;
+    fn db_connection(&self) -> &Arc<DatabaseConnection>;
 }
 
 #[derive(Clone)]
@@ -67,6 +71,7 @@ pub struct RegularAppState {
         IdentityTokenHelper<ConfigurationHelper>,
     >,
     pub file_helper: FileHelper,
+    pub db_connection: Arc<DatabaseConnection>,
 }
 
 impl AppStateTrait for RegularAppState {
@@ -110,5 +115,9 @@ impl AppStateTrait for RegularAppState {
 
     fn file_helper(&self) -> &Self::FileHelper {
         &self.file_helper
+    }
+
+    fn db_connection(&self) -> &Arc<DatabaseConnection> {
+        &self.db_connection
     }
 }

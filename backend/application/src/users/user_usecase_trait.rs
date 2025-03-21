@@ -1,6 +1,7 @@
-use std::future::Future;
+use sea_orm::DatabaseTransaction;
 
 use crate::errors::application_error::ApplicationError;
+use std::future::Future;
 
 use super::{
     user_creation_dto::UserCreationDto, user_details_dto::UserDetailsDto,
@@ -16,9 +17,11 @@ pub trait UserUseCaseTrait {
     fn create_user(
         &self,
         user_req: UserCreationDto,
+        database_transaction: Option<&DatabaseTransaction>,
     ) -> impl Future<Output = Result<i32, ApplicationError>>;
     fn assign_role(
         &self,
         user_role_req: UserRoleCreationDto,
+        database_transaction: Option<&DatabaseTransaction>,
     ) -> impl Future<Output = Result<i32, ApplicationError>>;
 }

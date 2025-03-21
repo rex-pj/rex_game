@@ -4,8 +4,8 @@ use rex_game_domain::{
     repositories::user_repository_trait::UserRepositoryTrait,
 };
 use sea_orm::{
-    ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, QueryFilter, Set,
-    TransactionTrait,
+    ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction, DbErr, EntityTrait,
+    QueryFilter, Set, TransactionTrait,
 };
 use std::sync::Arc;
 
@@ -28,8 +28,7 @@ impl UserRepositoryTrait for UserRepository {
 
         user.created_date = Set(Utc::now().fixed_offset());
         user.updated_date = Set(Utc::now().fixed_offset());
-        let inserted_user = User::insert(user).exec(&db_transaction).await?;
-
+        let inserted_user = User::insert(user).exec(&db_transaction).await?; //.exec(&db_transaction).await?;
         let updating_user: user::ActiveModel = user::ActiveModel {
             id: Set(inserted_user.last_insert_id),
             created_by_id: Set(Some(inserted_user.last_insert_id)),
@@ -48,6 +47,30 @@ impl UserRepositoryTrait for UserRepository {
                 return Err(err);
             }
         }
+    }
+
+    async fn create_without_commit(
+        &self,
+        mut user: user::ActiveModel,
+        database_transaction: Option<&DatabaseTransaction>,
+    ) -> Result<user::Model, DbErr> {
+        let db_transaction = match database_transaction {
+            Some(transaction) => transaction,
+            None => return Err(DbErr::RecordNotInserted),
+        };
+
+        user.created_date = Set(Utc::now().fixed_offset());
+        user.updated_date = Set(Utc::now().fixed_offset());
+        let inserted_user = User::insert(user).exec(db_transaction).await?; //.exec(&db_transaction).await?;
+        let updating_user: user::ActiveModel = user::ActiveModel {
+            id: Set(inserted_user.last_insert_id),
+            created_by_id: Set(Some(inserted_user.last_insert_id)),
+            updated_by_id: Set(Some(inserted_user.last_insert_id)),
+            ..Default::default()
+        };
+
+        let updated_user = User::update(updating_user).exec(db_transaction).await;
+        updated_user
     }
 
     async fn get_by_email(&self, email: String) -> Result<Option<user::Model>, DbErr> {

@@ -7,7 +7,7 @@ use rex_game_domain::{
         user_role_repository_trait::UserRoleRepositoryTrait,
     },
 };
-use sea_orm::Set;
+use sea_orm::{DatabaseTransaction, Set};
 
 use super::{
     user_creation_dto::UserCreationDto, user_details_dto::UserDetailsDto,
@@ -72,7 +72,11 @@ impl<UT: UserRepositoryTrait, RT: RoleRepositoryTrait, URT: UserRoleRepositoryTr
         }
     }
 
-    async fn create_user(&self, user_req: UserCreationDto) -> Result<i32, ApplicationError> {
+    async fn create_user(
+        &self,
+        user_req: UserCreationDto,
+        database_transaction: Option<&DatabaseTransaction>,
+    ) -> Result<i32, ApplicationError> {
         let active_user = user::ActiveModel {
             name: Set(user_req.name),
             display_name: Set(user_req.display_name),
@@ -82,7 +86,16 @@ impl<UT: UserRepositoryTrait, RT: RoleRepositoryTrait, URT: UserRoleRepositoryTr
             security_stamp: Set(user_req.security_stamp),
             ..Default::default()
         };
-        let created = self._user_repository.create(active_user).await;
+
+        let created = match database_transaction {
+            Some(transaction) => {
+                self._user_repository
+                    .create_without_commit(active_user, Some(transaction))
+                    .await
+            }
+            None => self._user_repository.create(active_user).await,
+        };
+
         match created {
             Err(_) => Err(ApplicationError::new(
                 ErrorKind::DatabaseError,
@@ -96,6 +109,7 @@ impl<UT: UserRepositoryTrait, RT: RoleRepositoryTrait, URT: UserRoleRepositoryTr
     async fn assign_role(
         &self,
         user_role_req: UserRoleCreationDto,
+        database_transaction: Option<&DatabaseTransaction>,
     ) -> Result<i32, ApplicationError> {
         let role = match self
             ._role_repository
@@ -123,13 +137,16 @@ impl<UT: UserRepositoryTrait, RT: RoleRepositoryTrait, URT: UserRoleRepositoryTr
 
         match self
             ._user_role_repository
-            .create(user_role::ActiveModel {
-                user_id: Set(user_role_req.user_id),
-                role_id: Set(role.id),
-                created_by_id: Set(user_role_req.created_by_id),
-                updated_by_id: Set(user_role_req.updated_by_id),
-                ..Default::default()
-            })
+            .create_without_commit(
+                user_role::ActiveModel {
+                    user_id: Set(user_role_req.user_id),
+                    role_id: Set(role.id),
+                    created_by_id: Set(user_role_req.created_by_id),
+                    updated_by_id: Set(user_role_req.updated_by_id),
+                    ..Default::default()
+                },
+                database_transaction,
+            )
             .await
         {
             Ok(inserted) => Ok(inserted.last_insert_id),
