@@ -1,19 +1,22 @@
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 use axum::{
     routing::{get, patch, post, put},
     Router,
 };
+use rex_game_application::users::roles::ROLE_ADMIN;
 use tower::ServiceBuilder;
 
 use crate::{
     app_state::RegularAppState,
     handlers::{
         authentication_handler::AuthenticationHandler, flashcard_handler::FlashcardHandler,
-        flashcard_type_handler::FlashcardTypeHandler, setup_handler::SetupHandler,
-        user_handler::UserHandler,
+        flashcard_type_handler::FlashcardTypeHandler, role_handler::RoleHandler,
+        setup_handler::SetupHandler, user_handler::UserHandler,
     },
-    middlewares::auth_middleware::AuthLayer,
+    middlewares::{
+        authenticate_middleware::AuthenticateLayer, authorize_middleware::AuthorizeLayer,
+    },
 };
 
 pub struct AppRouting {
@@ -46,7 +49,7 @@ impl AppRouting {
                 "/auth/refresh",
                 post(AuthenticationHandler::refresh_access_token::<RegularAppState>),
             )
-            .layer(ServiceBuilder::new().layer(AuthLayer {
+            .layer(ServiceBuilder::new().layer(AuthenticateLayer {
                 app_state: self.app_state.clone(),
             }))
     }
@@ -79,5 +82,14 @@ impl AppRouting {
             )
             .route("/users", post(UserHandler::create_user::<RegularAppState>))
             .route("/setup", post(SetupHandler::setup::<RegularAppState>))
+    }
+
+    pub fn build_admin_routes(&self, router: Router<RegularAppState>) -> Router<RegularAppState> {
+        router
+            .route("/roles", get(RoleHandler::get_roles::<RegularAppState>))
+            .layer(ServiceBuilder::new().layer(AuthorizeLayer {
+                app_state: self.app_state.clone(),
+                roles: HashSet::from([ROLE_ADMIN.to_string()]),
+            }))
     }
 }

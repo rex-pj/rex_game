@@ -3,7 +3,9 @@ use crate::routings::app_routing::AppRouting;
 use app_state::RegularAppState;
 use axum::Router;
 use rex_game_application::identities::identity_authenticate_usecase::IdentityAuthenticateUseCase;
+use rex_game_application::identities::identity_authorize_usecase::IdentityAuthorizeUseCase;
 use rex_game_application::identities::identity_user_usecase::IdentityUserUseCase;
+use rex_game_application::roles::role_usecase::RoleUseCase;
 use rex_game_application::{
     flashcard_types::flashcard_type_usecase::FlashcardTypeUseCase,
     flashcards::flashcard_usecase::FlashcardUseCase, users::user_usecase::UserUseCase,
@@ -56,7 +58,12 @@ pub async fn start() {
 
     let flashcard_type_repository = FlashcardTypeRepository::new(Arc::clone(&db_connection.pool));
     let flashcard_type_usecase = FlashcardTypeUseCase::new(flashcard_type_repository);
-    let user_usecase = UserUseCase::new(user_repository, role_repository, user_role_repository);
+    let user_usecase = UserUseCase::new(
+        user_repository,
+        role_repository.clone(),
+        user_role_repository.clone(),
+    );
+    let role_usecase = RoleUseCase::new(role_repository);
     let identity_user_usecase =
         IdentityUserUseCase::new(identity_password_hasher.clone(), user_usecase.clone());
     let identity_authenticate_usecase = IdentityAuthenticateUseCase::new(
@@ -64,6 +71,7 @@ pub async fn start() {
         user_usecase.clone(),
         identity_token_helper,
     );
+    let identity_authorize_usecase = IdentityAuthorizeUseCase::new(user_role_repository.clone());
 
     let file_helper = FileHelper::new();
     let app_state = RegularAppState {
@@ -74,6 +82,8 @@ pub async fn start() {
         identity_authenticate_usecase,
         file_helper,
         db_connection: Arc::clone(&db_connection.pool),
+        role_usecase: role_usecase,
+        identity_authorize_usecase: identity_authorize_usecase,
     };
 
     let authenticated_routes = AppRouting {
@@ -81,10 +91,15 @@ pub async fn start() {
     }
     .build_authenticated_routes(Router::new());
 
+    let admin_authenticated_routes = AppRouting {
+        app_state: Arc::new(app_state.clone()),
+    }
+    .build_admin_routes(authenticated_routes);
+
     let public_routes = AppRouting {
         app_state: Arc::new(app_state.clone()),
     }
-    .build_public_routes(authenticated_routes);
+    .build_public_routes(admin_authenticated_routes);
 
     let stated_routes = public_routes.with_state(app_state);
     let listener = TcpListener::bind("0.0.0.0:3400").await.unwrap();

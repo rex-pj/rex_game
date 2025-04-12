@@ -5,7 +5,7 @@ use std::future::Future;
 
 use super::{
     user_creation_dto::UserCreationDto, user_details_dto::UserDetailsDto,
-    user_role_creation_dto::UserRoleCreationDto,
+    user_role_creation_dto::UserRoleCreationDto, user_role_dto::UseRoleDto,
 };
 
 pub trait UserUseCaseTrait {
@@ -24,4 +24,8 @@ pub trait UserUseCaseTrait {
         user_role_req: UserRoleCreationDto,
         database_transaction: Option<&DatabaseTransaction>,
     ) -> impl Future<Output = Result<i32, ApplicationError>>;
+    fn get_user_roles(
+        &self,
+        user_id: i32,
+    ) -> impl Future<Output = Result<Vec<UseRoleDto>, ApplicationError>>;
 }

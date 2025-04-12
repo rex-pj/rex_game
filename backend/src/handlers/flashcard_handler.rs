@@ -1,6 +1,6 @@
 use crate::{
     app_state::AppStateTrait, helpers::http_helper::HttpHelper,
-    middlewares::auth_middleware::CurrentUser,
+    middlewares::authenticate_middleware::CurrentUser,
 };
 use axum::{
     body::Body,

@@ -11,8 +11,8 @@ use sea_orm::{DatabaseTransaction, Set};
 
 use super::{
     user_creation_dto::UserCreationDto, user_details_dto::UserDetailsDto,
-    user_role_creation_dto::UserRoleCreationDto, user_statuses::UserStatuses,
-    user_usecase_trait::UserUseCaseTrait,
+    user_role_creation_dto::UserRoleCreationDto, user_role_dto::UseRoleDto,
+    user_statuses::UserStatuses, user_usecase_trait::UserUseCaseTrait,
 };
 
 #[derive(Clone)]
@@ -103,6 +103,26 @@ impl<UT: UserRepositoryTrait, RT: RoleRepositoryTrait, URT: UserRoleRepositoryTr
                 None,
             )),
             Ok(i) => Ok(i.id),
+        }
+    }
+
+    async fn get_user_roles(&self, user_id: i32) -> Result<Vec<UseRoleDto>, ApplicationError> {
+        let roles = self._user_role_repository.get_user_roles(user_id).await;
+        match roles {
+            Ok(i) => Ok(i
+                .into_iter()
+                .map(|f| UseRoleDto {
+                    id: f.id,
+                    user_id: f.user_id,
+                    role_id: f.role_id,
+                    ..Default::default()
+                })
+                .collect()),
+            Err(_) => Err(ApplicationError::new(
+                ErrorKind::DatabaseError,
+                "Database error",
+                None,
+            )),
         }
     }
 

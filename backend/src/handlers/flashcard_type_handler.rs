@@ -13,7 +13,7 @@ use rex_game_application::flashcard_types::{
 use serde::Deserialize;
 
 use crate::{
-    app_state::AppStateTrait, middlewares::auth_middleware::CurrentUser,
+    app_state::AppStateTrait, middlewares::authenticate_middleware::CurrentUser,
     view_models::flashcard_types::flashcard_type_create_request::FlashcardTypeCreateRequest,
 };
 

@@ -1,0 +1,31 @@
+html,
+body {
+  font-family: "Alegreya Sans", Verdana, Geneva, Tahoma, sans-serif;
+  background-color: var(--background-color);
+}
+
+:root {
+  --background-color: #fcf7ee;
+  --primary-color: #fc800a;
+  --primary-hover-color: #e96b3b;
+  --nav-hover-color: rgb(253, 240, 225);
+  --secondary-color: #376179;
+  --box-shadow-color: rgb(26 26 26 / 15%);
+  --nav-bg-color: #fbf1e3;
+  --border-color: #ebe2d8;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover-color);
+  border-color: var(--primary-hover-color);
+}
+
+.btn-secondary {
+  background-color: var(--secondary-color);
+  border-color: var(--secondary-color);
+}

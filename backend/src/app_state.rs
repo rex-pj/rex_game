@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use rex_game_application::{
     flashcard_types::{
         flashcard_type_usecase::FlashcardTypeUseCase,
@@ -11,9 +9,12 @@ use rex_game_application::{
     identities::{
         identity_authenticate_usecase::IdentityAuthenticateUseCase,
         identity_authenticate_usecase_trait::IdentityAuthenticateUseCaseTrait,
+        identity_authorize_usecase::IdentityAuthorizeUseCase,
+        identity_authorize_usecase_trait::IdentityAuthorizeUseCaseTrait,
         identity_user_usecase::IdentityUserUseCase,
         identity_user_usecase_trait::IdentityUserUseCaseTrait,
     },
+    roles::{role_usecase::RoleUseCase, role_usecase_trait::RoleUseCaseTrait},
     users::{user_usecase::UserUseCase, user_usecase_trait::UserUseCaseTrait},
 };
 use rex_game_domain::helpers::file_helper_trait::FileHelperTrait;
@@ -35,6 +36,7 @@ use rex_game_infrastructure::{
     },
 };
 use sea_orm::DatabaseConnection;
+use std::sync::Arc;
 
 pub trait AppStateTrait: Clone + Send + Sync + 'static {
     type FlashcardUseCase: FlashcardUseCaseTrait;
@@ -42,14 +44,18 @@ pub trait AppStateTrait: Clone + Send + Sync + 'static {
     type UserUseCase: UserUseCaseTrait;
     type IdentityUserUseCase: IdentityUserUseCaseTrait;
     type IdentityAuthenticateUseCase: IdentityAuthenticateUseCaseTrait;
+    type IdentityAuthorizeUseCase: IdentityAuthorizeUseCaseTrait;
+    type RoleUseCase: RoleUseCaseTrait;
     type FileHelper: FileHelperTrait + FileHelperObjectTrait;
     fn flashcard_usecase(&self) -> &Self::FlashcardUseCase;
     fn flashcard_type_usecase(&self) -> &Self::FlashcardTypeUseCase;
     fn user_usecase(&self) -> &Self::UserUseCase;
     fn identity_user_usecase(&self) -> &Self::IdentityUserUseCase;
     fn identity_authenticate_usecase(&self) -> &Self::IdentityAuthenticateUseCase;
+    fn identity_authorize_usecase(&self) -> &Self::IdentityAuthorizeUseCase;
     fn file_helper(&self) -> &Self::FileHelper;
     fn db_connection(&self) -> &Arc<DatabaseConnection>;
+    fn role_usecase(&self) -> &Self::RoleUseCase;
 }
 
 #[derive(Clone)]
@@ -71,7 +77,9 @@ pub struct RegularAppState {
         IdentityTokenHelper<ConfigurationHelper>,
     >,
     pub file_helper: FileHelper,
+    pub role_usecase: RoleUseCase<RoleRepository>,
     pub db_connection: Arc<DatabaseConnection>,
+    pub identity_authorize_usecase: IdentityAuthorizeUseCase<UserRoleRepository>,
 }
 
 impl AppStateTrait for RegularAppState {
@@ -91,7 +99,9 @@ impl AppStateTrait for RegularAppState {
         UserUseCase<UserRepository, RoleRepository, UserRoleRepository>,
         IdentityTokenHelper<ConfigurationHelper>,
     >;
+    type IdentityAuthorizeUseCase = IdentityAuthorizeUseCase<UserRoleRepository>;
     type FileHelper = FileHelper;
+    type RoleUseCase = RoleUseCase<RoleRepository>;
 
     fn flashcard_usecase(&self) -> &Self::FlashcardUseCase {
         &self.flashcard_usecase
@@ -113,11 +123,19 @@ impl AppStateTrait for RegularAppState {
         &self.identity_authenticate_usecase
     }
 
+    fn identity_authorize_usecase(&self) -> &Self::IdentityAuthorizeUseCase {
+        &self.identity_authorize_usecase
+    }
+
     fn file_helper(&self) -> &Self::FileHelper {
         &self.file_helper
     }
 
     fn db_connection(&self) -> &Arc<DatabaseConnection> {
         &self.db_connection
+    }
+
+    fn role_usecase(&self) -> &Self::RoleUseCase {
+        &self.role_usecase
     }
 }

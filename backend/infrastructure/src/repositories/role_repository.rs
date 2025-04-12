@@ -4,8 +4,8 @@ use rex_game_domain::{
     repositories::role_repository_trait::RoleRepositoryTrait,
 };
 use sea_orm::{
-    ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, QueryFilter, Set,
-    TransactionTrait,
+    ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, PaginatorTrait, QueryFilter,
+    QueryOrder, Set, TransactionTrait,
 };
 use std::sync::Arc;
 
@@ -57,5 +57,17 @@ impl RoleRepositoryTrait for RoleRepository {
             .await;
 
         return existing_role;
+    }
+
+    async fn get_list(&self, page: u64, page_size: u64) -> Result<(Vec<role::Model>, u64), DbErr> {
+        let db = self._db_connection.as_ref();
+        let mut query = Role::find();
+
+        query = query.order_by(role::Column::UpdatedDate, sea_orm::Order::Desc);
+
+        let paginator = query.paginate(db, page_size);
+
+        let num_pages = paginator.num_pages().await?;
+        paginator.fetch_page(page - 1).await.map(|p| (p, num_pages))
     }
 }
