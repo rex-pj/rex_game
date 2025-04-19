@@ -1,3 +1,7 @@
+<script>
+  import FlashcardMatching from "./FlashcardMatching.svelte";
+</script>
+
 <ul class="nav nav-pills nav-fill" id="pills-tab" role="tablist">
   <li class="nav-item" role="presentation">
     <button
@@ -56,7 +60,7 @@
     aria-labelledby="pills-matching-tab"
     tabindex="0"
   >
-    Matching
+    <FlashcardMatching></FlashcardMatching>
   </div>
   <div
     class="tab-pane"
