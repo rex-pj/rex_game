@@ -1,7 +1,7 @@
 use std::{collections::HashSet, sync::Arc};
 
 use axum::{
-    routing::{get, patch, post, put},
+    routing::{delete, get, patch, post, put},
     Router,
 };
 use rex_game_application::users::roles::ROLE_ADMIN;
@@ -48,6 +48,10 @@ impl AppRouting {
             .route(
                 "/auth/refresh",
                 post(AuthenticationHandler::refresh_access_token::<RegularAppState>),
+            )
+            .route(
+                "/auth/logout",
+                delete(AuthenticationHandler::logout::<RegularAppState>),
             )
             .layer(ServiceBuilder::new().layer(AuthenticateLayer {
                 app_state: self.app_state.clone(),

@@ -6,14 +6,44 @@
   let showFireworks = false;
 
   function generateCards(level: number) {
-    const totalCards = level * level;
-    const uniquePairs = totalCards / 2;
-    const cardTexts = Array.from({ length: uniquePairs }, (_, i) => String.fromCharCode(65 + i));
-    const allCards = [...cardTexts, ...cardTexts].map((text, index) => ({
-      id: index + 1,
-      text,
-      matched: false,
-    }));
+    const allCards = [
+      {
+        id: 1,
+        text: "Allosaurus",
+        image_url: "https://kids-flashcards.com/images/en/43/cards/picture-flashcard/new.webp",
+        matched: false,
+      },
+      {
+        id: 2,
+        text: "Ankylosaurus",
+        image_url: "../../../assets/imgs/flascards/Ankylosaurus-flashcard.png",
+        matched: false,
+      },
+      {
+        id: 3,
+        text: "Brachiosaurus",
+        image_url: "../../../assets/imgs/flascards/Brachiosaurus-flashcard.png",
+        matched: false,
+      },
+      {
+        id: 4,
+        text: "Allosaurus",
+        image_url: "https://kids-flashcards.com/images/en/43/cards/picture-flashcard/new.webp",
+        matched: false,
+      },
+      {
+        id: 5,
+        text: "Ankylosaurus",
+        image_url: "../../../assets/imgs/flascards/Ankylosaurus-flashcard.png",
+        matched: false,
+      },
+      {
+        id: 6,
+        text: "Brachiosaurus",
+        image_url: "../../../assets/imgs/flascards/Brachiosaurus-flashcard.png",
+        matched: false,
+      },
+    ];
     shuffle(allCards);
     return allCards;
   }
@@ -33,8 +63,9 @@
   }
 
   function flipCard(card: { id: number; text: string; matched: boolean } | null) {
-    if (!card) return;
-    if (card.matched || card === firstCard || card === secondCard) return;
+    if (!card || card.matched || card === firstCard || card === secondCard) {
+      return;
+    }
 
     if (!firstCard) {
       firstCard = card;
@@ -47,13 +78,12 @@
         firstCard = null;
         secondCard = null;
 
-        // Kiểm tra nếu tất cả các thẻ đã được ghép
         if (cards.every((c) => c.matched)) {
           showFireworks = true;
           setTimeout(() => {
             level++;
             resetGame();
-          }, 3000); // Đợi 3 giây để hiển thị pháo bông
+          }, 3000);
         }
       } else {
         setTimeout(() => {
@@ -64,25 +94,41 @@
     }
   }
 
-  // Khởi tạo game
   resetGame();
 </script>
 
-<div class="grid" style="grid-template-columns: repeat({level}, 1fr);">
-  {#each cards as card}
-    <button
-      type="button"
-      class="card {card.matched ? 'matched' : ''} {card !== firstCard &&
-      card !== secondCard &&
-      !card.matched
-        ? 'hidden'
-        : ''}"
-      on:click={() => flipCard(card)}
-      aria-label="Flip card"
-    >
-      {card.text}
-    </button>
-  {/each}
+<div class="container-sm card-container px-0">
+  <div class="grid" style="grid-template-columns: repeat({level}, minmax(112px, 1fr));">
+    {#each cards as card}
+      <div
+        class="flip-box card-holder {card === firstCard || card === secondCard
+          ? 'flipped'
+          : ''} {card.matched ? 'matched' : ''}"
+      >
+        <div class="flip-box-inner">
+          <button
+            type="button"
+            class="card flip-box-front {card === firstCard || card === secondCard || card.matched
+              ? 'hidden'
+              : ''}"
+            on:click={() => flipCard(card)}
+            aria-label="Flip front card"
+          >
+          </button>
+          <button
+            type="button"
+            class="card flip-box-back {card !== firstCard && card !== secondCard && !card.matched
+              ? 'hidden'
+              : ''}"
+            on:click={() => flipCard(card)}
+            aria-label="Flip back card"
+            style="background-image: url({card.image_url}); background-size: cover; background-position: center;"
+          >
+          </button>
+        </div>
+      </div>
+    {/each}
+  </div>
 </div>
 
 {#if showFireworks}
@@ -94,35 +140,79 @@
 {/if}
 
 <style>
+  .card-container {
+    max-width: 600px;
+    width: auto;
+  }
+
   .grid {
     display: grid;
     gap: 10px;
+    perspective: 1000px;
   }
 
-  .card {
-    width: 100px;
-    height: 100px;
+  .card-holder {
+    width: 100%;
+    height: 240px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6;
     border-radius: 5px;
     cursor: pointer;
     font-size: 24px;
     font-weight: bold;
     user-select: none;
+    max-width: 300px;
+    margin: auto;
   }
 
-  .card.matched {
+  .card {
+    width: 100%;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    height: 100%;
+    padding: 0;
+    background-image: url("../../../assets/imgs/door.png");
+    background-size: cover;
+  }
+
+  .card-holder.matched .card {
     background-color: #28a745;
     color: white;
     cursor: default;
   }
 
-  .card.hidden {
-    background-color: #6c757d;
-    color: transparent;
+  .flip-box-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.8s;
+    transform-style: preserve-3d;
+  }
+
+  .flip-box.flipped .flip-box-inner {
+    transform: rotateY(180deg);
+  }
+
+  .flip-box-front,
+  .flip-box-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+
+  .flip-box-front {
+    background-color: #bbb;
+    color: black;
+  }
+
+  .flip-box-back {
+    background-color: #555;
+    color: white;
+    transform: rotateY(180deg);
   }
 
   .fireworks {

@@ -1,13 +1,18 @@
 <script>
+  import { AuthenticateService } from "$lib/services/authenticateService";
+  import { redirect } from "@sveltejs/kit";
+  import Cookies from "js-cookie";
   let menus = [
     { name: "Dashboard", link: "/admin/dashboard" },
-    { name: "Users", link: "/admin/users" },
+    { name: "Falshcards", link: "/admin/flashcards" },
     { name: "Settings", link: "/admin/settings" },
   ];
 
   function logout() {
-    // Handle logout logic here
-    console.log("Logged out");
+    let authenticationService = new AuthenticateService(Cookies);
+    authenticationService.logout(fetch).then(() => {
+      redirect(302, "/admin/authentication");
+    });
   }
 </script>
 

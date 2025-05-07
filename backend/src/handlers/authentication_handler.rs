@@ -1,5 +1,4 @@
 use axum::{extract::State, http::HeaderMap, response::Result, Json};
-use axum_extra::extract::cookie::{Cookie, SameSite};
 use axum_extra::extract::CookieJar;
 use hyper::StatusCode;
 use rex_game_application::{
@@ -12,9 +11,8 @@ use crate::{app_state::AppStateTrait, view_models::users::login_result::LoginRes
 impl AuthenticationHandler {
     pub async fn login<T: AppStateTrait>(
         State(_state): State<T>,
-        jar: CookieJar,
         Json(payload): Json<Option<UserLoginParameter>>,
-    ) -> Result<(CookieJar, Json<LoginResult>), StatusCode> {
+    ) -> Result<Json<LoginResult>, StatusCode> {
         let req = match payload {
             Some(req) => req,
             None => return Err(StatusCode::BAD_REQUEST),
@@ -29,23 +27,25 @@ impl AuthenticationHandler {
             Err(_) => return Err(StatusCode::UNAUTHORIZED),
         };
 
-        let mut cookie = Cookie::new("refresh_token", token_claims.refresh_token);
-        cookie.set_http_only(true);
-        cookie.set_same_site(SameSite::Lax);
+        Ok(Json(LoginResult {
+            refresh_token: token_claims.refresh_token,
+            access_token: token_claims.access_token,
+        }))
+    }
 
-        Ok((
-            jar.add(cookie),
-            Json(LoginResult {
-                access_token: token_claims.access_token,
-            }),
-        ))
+    pub async fn logout<T: AppStateTrait>(
+        State(_state): State<T>,
+        jar: CookieJar,
+    ) -> Result<Json<bool>, StatusCode> {
+        let _ = jar.remove("refresh_token").remove("access_token");
+        Ok(Json(true))
     }
 
     pub async fn refresh_access_token<T: AppStateTrait>(
         headers: HeaderMap,
         State(_state): State<T>,
         jar: CookieJar,
-    ) -> Result<(CookieJar, Json<LoginResult>), StatusCode> {
+    ) -> Result<Json<LoginResult>, StatusCode> {
         let access_token_header = match headers.get("authorization") {
             Some(authorization) => authorization,
             None => return Err(StatusCode::BAD_REQUEST),
@@ -70,16 +70,10 @@ impl AuthenticationHandler {
             Err(_) => return Err(StatusCode::UNAUTHORIZED),
         };
 
-        let mut cookie = Cookie::new("refresh_token", token_claims.refresh_token);
-        cookie.set_http_only(true);
-        cookie.set_same_site(SameSite::Lax);
-
-        Ok((
-            jar.add(cookie),
-            Json(LoginResult {
-                access_token: token_claims.access_token,
-            }),
-        ))
+        Ok(Json(LoginResult {
+            refresh_token: token_claims.refresh_token,
+            access_token: token_claims.access_token,
+        }))
     }
 }
 

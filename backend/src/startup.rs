@@ -1,7 +1,9 @@
 use crate::app_state;
 use crate::routings::app_routing::AppRouting;
 use app_state::RegularAppState;
+use axum::http::HeaderValue;
 use axum::Router;
+use hyper::Method;
 use rex_game_application::identities::identity_authenticate_usecase::IdentityAuthenticateUseCase;
 use rex_game_application::identities::identity_authorize_usecase::IdentityAuthorizeUseCase;
 use rex_game_application::identities::identity_user_usecase::IdentityUserUseCase;
@@ -27,11 +29,12 @@ use rex_game_infrastructure::{
 };
 use std::sync::Arc;
 use tokio::net::TcpListener;
+use tower_http::cors::CorsLayer;
 
 #[tokio::main]
 pub async fn start() {
     let configuration_helper = Arc::new(ConfigurationHelper::new());
-    let connection_str = configuration_helper.get_value("database.url");
+    let connection_str = configuration_helper.clone().get_value("database.url");
     let db_connection = match SeaOrmConnection::new(&connection_str).await {
         Ok(connection) => {
             println!("Successfully connected to the database.");
@@ -48,7 +51,7 @@ pub async fn start() {
     let role_repository = RoleRepository::new(Arc::clone(&db_connection.pool));
     let user_role_repository = UserRoleRepository::new(Arc::clone(&db_connection.pool));
     let identity_password_hasher = IdentityPasswordHasher::new();
-    let identity_token_helper = IdentityTokenHelper::new(configuration_helper);
+    let identity_token_helper = IdentityTokenHelper::new(configuration_helper.clone());
 
     let flashcard_usecase = FlashcardUseCase::new(
         flashcard_repository,
@@ -101,7 +104,21 @@ pub async fn start() {
     }
     .build_public_routes(admin_authenticated_routes);
 
-    let stated_routes = public_routes.with_state(app_state);
+    let allow_origin = configuration_helper.get_value("cors.allow_origin");
+    let cors = CorsLayer::new()
+        // allow `GET` and `POST` when accessing the resource
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::DELETE,
+            Method::PATCH,
+        ])
+        // allow requests from any origin
+        .allow_origin(HeaderValue::from_str(allow_origin.as_str()).unwrap())
+        .allow_headers([hyper::header::AUTHORIZATION, hyper::header::CONTENT_TYPE]);
+    let app_routes = Router::new().nest("/api", public_routes).layer(cors);
+    let stated_routes = app_routes.with_state(app_state);
     let listener = TcpListener::bind("0.0.0.0:3400").await.unwrap();
     println!("The application is running at: http://localhost:3400");
     axum::serve(listener, stated_routes).await.unwrap();

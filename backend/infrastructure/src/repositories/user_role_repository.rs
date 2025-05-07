@@ -7,9 +7,8 @@ use rex_game_domain::{
     repositories::user_role_repository_trait::UserRoleRepositoryTrait,
 };
 use sea_orm::{
-    sea_query::QueryStatementWriter, sqlx::query_builder, ColumnTrait, Condition,
-    DatabaseConnection, DatabaseTransaction, DbErr, EntityTrait, InsertResult, JoinType,
-    QueryFilter, QuerySelect, QueryTrait, RelationTrait, Set,
+    ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction, DbErr, EntityTrait,
+    InsertResult, JoinType, QueryFilter, QuerySelect, RelationTrait, Set,
 };
 use std::{collections::HashSet, future::Future, pin::Pin, sync::Arc};
 

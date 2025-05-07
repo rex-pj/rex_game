@@ -4,51 +4,47 @@
 
 <ul class="nav nav-pills nav-fill" id="pills-tab" role="tablist">
   <li class="nav-item" role="presentation">
-    <button
+    <span
       class="nav-link active"
       id="pills-matching-tab"
       data-bs-toggle="pill"
       data-bs-target="#pills-matching"
-      type="button"
       role="tab"
       aria-controls="pills-matching"
-      aria-selected="false">Thẻ ghép cặp</button
+      aria-selected="false"><span>Thẻ ghép cặp</span></span
     >
   </li>
   <li class="nav-item" role="presentation">
-    <button
+    <span
       class="nav-link"
       id="pills-animals-tab"
       data-bs-toggle="pill"
       data-bs-target="#pills-animals"
-      type="button"
       role="tab"
       aria-controls="pills-animals"
-      aria-selected="true">Động vật</button
+      aria-selected="true"><span>Động vật</span></span
     >
   </li>
   <li class="nav-item" role="presentation">
-    <button
+    <span
       class="nav-link"
       id="pills-numbers-tab"
       data-bs-toggle="pill"
       data-bs-target="#pills-numbers"
-      type="button"
       role="tab"
       aria-controls="pills-numbers"
-      aria-selected="false">Những con số</button
+      aria-selected="false"><span>Những con số</span></span
     >
   </li>
   <li class="nav-item" role="presentation">
-    <button
+    <span
       class="nav-link"
       id="pills-alphabet-tab"
       data-bs-toggle="pill"
       data-bs-target="#pills-alphabet"
-      type="button"
       role="tab"
       aria-controls="pills-alphabet"
-      aria-selected="false">Chữ cái</button
+      aria-selected="false"><span>Chữ cái</span></span
     >
   </li>
 </ul>
@@ -93,8 +89,7 @@
 
 <style>
   .nav-pills {
-    display: flex;
-    margin: 0 14px;
+    margin: 30px 0 10px 0;
   }
 
   .nav-pills .nav-item {
@@ -102,96 +97,66 @@
     position: relative;
   }
 
-  .nav-pills .nav-item:hover {
+  .nav-pills .nav-item .nav-link span {
+    position: relative;
     z-index: 2;
   }
 
-  .nav-pills .nav-item::after,
-  .nav-pills .nav-item::before {
+  .nav-pills .nav-item .nav-link {
+    padding: 1rem 0.5rem;
+    color: var(--primary-color);
+    background: var(--nav-hover-color);
+    border-radius: 80px 80px 80px 80px;
+    font-weight: 600;
+    font-size: 1rem;
+    letter-spacing: 1px;
+    max-width: 200px;
+    position: relative;
+    margin: auto;
+  }
+
+  .nav-pills .nav-item .nav-link:before,
+  .nav-pills .nav-item .nav-link::after {
     content: "";
-    width: 15px;
-    height: 15px;
+    width: 70px;
+    height: 70px;
+    border-radius: 50px;
+    background: var(--nav-hover-color);
     position: absolute;
-    bottom: 0;
+    z-index: 0;
+    left: 30%;
   }
 
-  .nav-pills .nav-item::before {
-    left: -15px;
+  .nav-pills .nav-item .nav-link:before {
+    bottom: 7px;
+    width: 60px;
+    height: 60px;
   }
 
-  .nav-pills .nav-item::after {
-    right: -15px;
+  .nav-pills .nav-item .nav-link::after {
+    left: 47%;
+    bottom: 10px;
   }
 
-  .nav-pills .nav-item:has(.active)::before,
-  .nav-pills .nav-item:has(.active)::after {
-    z-index: 1;
+  .nav-pills .nav-item .nav-link.active {
+    color: var(--background-color);
+    background: var(--primary-color);
   }
 
-  .nav-pills .nav-item:has(.active)::after {
-    background: -webkit-radial-gradient(
-      100% 0,
-      circle,
-      transparent 15px,
-      var(--primary-color) 11px
-    );
-  }
-
-  .nav-pills .nav-item:has(.active)::before {
-    background: -webkit-radial-gradient(0 0, circle, transparent 15px, var(--primary-color) 11px);
-  }
-
-  .nav-pills .nav-item:hover::after {
-    background: -webkit-radial-gradient(
-      100% 0,
-      circle,
-      transparent 15px,
-      var(--primary-hover-color) 11px
-    );
-  }
-
-  .nav-pills .nav-item:hover::before {
-    background: -webkit-radial-gradient(
-      0 0,
-      circle,
-      #cc000000 15px,
-      var(--primary-hover-color) 11px
-    );
-  }
-
-  .nav-pills .nav-link {
-    color: var(--secondary-color);
-    font-weight: 700;
-    font-size: 16px;
-    border-bottom: none;
-    border-radius: 15px 15px 0 0;
-    padding: 10px 20px;
-    transition: none;
-    height: 100%;
-    background-color: var(--nav-bg-color);
-  }
-
-  .nav-pills .nav-link.active {
-    background-color: var(--primary-color);
-    color: #fff;
-    z-index: 1;
-  }
-
-  .nav-pills .nav-link:hover {
-    background-color: var(--primary-hover-color);
-    color: #fff;
+  .nav-pills .nav-item .nav-link.active::before,
+  .nav-pills .nav-item .nav-link.active::after {
+    background: var(--primary-color);
   }
 
   .tab-content {
-    padding: 10px;
-    background-color: #fff;
+    padding: 5px 0px;
     box-shadow: 0 4px 10px var(--box-shadow-color);
     min-height: 400px;
     border-radius: 0 0 8px 8px;
   }
 
   .tab-pane {
-    padding: 15px;
+    padding: 5px 0px;
     border-radius: 3px;
     background-color: var(--background-color);
   }
