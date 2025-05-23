@@ -5,10 +5,14 @@ use axum::{
     Extension, Json,
 };
 use hyper::StatusCode;
-use rex_game_application::flashcard_types::{
-    flashcard_type_creation_dto::FlashcardTypeCreationDto, flashcard_type_dto::FlashcardTypeDto,
-    flashcard_type_updation_dto::FlashcardTypeUpdationDto,
-    flashcard_type_usecase_trait::FlashcardTypeUseCaseTrait,
+use rex_game_application::{
+    flashcard_types::{
+        flashcard_type_creation_dto::FlashcardTypeCreationDto,
+        flashcard_type_dto::FlashcardTypeDto,
+        flashcard_type_updation_dto::FlashcardTypeUpdationDto,
+        flashcard_type_usecase_trait::FlashcardTypeUseCaseTrait,
+    },
+    page_list_dto::PageListDto,
 };
 use serde::Deserialize;
 
@@ -28,7 +32,7 @@ impl FlashcardTypeHandler {
     pub async fn get_flashcard_types<T: AppStateTrait>(
         State(_state): State<T>,
         Query(params): Query<FlashcardQuery>,
-    ) -> Json<Option<Vec<FlashcardTypeDto>>> {
+    ) -> Result<Json<PageListDto<FlashcardTypeDto>>, StatusCode> {
         let page = params.page.unwrap_or(1);
         let page_size = params.page_size.unwrap_or(10);
         let flashcard_types = _state
@@ -36,8 +40,8 @@ impl FlashcardTypeHandler {
             .get_flashcard_types(params.name, page, page_size)
             .await;
         return match flashcard_types {
-            None => Json(None),
-            Some(i) => Json(Some(i)),
+            Ok(data) => Ok(Json(data)),
+            Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
         };
     }
 
@@ -64,6 +68,17 @@ impl FlashcardTypeHandler {
             Some(req) => req,
             None => return Err(StatusCode::BAD_REQUEST),
         };
+
+        if req.name.is_empty() {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+
+        match req.description {
+            Some(description) if description.is_empty() => {
+                return Err(StatusCode::BAD_REQUEST);
+            }
+            _ => {}
+        }
 
         let creation_request = FlashcardTypeCreationDto {
             name: req.name,
@@ -96,6 +111,9 @@ impl FlashcardTypeHandler {
             return Err(StatusCode::BAD_REQUEST);
         }
 
+        if requests.get("name").is_none() && requests.get("description").is_none() {
+            return Err(StatusCode::BAD_REQUEST);
+        }
         let mut updating = FlashcardTypeUpdationDto {
             updated_by_id: Some(current_user.id),
             ..Default::default()
@@ -115,6 +133,21 @@ impl FlashcardTypeHandler {
             .await;
 
         match updated {
+            Some(u) => Ok(Json(u)),
+            None => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+        }
+    }
+
+    pub async fn delete_flashcard_type<T: AppStateTrait>(
+        State(_state): State<T>,
+        Path(id): Path<i32>,
+    ) -> Result<Json<u64>, StatusCode> {
+        let deleted_numbers = _state
+            .flashcard_type_usecase()
+            .delete_flashcard_type_by_id(id)
+            .await;
+
+        match deleted_numbers {
             Some(u) => Ok(Json(u)),
             None => return Err(StatusCode::INTERNAL_SERVER_ERROR),
         }

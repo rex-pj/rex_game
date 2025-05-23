@@ -9,7 +9,10 @@ use rex_game_domain::{
 };
 use sea_orm::Set;
 
-use crate::errors::application_error::{ApplicationError, ErrorKind};
+use crate::{
+    errors::application_error::{ApplicationError, ErrorKind},
+    page_list_dto::PageListDto,
+};
 
 use super::{
     flashcard_creation_dto::FlashcardCreationDto, flashcard_dto::FlashcardDto,
@@ -54,19 +57,20 @@ impl<
         TFTR: FlashcardTypeRelationRepositoryTrait,
     > FlashcardUseCaseTrait for FlashcardUseCase<TF, TFF, TFTR>
 {
-    async fn get_flashcards<'a>(
+    async fn get_paged_list<'a>(
         &'a self,
         type_name: Option<String>,
         page: u64,
         page_size: u64,
-    ) -> Option<Vec<FlashcardDto>> {
+    ) -> Result<PageListDto<FlashcardDto>, ApplicationError> {
         match self
             ._flashcard_repository
             .get_list(type_name, page, page_size)
             .await
         {
-            Ok(list) => Some(
-                list.0
+            Ok(page_list) => {
+                let items = page_list
+                    .items
                     .into_iter()
                     .map(|f| FlashcardDto {
                         id: f.id,
@@ -77,9 +81,20 @@ impl<
                         updated_date: f.updated_date.with_timezone(&Utc),
                         image_id: f.file_id,
                     })
-                    .collect(),
-            ),
-            Err(_) => Some(Vec::new()),
+                    .collect();
+
+                Ok(PageListDto {
+                    items,
+                    total_count: page_list.total_count,
+                    page,
+                    page_size,
+                })
+            }
+            Err(_) => Err(ApplicationError::new(
+                ErrorKind::DatabaseError,
+                "Failed to get flashcards",
+                None,
+            )),
         }
     }
 

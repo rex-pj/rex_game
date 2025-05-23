@@ -1,9 +1,10 @@
 use crate::app_state;
 use crate::routings::app_routing::AppRouting;
 use app_state::RegularAppState;
+use axum::http::request::Parts;
 use axum::http::HeaderValue;
 use axum::Router;
-use hyper::Method;
+use hyper::{header, Method};
 use rex_game_application::identities::identity_authenticate_usecase::IdentityAuthenticateUseCase;
 use rex_game_application::identities::identity_authorize_usecase::IdentityAuthorizeUseCase;
 use rex_game_application::identities::identity_user_usecase::IdentityUserUseCase;
@@ -13,6 +14,7 @@ use rex_game_application::{
     flashcards::flashcard_usecase::FlashcardUseCase, users::user_usecase::UserUseCase,
 };
 use rex_game_infrastructure::helpers::configuration_helper::ConfigurationHelper;
+use rex_game_infrastructure::helpers::datetime_helper::DateTimeHelper;
 use rex_game_infrastructure::helpers::file_helper::FileHelper;
 use rex_game_infrastructure::identities::identity_password_hasher::IdentityPasswordHasher;
 use rex_game_infrastructure::identities::identity_token_helper::IdentityTokenHelper;
@@ -29,7 +31,7 @@ use rex_game_infrastructure::{
 };
 use std::sync::Arc;
 use tokio::net::TcpListener;
-use tower_http::cors::CorsLayer;
+use tower_http::cors::{AllowOrigin, CorsLayer};
 
 #[tokio::main]
 pub async fn start() {
@@ -77,6 +79,7 @@ pub async fn start() {
     let identity_authorize_usecase = IdentityAuthorizeUseCase::new(user_role_repository.clone());
 
     let file_helper = FileHelper::new();
+    let date_time_helper = DateTimeHelper::new();
     let app_state = RegularAppState {
         flashcard_usecase,
         flashcard_type_usecase,
@@ -84,6 +87,7 @@ pub async fn start() {
         identity_user_usecase,
         identity_authenticate_usecase,
         file_helper,
+        date_time_helper,
         db_connection: Arc::clone(&db_connection.pool),
         role_usecase: role_usecase,
         identity_authorize_usecase: identity_authorize_usecase,
@@ -104,7 +108,6 @@ pub async fn start() {
     }
     .build_public_routes(admin_authenticated_routes);
 
-    let allow_origin = configuration_helper.get_value("cors.allow_origin");
     let cors = CorsLayer::new()
         // allow `GET` and `POST` when accessing the resource
         .allow_methods([
@@ -115,8 +118,19 @@ pub async fn start() {
             Method::PATCH,
         ])
         // allow requests from any origin
-        .allow_origin(HeaderValue::from_str(allow_origin.as_str()).unwrap())
-        .allow_headers([hyper::header::AUTHORIZATION, hyper::header::CONTENT_TYPE]);
+        .allow_origin(AllowOrigin::predicate(
+            move |origin: &HeaderValue, _parts: &Parts| {
+                // fetch list of origins that are allowed for this path
+                let allow_origins = configuration_helper
+                    .get_array("cors.allow_origin")
+                    .into_iter()
+                    .map(|f| HeaderValue::from_str(&f))
+                    .collect::<Result<Vec<_>, _>>()
+                    .unwrap_or_default();
+                allow_origins.contains(origin)
+            },
+        ))
+        .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE]);
     let app_routes = Router::new().nest("/api", public_routes).layer(cors);
     let stated_routes = app_routes.with_state(app_state);
     let listener = TcpListener::bind("0.0.0.0:3400").await.unwrap();

@@ -1,7 +1,7 @@
 use std::{collections::HashSet, sync::Arc};
 
 use axum::{
-    routing::{delete, get, patch, post, put},
+    routing::{delete, get, patch, post},
     Router,
 };
 use rex_game_application::users::roles::ROLE_ADMIN;
@@ -43,7 +43,11 @@ impl AppRouting {
             )
             .route(
                 "/flashcard-types/{id}",
-                put(FlashcardTypeHandler::update_flashcard_type::<RegularAppState>),
+                patch(FlashcardTypeHandler::update_flashcard_type::<RegularAppState>),
+            )
+            .route(
+                "/flashcard-types/{id}",
+                delete(FlashcardTypeHandler::delete_flashcard_type::<RegularAppState>),
             )
             .route(
                 "/auth/refresh",

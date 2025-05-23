@@ -10,6 +10,7 @@ use jsonwebtoken::{
     Header, Validation,
 };
 use rex_game_domain::identities::IdentityErrorKind;
+use rex_game_domain::identities::UserRefreshTokenClaims;
 use rex_game_domain::{
     helpers::configuration_helper_trait::ConfigurationHelperTrait,
     identities::{
@@ -151,7 +152,7 @@ impl<CF: ConfigurationHelperTrait> TokenHelperTrait for IdentityTokenHelper<CF> 
         }
     }
 
-    fn generate_refresh_token(&self, id: i32, email: &str) -> Option<String> {
+    fn generate_refresh_token(&self, id: i32, email: &str) -> Option<UserRefreshTokenClaims> {
         if id == 0 || email.is_empty() {
             return None;
         }
@@ -172,7 +173,10 @@ impl<CF: ConfigurationHelperTrait> TokenHelperTrait for IdentityTokenHelper<CF> 
         );
 
         match token_result {
-            Ok(token) => Some(token),
+            Ok(token) => Some(UserRefreshTokenClaims {
+                refresh_token: token,
+                expiration: claims.exp,
+            }),
             Err(_) => None,
         }
     }

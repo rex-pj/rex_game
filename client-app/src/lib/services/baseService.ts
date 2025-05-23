@@ -35,6 +35,12 @@ export class BaseService {
       method: "GET",
       headers: headers,
     });
+
+    if (options && options["observe"]) {
+      // If the 'observe' option is set, return the response directly without parsing as JSON
+      return response;
+    }
+
     return await response.json();
   }
 
@@ -49,10 +55,16 @@ export class BaseService {
       headers = { ...this._headers, ...options["headers"] };
     }
 
+    const body: { credentials?: RequestCredentials } = {};
+    if (options && options["includeCredentials"]) {
+      body.credentials = "include";
+    }
+
     const response = await fetch(`${this._baseUrl}${url}`, {
       method: "POST",
       headers: headers,
       body: JSON.stringify(data),
+      ...body,
     });
 
     if (options && options["observe"]) {
@@ -79,6 +91,11 @@ export class BaseService {
       headers: headers,
       body: JSON.stringify(data),
     });
+
+    if (options && options["observe"]) {
+      // If the 'observe' option is set, return the response directly without parsing as JSON
+      return response;
+    }
     return await response.json();
   }
 
@@ -96,6 +113,10 @@ export class BaseService {
       method: "DELETE",
       headers: headers,
     });
+
+    if (options && options["observe"]) {
+      return response;
+    }
     return await response.json();
   }
 
@@ -115,6 +136,11 @@ export class BaseService {
       headers: headers,
       body: JSON.stringify(data),
     });
+
+    if (options && options["observe"]) {
+      // If the 'observe' option is set, return the response directly without parsing as JSON
+      return response;
+    }
     return await response.json();
   }
 }

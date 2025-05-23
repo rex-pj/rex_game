@@ -29,3 +29,8 @@ pub struct UserAccessClaims {
     pub email: String,
     pub expiration: u64,
 }
+
+pub struct UserRefreshTokenClaims {
+    pub refresh_token: String,
+    pub expiration: u64,
+}

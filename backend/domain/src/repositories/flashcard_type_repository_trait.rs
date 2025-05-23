@@ -1,15 +1,15 @@
-use sea_orm::{DbErr, InsertResult};
+use sea_orm::{DbErr, DeleteResult, InsertResult};
 use std::future::Future;
 
-use crate::entities::flashcard_type;
+use crate::entities::{flashcard_type, page_list::PageList};
 
 pub trait FlashcardTypeRepositoryTrait {
-    fn get_list(
+    fn get_paged_list(
         &self,
         name: Option<String>,
         page: u64,
         page_size: u64,
-    ) -> impl Future<Output = Result<(Vec<flashcard_type::Model>, u64), DbErr>>;
+    ) -> impl Future<Output = Result<PageList<flashcard_type::Model>, DbErr>>;
 
     fn create(
         &self,
@@ -25,4 +25,5 @@ pub trait FlashcardTypeRepositoryTrait {
         &self,
         id: i32,
     ) -> impl Future<Output = Result<Option<flashcard_type::Model>, DbErr>>;
+    fn delete_by_id(&self, id: i32) -> impl Future<Output = Result<DeleteResult, DbErr>>;
 }

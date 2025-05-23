@@ -81,7 +81,7 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
             }
         };
 
-        let refresh_token = match self
+        let refresh_token_claims = match self
             ._token_helper
             .generate_refresh_token(existing_user.id, email)
         {
@@ -97,7 +97,8 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
 
         Ok(LoginClaims {
             access_token: access_token_claims.access_token,
-            refresh_token: refresh_token,
+            refresh_token: refresh_token_claims.refresh_token,
+            refresh_token_expiration: refresh_token_claims.expiration,
             email: email.to_string(),
             sub: access_token_claims.sub,
             expiration: access_token_claims.expiration,
@@ -123,7 +124,7 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
             }
         };
 
-        let refresh_token = match self
+        let user_refresh_token_claims = match self
             ._token_helper
             .generate_refresh_token(access_token_claims.sub, &access_token_claims.email)
         {
@@ -139,7 +140,8 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
 
         Ok(LoginClaims {
             access_token: access_token_claims.access_token,
-            refresh_token: refresh_token,
+            refresh_token: user_refresh_token_claims.refresh_token,
+            refresh_token_expiration: user_refresh_token_claims.expiration,
             email: access_token_claims.email,
             sub: access_token_claims.sub,
             expiration: access_token_claims.expiration,

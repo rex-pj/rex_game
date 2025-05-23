@@ -9,9 +9,13 @@ use axum::{
     response::{Response, Result},
     Extension, Json,
 };
-use rex_game_application::flashcards::{
-    flashcard_creation_dto::FlashcardCreationDto, flashcard_dto::FlashcardDto,
-    flashcard_updation_dto::FlashcardUpdationDto, flashcard_usecase_trait::FlashcardUseCaseTrait,
+use rex_game_application::{
+    flashcards::{
+        flashcard_creation_dto::FlashcardCreationDto, flashcard_dto::FlashcardDto,
+        flashcard_updation_dto::FlashcardUpdationDto,
+        flashcard_usecase_trait::FlashcardUseCaseTrait,
+    },
+    page_list_dto::PageListDto,
 };
 use serde::Deserialize;
 use std::sync::Arc;
@@ -27,16 +31,16 @@ impl FlashcardHandler {
     pub async fn get_flashcards<T: AppStateTrait>(
         State(_state): State<T>,
         Query(params): Query<FlashcardQuery>,
-    ) -> Json<Option<Vec<FlashcardDto>>> {
+    ) -> Result<Json<PageListDto<FlashcardDto>>, StatusCode> {
         let page = params.page.unwrap_or(1);
         let page_size = params.page_size.unwrap_or(10);
         let flashcards = _state
             .flashcard_usecase()
-            .get_flashcards(params.type_name, page, page_size)
+            .get_paged_list(params.type_name, page, page_size)
             .await;
         return match flashcards {
-            None => Json(None),
-            Some(i) => Json(Some(i)),
+            Ok(data) => Ok(Json(data)),
+            Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
         };
     }
 

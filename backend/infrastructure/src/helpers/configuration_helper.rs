@@ -47,11 +47,25 @@ impl ConfigurationHelper {
     pub fn get_value(&self, key: &str) -> String {
         ConfigurationHelperTrait::get_value(self, key)
     }
+
+    pub fn get_array(&self, key: &str) -> Vec<String> {
+        ConfigurationHelperTrait::get_array(self, key)
+    }
 }
 
 impl ConfigurationHelperTrait for ConfigurationHelper {
     fn get_value(&self, key: &str) -> String {
         let error_message = key.to_owned() + "'s value is missing";
         self._config.get_string(key).expect(error_message.as_str())
+    }
+
+    fn get_array(&self, key: &str) -> Vec<String> {
+        let error_message = key.to_owned() + "'s value is missing";
+        self._config
+            .get_array(key)
+            .expect(&error_message)
+            .into_iter()
+            .map(|value| value.to_string())
+            .collect()
     }
 }

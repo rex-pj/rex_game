@@ -1,18 +1,22 @@
+use crate::{app_state::AppStateTrait, view_models::users::login_result::LoginResult};
 use axum::{extract::State, http::HeaderMap, response::Result, Json};
-use axum_extra::extract::CookieJar;
+use axum_extra::extract::{
+    cookie::{Cookie, Expiration, SameSite},
+    CookieJar,
+};
 use hyper::StatusCode;
 use rex_game_application::{
     identities::identity_authenticate_usecase_trait::IdentityAuthenticateUseCaseTrait,
     users::user_login_parameter::UserLoginParameter,
 };
-
-use crate::{app_state::AppStateTrait, view_models::users::login_result::LoginResult};
+use rex_game_infrastructure::helpers::datetime_helper_trait::DateTimeHelperTrait;
 
 impl AuthenticationHandler {
     pub async fn login<T: AppStateTrait>(
         State(_state): State<T>,
+        jar: CookieJar,
         Json(payload): Json<Option<UserLoginParameter>>,
-    ) -> Result<Json<LoginResult>, StatusCode> {
+    ) -> Result<(CookieJar, Json<LoginResult>), StatusCode> {
         let req = match payload {
             Some(req) => req,
             None => return Err(StatusCode::BAD_REQUEST),
@@ -27,10 +31,33 @@ impl AuthenticationHandler {
             Err(_) => return Err(StatusCode::UNAUTHORIZED),
         };
 
-        Ok(Json(LoginResult {
-            refresh_token: token_claims.refresh_token,
-            access_token: token_claims.access_token,
-        }))
+        let mut cookie = Cookie::new("refresh_token", token_claims.refresh_token);
+        cookie.set_http_only(true);
+        cookie.set_same_site(SameSite::Lax);
+        cookie.set_secure(true);
+        let refresh_token_expires = _state
+            .date_time_helper()
+            .timestamp_to_offset_date_time(token_claims.refresh_token_expiration);
+        match refresh_token_expires {
+            Ok(offset) => cookie.set_expires(Expiration::DateTime(offset)),
+            Err(_) => return Err(StatusCode::BAD_REQUEST),
+        }
+
+        let access_token_expires = match _state
+            .date_time_helper()
+            .timestamp_to_utc_date_time(token_claims.expiration)
+        {
+            Ok(offset) => offset,
+            Err(_) => return Err(StatusCode::BAD_REQUEST),
+        };
+
+        Ok((
+            jar.add(cookie),
+            Json(LoginResult {
+                access_token: token_claims.access_token,
+                expiration: access_token_expires,
+            }),
+        ))
     }
 
     pub async fn logout<T: AppStateTrait>(
@@ -45,7 +72,7 @@ impl AuthenticationHandler {
         headers: HeaderMap,
         State(_state): State<T>,
         jar: CookieJar,
-    ) -> Result<Json<LoginResult>, StatusCode> {
+    ) -> Result<(CookieJar, Json<LoginResult>), StatusCode> {
         let access_token_header = match headers.get("authorization") {
             Some(authorization) => authorization,
             None => return Err(StatusCode::BAD_REQUEST),
@@ -70,10 +97,32 @@ impl AuthenticationHandler {
             Err(_) => return Err(StatusCode::UNAUTHORIZED),
         };
 
-        Ok(Json(LoginResult {
-            refresh_token: token_claims.refresh_token,
-            access_token: token_claims.access_token,
-        }))
+        let mut cookie = Cookie::new("refresh_token", token_claims.refresh_token);
+        cookie.set_http_only(true);
+        cookie.set_same_site(SameSite::Lax);
+        cookie.set_secure(true);
+        let refresh_token_expires = _state
+            .date_time_helper()
+            .timestamp_to_offset_date_time(token_claims.refresh_token_expiration);
+        match refresh_token_expires {
+            Ok(offset) => cookie.set_expires(Expiration::DateTime(offset)),
+            Err(_) => return Err(StatusCode::BAD_REQUEST),
+        }
+
+        let access_token_expires = match _state
+            .date_time_helper()
+            .timestamp_to_utc_date_time(token_claims.expiration)
+        {
+            Ok(offset) => offset,
+            Err(_) => return Err(StatusCode::BAD_REQUEST),
+        };
+        Ok((
+            jar.add(cookie),
+            Json(LoginResult {
+                access_token: token_claims.access_token,
+                expiration: access_token_expires,
+            }),
+        ))
     }
 }
 

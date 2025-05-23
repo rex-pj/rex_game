@@ -3,6 +3,7 @@ use rex_game_domain::{
     entities::{
         flashcard::{self, Entity as Flashcard},
         flashcard_type, flashcard_type_relation,
+        page_list::PageList,
     },
     repositories::flashcard_repository_trait::FlashcardRepositoryTrait,
 };
@@ -31,7 +32,7 @@ impl FlashcardRepositoryTrait for FlashcardRepository {
         type_name: Option<String>,
         page: u64,
         page_size: u64,
-    ) -> Result<(Vec<flashcard::Model>, u64), DbErr> {
+    ) -> Result<PageList<flashcard::Model>, DbErr> {
         let db = self._db_connection.as_ref();
         let mut query = Flashcard::find().join(
             JoinType::InnerJoin,
@@ -48,10 +49,14 @@ impl FlashcardRepositoryTrait for FlashcardRepository {
 
         query = query.order_by(flashcard::Column::UpdatedDate, sea_orm::Order::Desc);
 
-        let paginator = query.paginate(db, page_size);
-
-        let num_pages = paginator.num_pages().await?;
-        paginator.fetch_page(page - 1).await.map(|p| (p, num_pages))
+        let total_count = query.clone().count(db).await?;
+        let page_list = query.paginate(db, page_size).fetch_page(page - 1).await;
+        match page_list {
+            Ok(items) => {
+                return Ok(PageList { items, total_count });
+            }
+            Err(err) => return Err(err),
+        }
     }
 
     async fn get_by_id(&self, id: i32) -> Option<flashcard::Model> {

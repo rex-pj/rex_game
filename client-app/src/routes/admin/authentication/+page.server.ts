@@ -24,17 +24,41 @@ export const actions = {
       console.error("Error during login:", error);
     });
 
-    const { access_token, refresh_token } = response;
-    cookies.set("access_token", access_token, {
-      path: "/",
-      httpOnly: false,
-      sameSite: "strict",
-    });
-    cookies.set("refresh_token", refresh_token, {
-      path: "/",
-      httpOnly: true,
-      sameSite: "lax",
-    });
+    if (response.status !== 200) {
+      console.error(
+        "Login failed with status:",
+        response.status,
+        "and message:",
+        await response.text()
+      );
+      return;
+    }
+
+    authenticateService.setRefreshToken(response, cookies);
+    const loginResult = await response.json();
+    authenticateService.setAccessToken(loginResult, cookies);
     redirect(302, "/admin/dashboard");
+  },
+  refresh_token: async ({ cookies, fetch }) => {
+    const refresh_token = cookies.get("refresh_token");
+    if (!refresh_token) {
+      console.error("No refresh token found");
+      return;
+    }
+    const response = await authenticateService.refreshToken(fetch).catch((error: any) => {
+      console.error("Error during token refresh:", error);
+    });
+    if (response.status !== 200) {
+      console.error(
+        "Token refresh failed with status:",
+        response.status,
+        "and message:",
+        await response.text()
+      );
+      return;
+    }
+    const loginResult = await response.json();
+    authenticateService.setAccessToken(loginResult, cookies);
+    authenticateService.setRefreshToken(response, cookies);
   },
 } satisfies Actions;

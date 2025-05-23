@@ -5,6 +5,7 @@
   let menus = [
     { name: "Dashboard", link: "/admin/dashboard" },
     { name: "Falshcards", link: "/admin/flashcards" },
+    { name: "Falshcard Types", link: "/admin/flashcard-types" },
     { name: "Settings", link: "/admin/settings" },
   ];
 

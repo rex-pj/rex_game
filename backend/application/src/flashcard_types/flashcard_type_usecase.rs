@@ -5,6 +5,11 @@ use rex_game_domain::{
 };
 use sea_orm::Set;
 
+use crate::{
+    errors::application_error::{ApplicationError, ErrorKind},
+    page_list_dto::PageListDto,
+};
+
 use super::{
     flashcard_type_creation_dto::FlashcardTypeCreationDto, flashcard_type_dto::FlashcardTypeDto,
     flashcard_type_updation_dto::FlashcardTypeUpdationDto,
@@ -33,14 +38,16 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
         name: Option<String>,
         page: u64,
         page_size: u64,
-    ) -> Option<Vec<FlashcardTypeDto>> {
-        let existing = self
+    ) -> Result<PageListDto<FlashcardTypeDto>, ApplicationError> {
+        match self
             ._flashcard_type_repository
-            .get_list(name, page, page_size)
-            .await;
-        if let Ok(i) = existing {
-            Some(
-                i.0.into_iter()
+            .get_paged_list(name, page, page_size)
+            .await
+        {
+            Ok(i) => {
+                let items = i
+                    .items
+                    .into_iter()
                     .map(|f| FlashcardTypeDto {
                         id: f.id,
                         name: f.name,
@@ -48,10 +55,19 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
                         created_date: f.created_date.with_timezone(&Utc),
                         updated_date: f.updated_date.with_timezone(&Utc),
                     })
-                    .collect(),
-            )
-        } else {
-            None
+                    .collect();
+                Ok(PageListDto {
+                    items,
+                    total_count: i.total_count,
+                    page,
+                    page_size,
+                })
+            }
+            Err(_) => Err(ApplicationError::new(
+                ErrorKind::DatabaseError,
+                "Failed to get flashcard types",
+                None,
+            )),
         }
     }
 
@@ -123,6 +139,14 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
                 }
                 None => None,
             },
+            Err(_) => None,
+        }
+    }
+
+    async fn delete_flashcard_type_by_id(&self, id: i32) -> Option<u64> {
+        let deleted = self._flashcard_type_repository.delete_by_id(id).await;
+        match deleted {
+            Ok(i) => Some(i.rows_affected),
             Err(_) => None,
         }
     }

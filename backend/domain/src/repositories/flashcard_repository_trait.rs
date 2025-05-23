@@ -2,6 +2,7 @@ use sea_orm::{DbErr, InsertResult};
 use std::future::Future;
 
 use crate::entities::flashcard;
+use crate::entities::page_list::PageList;
 
 pub trait FlashcardRepositoryTrait {
     fn get_list(
@@ -9,7 +10,7 @@ pub trait FlashcardRepositoryTrait {
         type_name: Option<String>,
         page: u64,
         page_size: u64,
-    ) -> impl Future<Output = Result<(Vec<flashcard::Model>, u64), DbErr>>;
+    ) -> impl Future<Output = Result<PageList<flashcard::Model>, DbErr>>;
 
     fn create(
         &self,

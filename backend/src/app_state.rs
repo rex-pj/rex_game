@@ -20,7 +20,8 @@ use rex_game_application::{
 use rex_game_domain::helpers::file_helper_trait::FileHelperTrait;
 use rex_game_infrastructure::{
     helpers::{
-        configuration_helper::ConfigurationHelper, file_helper::FileHelper,
+        configuration_helper::ConfigurationHelper, datetime_helper::DateTimeHelper,
+        datetime_helper_trait::DateTimeHelperTrait, file_helper::FileHelper,
         file_helper_object_trait::FileHelperObjectTrait,
     },
     identities::{
@@ -47,6 +48,7 @@ pub trait AppStateTrait: Clone + Send + Sync + 'static {
     type IdentityAuthorizeUseCase: IdentityAuthorizeUseCaseTrait;
     type RoleUseCase: RoleUseCaseTrait;
     type FileHelper: FileHelperTrait + FileHelperObjectTrait;
+    type DateTimeHelper: DateTimeHelperTrait;
     fn flashcard_usecase(&self) -> &Self::FlashcardUseCase;
     fn flashcard_type_usecase(&self) -> &Self::FlashcardTypeUseCase;
     fn user_usecase(&self) -> &Self::UserUseCase;
@@ -54,6 +56,7 @@ pub trait AppStateTrait: Clone + Send + Sync + 'static {
     fn identity_authenticate_usecase(&self) -> &Self::IdentityAuthenticateUseCase;
     fn identity_authorize_usecase(&self) -> &Self::IdentityAuthorizeUseCase;
     fn file_helper(&self) -> &Self::FileHelper;
+    fn date_time_helper(&self) -> &Self::DateTimeHelper;
     fn db_connection(&self) -> &Arc<DatabaseConnection>;
     fn role_usecase(&self) -> &Self::RoleUseCase;
 }
@@ -77,6 +80,7 @@ pub struct RegularAppState {
         IdentityTokenHelper<ConfigurationHelper>,
     >,
     pub file_helper: FileHelper,
+    pub date_time_helper: DateTimeHelper,
     pub role_usecase: RoleUseCase<RoleRepository>,
     pub db_connection: Arc<DatabaseConnection>,
     pub identity_authorize_usecase: IdentityAuthorizeUseCase<UserRoleRepository>,
@@ -101,6 +105,7 @@ impl AppStateTrait for RegularAppState {
     >;
     type IdentityAuthorizeUseCase = IdentityAuthorizeUseCase<UserRoleRepository>;
     type FileHelper = FileHelper;
+    type DateTimeHelper = DateTimeHelper;
     type RoleUseCase = RoleUseCase<RoleRepository>;
 
     fn flashcard_usecase(&self) -> &Self::FlashcardUseCase {
@@ -129,6 +134,10 @@ impl AppStateTrait for RegularAppState {
 
     fn file_helper(&self) -> &Self::FileHelper {
         &self.file_helper
+    }
+
+    fn date_time_helper(&self) -> &Self::DateTimeHelper {
+        &self.date_time_helper
     }
 
     fn db_connection(&self) -> &Arc<DatabaseConnection> {
