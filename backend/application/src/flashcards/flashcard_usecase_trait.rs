@@ -26,5 +26,6 @@ pub trait FlashcardUseCaseTrait {
         &'a self,
         id: i32,
         flashcard_req: FlashcardUpdationDto,
-    ) -> impl Future<Output = Result<(), ApplicationError>>;
+    ) -> impl Future<Output = Result<bool, ApplicationError>>;
+    fn delete_flashcard_by_id(&self, id: i32) -> impl Future<Output = Option<u64>>;
 }

@@ -2480,7 +2480,6 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "rex-game-domain",
- "sea-orm",
  "serde",
 ]
 
@@ -2489,7 +2488,6 @@ name = "rex-game-domain"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "sea-orm",
 ]
 
 [[package]]

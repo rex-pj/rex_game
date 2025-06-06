@@ -38,6 +38,10 @@ impl AppRouting {
                 patch(FlashcardHandler::update_flashcard::<RegularAppState>),
             )
             .route(
+                "/flashcards/{id}",
+                delete(FlashcardHandler::delete_flashcard::<RegularAppState>),
+            )
+            .route(
                 "/flashcard-types",
                 post(FlashcardTypeHandler::create_flashcard_type::<RegularAppState>),
             )

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { FlashcardTypeRequest } from "$lib/models/flashcard-type";
   import { writable, type Writable } from "svelte/store";
 
   const {
@@ -12,9 +13,9 @@
     showModal: Writable<boolean>;
     closeModal: () => void;
     isSubmitting: Writable<boolean>;
-    submit: (data: { name: string; description: string }) => Promise<void>;
+    submit: (data: FlashcardTypeRequest) => Promise<void>;
     creationError: Writable<string>;
-    initialData: Writable<{ id?: number; name: string; description: string }>;
+    initialData: Writable<FlashcardTypeRequest>;
   } = $props();
   // Submit handler
   async function handleSubmit(event: Event) {
@@ -60,7 +61,17 @@
               disabled={$isSubmitting}>Cancel</button
             >
             <button type="submit" class="btn btn-primary" disabled={$isSubmitting}>
-              {$isSubmitting ? "Creating..." : "Create"}
+              {#if $isSubmitting}
+                {#if !$initialData.id}
+                  <span>Creating...</span>
+                {:else}
+                  <span>Updating...</span>
+                {/if}
+              {:else if !$initialData.id}
+                <span>Create</span>
+              {:else}
+                <span>Update</span>
+              {/if}
             </button>
           </div>
         </form>

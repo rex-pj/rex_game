@@ -2,15 +2,20 @@ import { writable, type Writable } from "svelte/store";
 import { FlashcardTypeService } from "$lib/services/flashcardTypeService";
 import Cookies from "js-cookie";
 import type { Pager } from "../../../../components/molecules/pagination/pager";
+import type { FlashcardType, FlashcardTypeRequest } from "$lib/models/flashcard-type";
 
 const flashcardTypeService: FlashcardTypeService = new FlashcardTypeService(Cookies);
-export const flashcardTypes: Writable<any[]> = writable([]);
+export const flashcardTypes: Writable<FlashcardType[]> = writable([]);
 export const pager = { currentPage: 1, totalPages: 0 } as Pager;
 const itemsPerPage = 10;
 export const showCreationModal = writable(false);
 export const creationError = writable("");
-export const isCreationSubmitting = writable(false);
-export const edittingData = writable({ id: 0, name: "", description: "" });
+export const isSubmitting = writable(false);
+export const edittingData: Writable<FlashcardTypeRequest> = writable({
+  id: 0,
+  name: "",
+  description: "",
+});
 
 export const showDeletionModal = writable(false);
 export const deletionError = writable("");
@@ -28,18 +33,17 @@ export const fetchFlashcardTypes = async (page: number) => {
   pager.totalPages = Math.ceil(response.total_count / itemsPerPage);
 };
 
-export const submit = async (data: any) => {
+export const submit = async (data: FlashcardTypeRequest) => {
   if (data.id) {
     return await updateFlashcardType(data.id, data);
-  } else {
-    return await addFlashcardType(data);
   }
+  return await createFlashcardType(data);
 };
 
-export const addFlashcardType = async (flashcardType: any) => {
-  isCreationSubmitting.set(true);
+export const createFlashcardType = async (data: FlashcardTypeRequest) => {
+  isSubmitting.set(true);
   await flashcardTypeService
-    .create(fetch, flashcardType)
+    .create(fetch, data)
     .then(async () => {
       await fetchFlashcardTypes(1);
       toggleCreationModal(false);
@@ -48,14 +52,14 @@ export const addFlashcardType = async (flashcardType: any) => {
       creationError.set(error.message);
     })
     .finally(() => {
-      isCreationSubmitting.set(false);
+      isSubmitting.set(false);
     });
 };
 
-export const updateFlashcardType = async (id: number, flashcardType: any) => {
-  isCreationSubmitting.set(true);
+export const updateFlashcardType = async (id: number, data: FlashcardTypeRequest) => {
+  isSubmitting.set(true);
   await flashcardTypeService
-    .update(fetch, id, { name: flashcardType.name, description: flashcardType.description })
+    .update(fetch, id, { name: data.name, description: data.description })
     .then(async () => {
       await fetchFlashcardTypes(1);
       toggleCreationModal(false);
@@ -64,12 +68,12 @@ export const updateFlashcardType = async (id: number, flashcardType: any) => {
       creationError.set(error.message);
     })
     .finally(() => {
-      isCreationSubmitting.set(false);
+      isSubmitting.set(false);
     });
 };
 
 export const getFlashcardType = async (id: number) => {
-  isCreationSubmitting.set(true);
+  isSubmitting.set(true);
   return await flashcardTypeService
     .getById(fetch, id)
     .then((response) => {
@@ -80,7 +84,7 @@ export const getFlashcardType = async (id: number) => {
       return null;
     })
     .finally(() => {
-      isCreationSubmitting.set(false);
+      isSubmitting.set(false);
     });
 };
 

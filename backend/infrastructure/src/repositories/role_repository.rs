@@ -1,11 +1,13 @@
+use crate::entities::role::{self, Entity as Role};
 use chrono::Utc;
 use rex_game_domain::{
-    entities::role::{self, Entity as Role, Model},
+    errors::domain_error::{DomainError, ErrorType},
+    models::{page_list_model::PageListModel, role_model::RoleModel},
     repositories::role_repository_trait::RoleRepositoryTrait,
 };
 use sea_orm::{
-    ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder, Set, TransactionTrait,
+    ColumnTrait, Condition, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
+    QueryOrder, Set,
 };
 use std::sync::Arc;
 
@@ -23,43 +25,66 @@ impl RoleRepository {
 }
 
 impl RoleRepositoryTrait for RoleRepository {
-    async fn create(&self, mut role: role::ActiveModel) -> Result<Model, DbErr> {
-        let db_transaction = self._db_connection.begin().await?;
-        role.created_date = Set(Utc::now().fixed_offset());
-        role.updated_date = Set(Utc::now().fixed_offset());
-        let inserted = Role::insert(role).exec(&db_transaction).await?;
+    async fn create(&self, role_req: RoleModel) -> Result<i32, DomainError> {
+        let db = self._db_connection.as_ref();
 
-        let updating_role: role::ActiveModel = role::ActiveModel {
-            id: Set(inserted.last_insert_id),
-            created_by_id: Set(Some(inserted.last_insert_id)),
-            updated_by_id: Set(Some(inserted.last_insert_id)),
+        let role = role::ActiveModel {
+            name: Set(role_req.name),
+            description: Set(role_req.description),
+            created_by_id: Set(role_req.created_by_id),
+            updated_by_id: Set(role_req.updated_by_id),
+            created_date: Set(Utc::now().fixed_offset()),
+            updated_date: Set(Utc::now().fixed_offset()),
             ..Default::default()
         };
 
-        let updated_role = Role::update(updating_role).exec(&db_transaction).await;
-        match updated_role {
+        let inserted = Role::insert(role).exec(db).await.map_err(|err| {
+            DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
+        });
+
+        match inserted {
             Ok(updated) => {
-                db_transaction.commit().await?;
-                return Ok(updated);
+                return Ok(updated.last_insert_id);
             }
             Err(err) => {
-                db_transaction.rollback().await?;
                 return Err(err);
             }
         }
     }
 
-    async fn get_by_name(&self, name: &str) -> Result<Option<Model>, DbErr> {
+    async fn get_by_name(&self, name: &str) -> Result<RoleModel, DomainError> {
         let db = self._db_connection.as_ref();
-        let existing_role = Role::find()
+        let existing = Role::find()
             .filter(Condition::all().add(role::Column::Name.eq(name)))
             .one(db)
-            .await;
+            .await
+            .map_err(|err| {
+                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
+            })?;
 
-        return existing_role;
+        match existing {
+            Some(f) => Ok(RoleModel {
+                id: f.id,
+                name: f.name,
+                description: f.description,
+                created_date: f.created_date.with_timezone(&Utc),
+                updated_date: f.updated_date.with_timezone(&Utc),
+                created_by_id: f.created_by_id,
+                updated_by_id: f.updated_by_id,
+            }),
+            None => Err(DomainError::new(
+                ErrorType::NotFound,
+                "Role not found",
+                None,
+            )),
+        }
     }
 
-    async fn get_list(&self, page: u64, page_size: u64) -> Result<(Vec<role::Model>, u64), DbErr> {
+    async fn get_list(
+        &self,
+        page: u64,
+        page_size: u64,
+    ) -> Result<PageListModel<RoleModel>, DomainError> {
         let db = self._db_connection.as_ref();
         let mut query = Role::find();
 
@@ -67,7 +92,44 @@ impl RoleRepositoryTrait for RoleRepository {
 
         let paginator = query.paginate(db, page_size);
 
-        let num_pages = paginator.num_pages().await?;
-        paginator.fetch_page(page - 1).await.map(|p| (p, num_pages))
+        let total_count = match paginator.num_items().await {
+            Ok(count) => count,
+            Err(err) => {
+                return Err(DomainError::new(
+                    ErrorType::DatabaseError,
+                    err.to_string().as_str(),
+                    None,
+                ))
+            }
+        };
+
+        let page_list = paginator.fetch_page(page - 1).await;
+        match page_list {
+            Ok(items) => {
+                let list = items
+                    .into_iter()
+                    .map(|i| RoleModel {
+                        id: i.id,
+                        name: i.name,
+                        description: i.description,
+                        created_date: i.created_date.with_timezone(&Utc),
+                        updated_date: i.updated_date.with_timezone(&Utc),
+                        created_by_id: i.created_by_id,
+                        updated_by_id: i.updated_by_id,
+                    })
+                    .collect::<Vec<RoleModel>>();
+                return Ok(PageListModel {
+                    items: list,
+                    total_count,
+                });
+            }
+            Err(err) => {
+                return Err(DomainError::new(
+                    ErrorType::DatabaseError,
+                    err.to_string().as_str(),
+                    None,
+                ))
+            }
+        }
     }
 }

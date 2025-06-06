@@ -17,7 +17,9 @@ use rex_game_application::{
     roles::{role_usecase::RoleUseCase, role_usecase_trait::RoleUseCaseTrait},
     users::{user_usecase::UserUseCase, user_usecase_trait::UserUseCaseTrait},
 };
-use rex_game_domain::helpers::file_helper_trait::FileHelperTrait;
+use rex_game_domain::{
+    helpers::file_helper_trait::FileHelperTrait, transaction_manager_trait::TransactionManagerTrait,
+};
 use rex_game_infrastructure::{
     helpers::{
         configuration_helper::ConfigurationHelper, datetime_helper::DateTimeHelper,
@@ -35,6 +37,7 @@ use rex_game_infrastructure::{
         flashcard_type_repository::FlashcardTypeRepository, role_repository::RoleRepository,
         user_repository::UserRepository, user_role_repository::UserRoleRepository,
     },
+    transaction_manager::TransactionManager,
 };
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
@@ -49,6 +52,7 @@ pub trait AppStateTrait: Clone + Send + Sync + 'static {
     type RoleUseCase: RoleUseCaseTrait;
     type FileHelper: FileHelperTrait + FileHelperObjectTrait;
     type DateTimeHelper: DateTimeHelperTrait;
+    type TransactionManager: TransactionManagerTrait;
     fn flashcard_usecase(&self) -> &Self::FlashcardUseCase;
     fn flashcard_type_usecase(&self) -> &Self::FlashcardTypeUseCase;
     fn user_usecase(&self) -> &Self::UserUseCase;
@@ -59,6 +63,7 @@ pub trait AppStateTrait: Clone + Send + Sync + 'static {
     fn date_time_helper(&self) -> &Self::DateTimeHelper;
     fn db_connection(&self) -> &Arc<DatabaseConnection>;
     fn role_usecase(&self) -> &Self::RoleUseCase;
+    fn transaction_manager(&self) -> &Self::TransactionManager;
 }
 
 #[derive(Clone)]
@@ -84,6 +89,7 @@ pub struct RegularAppState {
     pub role_usecase: RoleUseCase<RoleRepository>,
     pub db_connection: Arc<DatabaseConnection>,
     pub identity_authorize_usecase: IdentityAuthorizeUseCase<UserRoleRepository>,
+    pub transaction_manager: TransactionManager,
 }
 
 impl AppStateTrait for RegularAppState {
@@ -107,6 +113,7 @@ impl AppStateTrait for RegularAppState {
     type FileHelper = FileHelper;
     type DateTimeHelper = DateTimeHelper;
     type RoleUseCase = RoleUseCase<RoleRepository>;
+    type TransactionManager = TransactionManager;
 
     fn flashcard_usecase(&self) -> &Self::FlashcardUseCase {
         &self.flashcard_usecase
@@ -146,5 +153,9 @@ impl AppStateTrait for RegularAppState {
 
     fn role_usecase(&self) -> &Self::RoleUseCase {
         &self.role_usecase
+    }
+
+    fn transaction_manager(&self) -> &Self::TransactionManager {
+        &self.transaction_manager
     }
 }

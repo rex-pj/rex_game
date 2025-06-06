@@ -6,4 +6,3 @@ publish = false
 
 [dependencies]
 chrono = "0.4.38"
-sea-orm = { version = "1.1.0" }

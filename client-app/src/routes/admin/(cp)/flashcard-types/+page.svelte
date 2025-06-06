@@ -6,7 +6,7 @@
     changePage,
     pager,
     showCreationModal,
-    isCreationSubmitting,
+    isSubmitting,
     creationError,
     toggleCreationModal,
     openEditingModal,
@@ -21,7 +21,7 @@
     deletingData,
   } from "./flashcardTypeStore";
   import Pagination from "../../../../components/molecules/pagination/pagination.svelte";
-  import FlashcardTypeCreationModal from "../../../../components/organisms/flashcardTypes/FlashcardTypeUpdateModal.svelte";
+  import FlashcardTypeUpdateModal from "../../../../components/organisms/flashcardTypes/FlashcardTypeUpdateModal.svelte";
   import FlashcardTypeDeleteModal from "../../../../components/organisms/flashcardTypes/FlashcardTypeDeleteModal.svelte";
 
   onMount(() => {
@@ -30,9 +30,15 @@
 </script>
 
 <div class="container mt-4">
-  <h1 class="mb-4">Flashcard Type Manager</h1>
-  <!-- Add button -->
-  <button class="btn btn-primary mb-3" onclick={() => toggleCreationModal(true)}>Add</button>
+  <div class="row">
+    <div class="col col-auto">
+      <h3 class="mb-4">Flashcard Type Manager</h3>
+    </div>
+    <div class="col">
+      <!-- Add button -->
+      <button class="btn btn-primary mb-3" onclick={() => toggleCreationModal(true)}>Add</button>
+    </div>
+  </div>
 
   <table class="table table-striped">
     <thead>
@@ -40,6 +46,8 @@
         <th>#</th>
         <th>Name</th>
         <th>Description</th>
+        <th>Created On</th>
+        <th>Modified On</th>
         <th></th>
       </tr>
     </thead>
@@ -49,6 +57,8 @@
           <td>{flashcardType.id}</td>
           <td>{flashcardType.name}</td>
           <td>{flashcardType.description}</td>
+          <td>{flashcardType.created_date}</td>
+          <td>{flashcardType.updated_date}</td>
           <td>
             <div class="dropdown">
               <button
@@ -98,14 +108,14 @@
   <div class="d-flex justify-content-center">
     <Pagination {pager} {changePage} />
   </div>
-  <FlashcardTypeCreationModal
+  <FlashcardTypeUpdateModal
     initialData={edittingData}
     showModal={showCreationModal}
     closeModal={() => toggleCreationModal(false)}
     {submit}
-    isSubmitting={isCreationSubmitting}
+    {isSubmitting}
     {creationError}
-  ></FlashcardTypeCreationModal>
+  ></FlashcardTypeUpdateModal>
   <FlashcardTypeDeleteModal
     showModal={showDeletionModal}
     closeModal={() => toggleDeletionModal(false)}

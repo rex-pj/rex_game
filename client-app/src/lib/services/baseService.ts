@@ -4,18 +4,16 @@ import { PUBLIC_API_URL } from "$env/static/public";
 
 export class BaseService {
   private readonly _baseUrl: string;
-  private readonly _headers: HeadersInit;
+  private readonly _headers: Headers = new Headers();
   protected readonly Cookies: Cookies | typeof JsCookies | undefined;
   constructor(cookies?: Cookies | typeof JsCookies) {
     this.Cookies = cookies;
     this._baseUrl = PUBLIC_API_URL;
-    this._headers = {
-      "Content-Type": "application/json",
-    };
+    this._headers.set("Content-Type", "application/json");
 
     const access_token = cookies?.get("access_token");
     if (access_token) {
-      this._headers["Authorization"] = `Bearer ${access_token}`;
+      this._headers.set("Authorization", `Bearer ${access_token}`);
     }
   }
 
@@ -55,16 +53,24 @@ export class BaseService {
       headers = { ...this._headers, ...options["headers"] };
     }
 
-    const body: { credentials?: RequestCredentials } = {};
+    const config: { credentials?: RequestCredentials } = {};
     if (options && options["includeCredentials"]) {
-      body.credentials = "include";
+      config.credentials = "include";
+    }
+
+    let body: string | FormData | undefined = undefined;
+    if (data instanceof FormData) {
+      headers.delete("Content-Type"); // Let the browser set the correct Content-Type for FormData
+      body = data;
+    } else {
+      body = JSON.stringify(data);
     }
 
     const response = await fetch(`${this._baseUrl}${url}`, {
       method: "POST",
       headers: headers,
-      body: JSON.stringify(data),
-      ...body,
+      body: body,
+      ...config,
     });
 
     if (options && options["observe"]) {
@@ -86,10 +92,23 @@ export class BaseService {
       headers = { ...this._headers, ...options["headers"] };
     }
 
+    const config: { credentials?: RequestCredentials } = {};
+    if (options && options["includeCredentials"]) {
+      config.credentials = "include";
+    }
+
+    let body: string | FormData | undefined = undefined;
+    if (data instanceof FormData) {
+      headers.delete("Content-Type"); // Let the browser set the correct Content-Type for FormData
+      body = data;
+    } else {
+      body = JSON.stringify(data);
+    }
+
     const response = await fetch(`${this._baseUrl}${url}`, {
       method: "PUT",
       headers: headers,
-      body: JSON.stringify(data),
+      body: body,
     });
 
     if (options && options["observe"]) {
@@ -131,10 +150,18 @@ export class BaseService {
       headers = { ...this._headers, ...options["headers"] };
     }
 
+    let body: string | FormData | undefined = undefined;
+    if (data instanceof FormData) {
+      headers.delete("Content-Type"); // Let the browser set the correct Content-Type for FormData
+      body = data;
+    } else {
+      body = JSON.stringify(data);
+    }
+
     const response = await fetch(`${this._baseUrl}${url}`, {
       method: "PATCH",
       headers: headers,
-      body: JSON.stringify(data),
+      body: body,
     });
 
     if (options && options["observe"]) {

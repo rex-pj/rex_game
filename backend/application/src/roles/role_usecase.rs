@@ -20,10 +20,10 @@ impl<R: RoleRepositoryTrait> RoleUseCase<R> {
 
 impl<R: RoleRepositoryTrait> RoleUseCaseTrait for RoleUseCase<R> {
     async fn get_roles(&self, page: u64, page_size: u64) -> Option<Vec<RoleDto>> {
-        let role_result = self._role_repository.get_list(page, page_size).await;
-        let roles = match role_result {
+        let roles_result = self._role_repository.get_list(page, page_size).await;
+        let roles = match roles_result {
             Ok(list) => Some(
-                list.0
+                list.items
                     .into_iter()
                     .map(|f| RoleDto {
                         id: f.id,

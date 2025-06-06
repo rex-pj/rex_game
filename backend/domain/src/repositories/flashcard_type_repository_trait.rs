@@ -1,7 +1,9 @@
-use sea_orm::{DbErr, DeleteResult, InsertResult};
 use std::future::Future;
 
-use crate::entities::{flashcard_type, page_list::PageList};
+use crate::{
+    errors::domain_error::DomainError,
+    models::{flashcard_type_model::FlashcardTypeModel, page_list_model::PageListModel},
+};
 
 pub trait FlashcardTypeRepositoryTrait {
     fn get_paged_list(
@@ -9,21 +11,22 @@ pub trait FlashcardTypeRepositoryTrait {
         name: Option<String>,
         page: u64,
         page_size: u64,
-    ) -> impl Future<Output = Result<PageList<flashcard_type::Model>, DbErr>>;
+    ) -> impl Future<Output = Result<PageListModel<FlashcardTypeModel>, DomainError>>;
 
     fn create(
         &self,
-        flashcard_type: flashcard_type::ActiveModel,
-    ) -> impl Future<Output = Result<InsertResult<flashcard_type::ActiveModel>, DbErr>>;
+        flashcard_type: FlashcardTypeModel,
+    ) -> impl Future<Output = Result<i32, DomainError>>;
 
     fn update(
         &self,
-        flashcard_type: flashcard_type::ActiveModel,
-    ) -> impl Future<Output = Result<flashcard_type::Model, DbErr>>;
+        flashcard_type: FlashcardTypeModel,
+    ) -> impl Future<Output = Result<bool, DomainError>>;
 
-    fn get_by_id(
+    fn get_by_id(&self, id: i32) -> impl Future<Output = Result<FlashcardTypeModel, DomainError>>;
+    fn get_by_flashcard_id(
         &self,
-        id: i32,
-    ) -> impl Future<Output = Result<Option<flashcard_type::Model>, DbErr>>;
-    fn delete_by_id(&self, id: i32) -> impl Future<Output = Result<DeleteResult, DbErr>>;
+        flashcard_id: i32,
+    ) -> impl Future<Output = Result<Vec<FlashcardTypeModel>, DomainError>>;
+    fn delete_by_id(&self, id: i32) -> impl Future<Output = Result<u64, DomainError>>;
 }

@@ -1,9 +1,8 @@
 use chrono::Utc;
 use rex_game_domain::{
-    entities::flashcard_type,
+    models::flashcard_type_model::FlashcardTypeModel,
     repositories::flashcard_type_repository_trait::FlashcardTypeRepositoryTrait,
 };
-use sea_orm::Set;
 
 use crate::{
     errors::application_error::{ApplicationError, ErrorKind},
@@ -74,16 +73,39 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
     async fn get_flashcard_type_by_id<'a>(&'a self, id: i32) -> Option<FlashcardTypeDto> {
         let existing = self._flashcard_type_repository.get_by_id(id).await;
         match existing {
-            Ok(i) => match i {
-                Some(f) => Some(FlashcardTypeDto {
-                    id: f.id,
-                    name: f.name,
-                    description: f.description,
-                    created_date: f.created_date.with_timezone(&Utc),
-                    updated_date: f.updated_date.with_timezone(&Utc),
-                }),
-                None => None,
-            },
+            Ok(f) => Some(FlashcardTypeDto {
+                id: f.id,
+                name: f.name,
+                description: f.description,
+                created_date: f.created_date.with_timezone(&Utc),
+                updated_date: f.updated_date.with_timezone(&Utc),
+            }),
+            Err(_) => None,
+        }
+    }
+
+    async fn get_flashcard_type_by_flashcard_id<'a>(
+        &'a self,
+        flashcard_id: i32,
+    ) -> Option<Vec<FlashcardTypeDto>> {
+        let flashcard_types = self
+            ._flashcard_type_repository
+            .get_by_flashcard_id(flashcard_id)
+            .await;
+        match flashcard_types {
+            Ok(i) => {
+                let result = i
+                    .into_iter()
+                    .map(|f| FlashcardTypeDto {
+                        id: f.id,
+                        name: f.name,
+                        description: f.description,
+                        created_date: f.created_date.with_timezone(&Utc),
+                        updated_date: f.updated_date.with_timezone(&Utc),
+                    })
+                    .collect();
+                return Some(result);
+            }
             Err(_) => None,
         }
     }
@@ -92,13 +114,11 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
         &'a self,
         flashcard_type_req: FlashcardTypeCreationDto,
     ) -> Option<i32> {
-        let active_flashcard_type = flashcard_type::ActiveModel {
-            name: Set(flashcard_type_req.name),
-            description: Set(flashcard_type_req.description),
-            created_date: Set(Utc::now().fixed_offset()),
-            updated_date: Set(Utc::now().fixed_offset()),
-            created_by_id: Set(flashcard_type_req.created_by_id),
-            updated_by_id: Set(flashcard_type_req.updated_by_id),
+        let active_flashcard_type = FlashcardTypeModel {
+            name: flashcard_type_req.name,
+            description: flashcard_type_req.description,
+            created_by_id: flashcard_type_req.created_by_id,
+            updated_by_id: flashcard_type_req.updated_by_id,
             ..Default::default()
         };
         let created = self
@@ -107,7 +127,7 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
             .await;
         match created {
             Err(_) => None,
-            Ok(i) => Some(i.last_insert_id),
+            Ok(i) => Some(i),
         }
     }
 
@@ -115,30 +135,22 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
         &'a self,
         id: i32,
         flashcard_type_req: FlashcardTypeUpdationDto,
-    ) -> Option<FlashcardTypeDto> {
+    ) -> Option<bool> {
         let existing = self._flashcard_type_repository.get_by_id(id).await;
         match existing {
-            Ok(exist) => match exist {
-                Some(data) => {
-                    let mut updating: flashcard_type::ActiveModel = data.into();
-                    updating.name = Set(flashcard_type_req.name);
-                    updating.description = Set(flashcard_type_req.description);
-                    updating.updated_date = Set(Utc::now().fixed_offset());
-                    updating.updated_by_id = Set(flashcard_type_req.updated_by_id);
-                    let updated = self._flashcard_type_repository.update(updating).await;
-                    match updated {
-                        Ok(i) => Some(FlashcardTypeDto {
-                            id: i.id,
-                            name: i.name,
-                            created_date: i.created_date.with_timezone(&Utc),
-                            description: i.description,
-                            updated_date: i.updated_date.with_timezone(&Utc),
-                        }),
-                        Err(_) => None,
-                    }
+            Ok(exist) => {
+                let updating = FlashcardTypeModel {
+                    id: exist.id,
+                    name: flashcard_type_req.name,
+                    description: flashcard_type_req.description,
+                    ..Default::default()
+                };
+                let updated = self._flashcard_type_repository.update(updating).await;
+                match updated {
+                    Ok(i) => Some(i),
+                    Err(_) => None,
                 }
-                None => None,
-            },
+            }
             Err(_) => None,
         }
     }
@@ -146,7 +158,7 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
     async fn delete_flashcard_type_by_id(&self, id: i32) -> Option<u64> {
         let deleted = self._flashcard_type_repository.delete_by_id(id).await;
         match deleted {
-            Ok(i) => Some(i.rows_affected),
+            Ok(i) => Some(i),
             Err(_) => None,
         }
     }

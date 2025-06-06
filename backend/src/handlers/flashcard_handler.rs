@@ -10,9 +10,10 @@ use axum::{
     Extension, Json,
 };
 use rex_game_application::{
+    flashcard_types::flashcard_type_usecase_trait::FlashcardTypeUseCaseTrait,
     flashcards::{
-        flashcard_creation_dto::FlashcardCreationDto, flashcard_dto::FlashcardDto,
-        flashcard_updation_dto::FlashcardUpdationDto,
+        flashcard_creation_dto::FlashcardCreationDto, flashcard_detail_dto::FlashcardDetailDto,
+        flashcard_dto::FlashcardDto, flashcard_updation_dto::FlashcardUpdationDto,
         flashcard_usecase_trait::FlashcardUseCaseTrait,
     },
     page_list_dto::PageListDto,
@@ -47,12 +48,34 @@ impl FlashcardHandler {
     pub async fn get_flashcard_by_id<T: AppStateTrait>(
         Path(id): Path<i32>,
         State(_state): State<T>,
-    ) -> Result<Json<FlashcardDto>, StatusCode> {
+    ) -> Result<Json<FlashcardDetailDto>, StatusCode> {
         let flashcard = _state.flashcard_usecase().get_flashcard_by_id(id).await;
-        return match flashcard {
+        let flashcard_types = _state
+            .flashcard_type_usecase()
+            .get_flashcard_type_by_flashcard_id(id)
+            .await;
+
+        match flashcard {
             None => return Err(StatusCode::NOT_FOUND),
-            Some(i) => Ok(Json(i)),
-        };
+            Some(i) => {
+                let flashcard_types = match flashcard_types {
+                    Some(types) => types,
+                    None => Vec::new(),
+                };
+                let flashcard_detail = FlashcardDetailDto {
+                    id: i.id,
+                    name: i.name,
+                    description: i.description,
+                    sub_description: i.sub_description,
+                    created_date: i.created_date,
+                    updated_date: i.updated_date,
+                    image_id: i.image_id,
+                    flashcard_types: flashcard_types.into_iter().map(|f| f.into()).collect(),
+                };
+
+                Ok(Json(flashcard_detail))
+            }
+        }
     }
 
     pub async fn get_flashcard_image<T: AppStateTrait>(
@@ -87,10 +110,24 @@ impl FlashcardHandler {
             file_name: "".to_string(),
             created_by_id: Some(current_user.id),
             updated_by_id: Some(current_user.id),
-            type_ids: vec![],
+            type_ids: Vec::new(),
             ..Default::default()
         };
+
         while let Some(field) = multipart.next_field().await.unwrap() {
+            let field_name = field.name().unwrap_or("").to_string();
+            if field_name.contains("type_ids") {
+                let type_id = field
+                    .text()
+                    .await
+                    .unwrap()
+                    .parse::<i32>()
+                    .map_err(|_| StatusCode::BAD_REQUEST)?;
+                flashcard.type_ids.push(type_id);
+                continue;
+            }
+
+            // Process other fields
             match field.name() {
                 Some("name") => {
                     flashcard.name = field.text().await.unwrap();
@@ -133,9 +170,24 @@ impl FlashcardHandler {
     ) -> Result<Json<bool>, StatusCode> {
         let mut flashcard = FlashcardUpdationDto {
             updated_by_id: Some(current_user.id),
+            type_ids: Some(vec![]),
             ..Default::default()
         };
+
         while let Some(field) = multipart.next_field().await.unwrap() {
+            let field_name = field.name().unwrap_or("").to_string();
+            if field_name.contains("type_ids") {
+                let type_id = field
+                    .text()
+                    .await
+                    .unwrap()
+                    .parse::<i32>()
+                    .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+                flashcard.type_ids.get_or_insert(Vec::new()).push(type_id);
+                continue;
+            }
+
             match field.name() {
                 Some("name") => {
                     flashcard.name = Some(field.text().await.unwrap());
@@ -172,6 +224,18 @@ impl FlashcardHandler {
             Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
             Ok(_) => Ok(Json(true)),
         };
+    }
+
+    pub async fn delete_flashcard<T: AppStateTrait>(
+        State(_state): State<T>,
+        Path(id): Path<i32>,
+    ) -> Result<Json<u64>, StatusCode> {
+        let deleted_numbers = _state.flashcard_usecase().delete_flashcard_by_id(id).await;
+
+        match deleted_numbers {
+            Some(u) => Ok(Json(u)),
+            None => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+        }
     }
 }
 

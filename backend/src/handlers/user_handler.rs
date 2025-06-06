@@ -28,7 +28,7 @@ impl UserHandler {
         };
         let signup_result = _state
             .identity_user_usecase()
-            .create_user(new_user, &req.password, None)
+            .create_user(new_user, &req.password)
             .await;
         match signup_result {
             Ok(created) => Ok(Json(created.id)),

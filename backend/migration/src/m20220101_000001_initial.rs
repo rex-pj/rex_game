@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use sea_orm_migration::prelude::*;
 
 use crate::enums::{
-    flashcard::Flashcard, flashcard_file::FlashcardType, flashcard_type::FlashcardFile,
+    flashcard::Flashcard, flashcard_file::FlashcardFile, flashcard_type::FlashcardType,
     flashcard_type_relation::FlashcardTypeRelation,
 };
 

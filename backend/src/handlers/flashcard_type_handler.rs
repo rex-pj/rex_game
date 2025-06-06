@@ -102,7 +102,7 @@ impl FlashcardTypeHandler {
         State(_state): State<T>,
         Path(id): Path<i32>,
         Json(payload): Json<Option<HashMap<String, String>>>,
-    ) -> Result<Json<FlashcardTypeDto>, StatusCode> {
+    ) -> Result<Json<bool>, StatusCode> {
         let requests = match payload {
             Some(req) => req,
             None => return Err(StatusCode::BAD_REQUEST),

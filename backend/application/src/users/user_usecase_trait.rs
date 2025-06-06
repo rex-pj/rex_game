@@ -1,4 +1,4 @@
-use sea_orm::DatabaseTransaction;
+use rex_game_domain::transaction_manager_trait::TransactionWrapperTrait;
 
 use crate::errors::application_error::ApplicationError;
 use std::future::Future;
@@ -14,15 +14,20 @@ pub trait UserUseCaseTrait {
         email: String,
     ) -> impl Future<Output = Result<UserDetailsDto, ApplicationError>>;
 
+    fn create_user_with_transaction(
+        &self,
+        user_req: UserCreationDto,
+        transaction: Box<&dyn TransactionWrapperTrait>,
+    ) -> impl Future<Output = Result<i32, ApplicationError>>;
+
     fn create_user(
         &self,
         user_req: UserCreationDto,
-        database_transaction: Option<&DatabaseTransaction>,
     ) -> impl Future<Output = Result<i32, ApplicationError>>;
     fn assign_role(
         &self,
         user_role_req: UserRoleCreationDto,
-        database_transaction: Option<&DatabaseTransaction>,
+        transaction: Box<&dyn TransactionWrapperTrait>,
     ) -> impl Future<Output = Result<i32, ApplicationError>>;
     fn get_user_roles(
         &self,

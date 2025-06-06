@@ -1,8 +1,9 @@
-use sea_orm::{DbErr, InsertResult};
 use std::future::Future;
 
-use crate::entities::flashcard;
-use crate::entities::page_list::PageList;
+use crate::{
+    errors::domain_error::DomainError,
+    models::{flashcard_model::FlashcardModel, page_list_model::PageListModel},
+};
 
 pub trait FlashcardRepositoryTrait {
     fn get_list(
@@ -10,17 +11,13 @@ pub trait FlashcardRepositoryTrait {
         type_name: Option<String>,
         page: u64,
         page_size: u64,
-    ) -> impl Future<Output = Result<PageList<flashcard::Model>, DbErr>>;
+    ) -> impl Future<Output = Result<PageListModel<FlashcardModel>, DomainError>>;
 
-    fn create(
-        &self,
-        flashcard: flashcard::ActiveModel,
-    ) -> impl Future<Output = Result<InsertResult<flashcard::ActiveModel>, DbErr>>;
+    fn create(&self, flashcard: FlashcardModel) -> impl Future<Output = Result<i32, DomainError>>;
 
-    fn update(
-        &self,
-        flashcard: flashcard::ActiveModel,
-    ) -> impl Future<Output = Result<flashcard::Model, DbErr>>;
+    fn update(&self, flashcard: FlashcardModel) -> impl Future<Output = Result<bool, DomainError>>;
 
-    fn get_by_id(&self, id: i32) -> impl Future<Output = Option<flashcard::Model>>;
+    fn get_by_id(&self, id: i32) -> impl Future<Output = Option<FlashcardModel>>;
+
+    fn delete_by_id(&self, id: i32) -> impl Future<Output = Result<u64, DomainError>>;
 }

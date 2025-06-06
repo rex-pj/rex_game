@@ -20,6 +20,7 @@ use rex_game_infrastructure::identities::identity_password_hasher::IdentityPassw
 use rex_game_infrastructure::identities::identity_token_helper::IdentityTokenHelper;
 use rex_game_infrastructure::repositories::role_repository::RoleRepository;
 use rex_game_infrastructure::repositories::user_role_repository::UserRoleRepository;
+use rex_game_infrastructure::transaction_manager::TransactionManager;
 use rex_game_infrastructure::{
     repositories::{
         flashcard_file_repository::FlashcardFileRepository,
@@ -77,10 +78,11 @@ pub async fn start() {
         identity_token_helper,
     );
     let identity_authorize_usecase = IdentityAuthorizeUseCase::new(user_role_repository.clone());
-
     let file_helper = FileHelper::new();
     let date_time_helper = DateTimeHelper::new();
+    let transaction_manager = TransactionManager::new(Arc::clone(&db_connection.pool));
     let app_state = RegularAppState {
+        transaction_manager,
         flashcard_usecase,
         flashcard_type_usecase,
         user_usecase,

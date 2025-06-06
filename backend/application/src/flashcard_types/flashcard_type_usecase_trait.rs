@@ -27,6 +27,10 @@ pub trait FlashcardTypeUseCaseTrait {
         &'a self,
         id: i32,
         flashcard: FlashcardTypeUpdationDto,
-    ) -> impl Future<Output = Option<FlashcardTypeDto>>;
+    ) -> impl Future<Output = Option<bool>>;
     fn delete_flashcard_type_by_id(&self, id: i32) -> impl Future<Output = Option<u64>>;
+    fn get_flashcard_type_by_flashcard_id<'a>(
+        &'a self,
+        flashcard_id: i32,
+    ) -> impl Future<Output = Option<Vec<FlashcardTypeDto>>>;
 }

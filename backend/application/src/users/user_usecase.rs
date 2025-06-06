@@ -1,13 +1,13 @@
 use crate::errors::application_error::{ApplicationError, ErrorKind};
 use chrono::Utc;
 use rex_game_domain::{
-    entities::{user, user_role},
+    models::{user_model::UserModel, user_role_model::UserRoleModel},
     repositories::{
         role_repository_trait::RoleRepositoryTrait, user_repository_trait::UserRepositoryTrait,
         user_role_repository_trait::UserRoleRepositoryTrait,
     },
+    transaction_manager_trait::TransactionWrapperTrait,
 };
-use sea_orm::{DatabaseTransaction, Set};
 
 use super::{
     user_creation_dto::UserCreationDto, user_details_dto::UserDetailsDto,
@@ -44,26 +44,19 @@ impl<UT: UserRepositoryTrait, RT: RoleRepositoryTrait, URT: UserRoleRepositoryTr
     async fn get_user_by_email(&self, email: String) -> Result<UserDetailsDto, ApplicationError> {
         let existing = self._user_repository.get_by_email(email).await;
         match existing {
-            Ok(i) => match i {
-                Some(f) => Ok(UserDetailsDto {
-                    id: f.id,
-                    email: f.email,
-                    name: f.name,
-                    display_name: f.display_name,
-                    password_hash: f.password_hash,
-                    security_stamp: f.security_stamp,
-                    created_by_id: f.created_by_id,
-                    created_date: f.created_date.with_timezone(&Utc),
-                    updated_date: f.updated_date.with_timezone(&Utc),
-                    updated_by_id: f.updated_by_id,
-                    status_id: f.status_id,
-                }),
-                None => Err(ApplicationError::new(
-                    ErrorKind::NotFound,
-                    "User not found",
-                    None,
-                )),
-            },
+            Ok(f) => Ok(UserDetailsDto {
+                id: f.id,
+                email: f.email,
+                name: f.name,
+                display_name: f.display_name,
+                password_hash: f.password_hash,
+                security_stamp: f.security_stamp,
+                created_by_id: f.created_by_id,
+                created_date: f.created_date.with_timezone(&Utc),
+                updated_date: f.updated_date.with_timezone(&Utc),
+                updated_by_id: f.updated_by_id,
+                status_id: f.status_id,
+            }),
             Err(_) => Err(ApplicationError::new(
                 ErrorKind::DatabaseError,
                 "Database error",
@@ -72,29 +65,25 @@ impl<UT: UserRepositoryTrait, RT: RoleRepositoryTrait, URT: UserRoleRepositoryTr
         }
     }
 
-    async fn create_user(
+    async fn create_user_with_transaction(
         &self,
         user_req: UserCreationDto,
-        database_transaction: Option<&DatabaseTransaction>,
+        transaction: Box<&dyn TransactionWrapperTrait>,
     ) -> Result<i32, ApplicationError> {
-        let active_user = user::ActiveModel {
-            name: Set(user_req.name),
-            display_name: Set(user_req.display_name),
-            email: Set(user_req.email),
-            status_id: Set(UserStatuses::Actived as i32),
-            password_hash: Set(user_req.password),
-            security_stamp: Set(user_req.security_stamp),
+        let active_user = UserModel {
+            name: user_req.name,
+            display_name: user_req.display_name,
+            email: user_req.email,
+            status_id: UserStatuses::Actived as i32,
+            password_hash: user_req.password,
+            security_stamp: user_req.security_stamp,
             ..Default::default()
         };
 
-        let created = match database_transaction {
-            Some(transaction) => {
-                self._user_repository
-                    .create_without_commit(active_user, Some(transaction))
-                    .await
-            }
-            None => self._user_repository.create(active_user).await,
-        };
+        let created = self
+            ._user_repository
+            .create_without_commit(active_user, transaction)
+            .await;
 
         match created {
             Err(_) => Err(ApplicationError::new(
@@ -102,7 +91,30 @@ impl<UT: UserRepositoryTrait, RT: RoleRepositoryTrait, URT: UserRoleRepositoryTr
                 "Database error",
                 None,
             )),
-            Ok(i) => Ok(i.id),
+            Ok(i) => Ok(i),
+        }
+    }
+
+    async fn create_user(&self, user_req: UserCreationDto) -> Result<i32, ApplicationError> {
+        let active_user = UserModel {
+            name: user_req.name,
+            display_name: user_req.display_name,
+            email: user_req.email,
+            status_id: UserStatuses::Actived as i32,
+            password_hash: user_req.password,
+            security_stamp: user_req.security_stamp,
+            ..Default::default()
+        };
+
+        let created = self._user_repository.create(active_user).await;
+
+        match created {
+            Err(_) => Err(ApplicationError::new(
+                ErrorKind::DatabaseError,
+                "Database error",
+                None,
+            )),
+            Ok(i) => Ok(i),
         }
     }
 
@@ -129,23 +141,14 @@ impl<UT: UserRepositoryTrait, RT: RoleRepositoryTrait, URT: UserRoleRepositoryTr
     async fn assign_role(
         &self,
         user_role_req: UserRoleCreationDto,
-        database_transaction: Option<&DatabaseTransaction>,
+        transaction: Box<&dyn TransactionWrapperTrait>,
     ) -> Result<i32, ApplicationError> {
         let role = match self
             ._role_repository
             .get_by_name(&user_role_req.role_name)
             .await
         {
-            Ok(role_model) => match role_model {
-                Some(role) => role,
-                None => {
-                    return Err(ApplicationError::new(
-                        ErrorKind::NotFound,
-                        "Role not found",
-                        None,
-                    ))
-                }
-            },
+            Ok(role_model) => role_model,
             Err(_) => {
                 return Err(ApplicationError::new(
                     ErrorKind::DatabaseError,
@@ -158,18 +161,18 @@ impl<UT: UserRepositoryTrait, RT: RoleRepositoryTrait, URT: UserRoleRepositoryTr
         match self
             ._user_role_repository
             .create_without_commit(
-                user_role::ActiveModel {
-                    user_id: Set(user_role_req.user_id),
-                    role_id: Set(role.id),
-                    created_by_id: Set(user_role_req.created_by_id),
-                    updated_by_id: Set(user_role_req.updated_by_id),
+                UserRoleModel {
+                    user_id: user_role_req.user_id,
+                    role_id: role.id,
+                    created_by_id: user_role_req.created_by_id,
+                    updated_by_id: user_role_req.updated_by_id,
                     ..Default::default()
                 },
-                database_transaction,
+                transaction,
             )
             .await
         {
-            Ok(inserted) => Ok(inserted.last_insert_id),
+            Ok(inserted) => Ok(inserted),
             Err(_) => {
                 return Err(ApplicationError::new(
                     ErrorKind::DatabaseError,

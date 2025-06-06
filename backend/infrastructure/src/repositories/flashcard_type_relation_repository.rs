@@ -1,13 +1,13 @@
 use chrono::Utc;
 use rex_game_domain::{
-    entities::{flashcard_type_relation, flashcard_type_relation::Entity as FlashcardTypeRelation},
+    errors::domain_error::{DomainError, ErrorType},
+    models::flashcard_type_relation_model::FlashcardTypeRelationModel,
     repositories::flashcard_type_relation_repository_trait::FlashcardTypeRelationRepositoryTrait,
 };
-use sea_orm::{
-    ColumnTrait, Condition, DatabaseConnection, DbErr, DeleteResult, EntityTrait, InsertResult,
-    QueryFilter, Set,
-};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use std::sync::Arc;
+
+use crate::entities::{flashcard_type_relation, prelude::FlashcardTypeRelation};
 
 #[derive(Clone)]
 pub struct FlashcardTypeRelationRepository {
@@ -25,39 +25,113 @@ impl FlashcardTypeRelationRepository {
 impl FlashcardTypeRelationRepositoryTrait for FlashcardTypeRelationRepository {
     async fn create(
         &self,
-        mut flashcard_type_relations: Vec<flashcard_type_relation::ActiveModel>,
-    ) -> Result<InsertResult<flashcard_type_relation::ActiveModel>, DbErr> {
+        mut flashcard_type_relations_req: Vec<FlashcardTypeRelationModel>,
+    ) -> Result<i32, DomainError> {
         let db = self._db_connection.as_ref();
 
-        flashcard_type_relations.iter_mut().for_each(|f| {
-            f.created_date = Set(Utc::now().fixed_offset());
-            f.updated_date = Set(Utc::now().fixed_offset());
-        });
-        return FlashcardTypeRelation::insert_many(flashcard_type_relations)
+        let flashcard_type_relations =
+            flashcard_type_relations_req
+                .iter_mut()
+                .map(|f| flashcard_type_relation::ActiveModel {
+                    flashcard_id: Set(f.flashcard_id),
+                    flashcard_type_id: Set(f.flashcard_type_id),
+                    created_by_id: Set(f.created_by_id),
+                    updated_by_id: Set(f.updated_by_id),
+                    created_date: Set(Utc::now().fixed_offset()),
+                    updated_date: Set(Utc::now().fixed_offset()),
+                    ..Default::default()
+                });
+        match FlashcardTypeRelation::insert_many(flashcard_type_relations)
             .exec(db)
-            .await;
+            .await
+        {
+            Ok(result) => {
+                if result.last_insert_id > 0 {
+                    Ok(result.last_insert_id as i32)
+                } else {
+                    Err(DomainError::new(
+                        ErrorType::DatabaseError,
+                        "Failed to create flashcard type relations",
+                        None,
+                    ))
+                }
+            }
+            Err(err) => Err(DomainError::new(
+                ErrorType::DatabaseError,
+                err.to_string().as_str(),
+                None,
+            )),
+        }
     }
 
     async fn get_by_flashcard_id(
         &self,
         flashcard_id: i32,
-    ) -> Result<Vec<flashcard_type_relation::Model>, DbErr> {
+    ) -> Result<Vec<FlashcardTypeRelationModel>, DomainError> {
         let db = self._db_connection.as_ref();
 
-        return FlashcardTypeRelation::find()
-            .filter(
-                Condition::all().add(flashcard_type_relation::Column::FlashcardId.eq(flashcard_id)),
-            )
+        let existing = match FlashcardTypeRelation::find()
+            .filter(flashcard_type_relation::Column::FlashcardId.eq(flashcard_id))
             .all(db)
-            .await;
+            .await
+        {
+            Ok(f) => f,
+            Err(err) => {
+                return Err(DomainError::new(
+                    ErrorType::DatabaseError,
+                    err.to_string().as_str(),
+                    None,
+                ));
+            }
+        };
+
+        let flashcard_type_relations = existing
+            .into_iter()
+            .map(|f| FlashcardTypeRelationModel {
+                id: f.id,
+                flashcard_id: f.flashcard_id,
+                flashcard_type_id: f.flashcard_type_id,
+                created_by_id: f.created_by_id,
+                updated_by_id: f.updated_by_id,
+                created_date: f.created_date.with_timezone(&Utc),
+                updated_date: f.updated_date.with_timezone(&Utc),
+            })
+            .collect::<Vec<FlashcardTypeRelationModel>>();
+
+        return Ok(flashcard_type_relations);
     }
 
-    async fn delete_by_ids(&self, ids: Vec<i32>) -> Result<DeleteResult, DbErr> {
+    async fn delete_by_ids(&self, ids: Vec<i32>) -> Result<u64, DomainError> {
         let db = self._db_connection.as_ref();
 
-        FlashcardTypeRelation::delete_many()
+        match FlashcardTypeRelation::delete_many()
             .filter(flashcard_type_relation::Column::Id.is_in(ids))
             .exec(db)
             .await
+        {
+            Ok(result) => Ok(result.rows_affected),
+            Err(err) => Err(DomainError::new(
+                ErrorType::DatabaseError,
+                err.to_string().as_str(),
+                None,
+            )),
+        }
+    }
+
+    async fn delete_by_flashcard_id(&self, flashcard_id: i32) -> Result<u64, DomainError> {
+        let db = self._db_connection.as_ref();
+
+        match FlashcardTypeRelation::delete_many()
+            .filter(flashcard_type_relation::Column::FlashcardId.eq(flashcard_id))
+            .exec(db)
+            .await
+        {
+            Ok(result) => Ok(result.rows_affected),
+            Err(err) => Err(DomainError::new(
+                ErrorType::DatabaseError,
+                err.to_string().as_str(),
+                None,
+            )),
+        }
     }
 }

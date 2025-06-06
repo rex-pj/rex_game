@@ -6,8 +6,10 @@ use crate::{
 use super::{
     identity_user_trait::IdentityUserTrait, identity_user_usecase_trait::IdentityUserUseCaseTrait,
 };
-use rex_game_domain::identities::password_hasher_trait::PasswordHasherTrait;
-use sea_orm::DatabaseTransaction;
+use rex_game_domain::{
+    identities::password_hasher_trait::PasswordHasherTrait,
+    transaction_manager_trait::TransactionWrapperTrait,
+};
 
 #[derive(Clone)]
 pub struct IdentityUserUseCase<PH, US>
@@ -31,11 +33,11 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait> IdentityUserUseCase<PH, US> 
 impl<PH: PasswordHasherTrait, US: UserUseCaseTrait> IdentityUserUseCaseTrait
     for IdentityUserUseCase<PH, US>
 {
-    async fn create_user<UT: IdentityUserTrait<K>, K>(
+    async fn create_user_with_transaction<UT: IdentityUserTrait<K>, K>(
         &self,
         mut user: UT,
         password: &str,
-        database_transaction: Option<&DatabaseTransaction>,
+        transaction: Box<&dyn TransactionWrapperTrait>,
     ) -> Result<UT, ApplicationError> {
         let salt = self._password_hasher.generate_salt();
         user.set_security_stamp(&salt);
@@ -44,7 +46,7 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait> IdentityUserUseCaseTrait
 
         let created_id = match self
             ._user_usecase
-            .create_user(
+            .create_user_with_transaction(
                 UserCreationDto {
                     display_name: user.display_name().map(|f| String::from(f)),
                     email: String::from(user.email()),
@@ -52,8 +54,43 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait> IdentityUserUseCaseTrait
                     password: String::from(user.password_hash()),
                     security_stamp: String::from(user.security_stamp()),
                 },
-                database_transaction,
+                transaction,
             )
+            .await
+        {
+            Ok(id) => id,
+            Err(_) => {
+                return Err(ApplicationError::new(
+                    ErrorKind::InvalidInput,
+                    "Create user failed",
+                    None,
+                ))
+            }
+        };
+
+        user.set_id(created_id);
+        Ok(user)
+    }
+
+    async fn create_user<UT: IdentityUserTrait<K>, K>(
+        &self,
+        mut user: UT,
+        password: &str,
+    ) -> Result<UT, ApplicationError> {
+        let salt = self._password_hasher.generate_salt();
+        user.set_security_stamp(&salt);
+        let password_hash_result = self._password_hasher.hash(password, salt);
+        user.set_password_hash(&password_hash_result);
+
+        let created_id = match self
+            ._user_usecase
+            .create_user(UserCreationDto {
+                display_name: user.display_name().map(|f| String::from(f)),
+                email: String::from(user.email()),
+                name: String::from(user.name()),
+                password: String::from(user.password_hash()),
+                security_stamp: String::from(user.security_stamp()),
+            })
             .await
         {
             Ok(id) => id,
