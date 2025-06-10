@@ -60,12 +60,13 @@ impl AuthenticationHandler {
         ))
     }
 
-    pub async fn logout<T: AppStateTrait>(
-        State(_state): State<T>,
-        jar: CookieJar,
-    ) -> Result<Json<bool>, StatusCode> {
-        let _ = jar.remove("refresh_token").remove("access_token");
-        Ok(Json(true))
+    pub async fn logout<T: AppStateTrait>(State(_state): State<T>, jar: CookieJar) ->  Result<(CookieJar, Json<bool>), StatusCode> {
+        let mut cookie = Cookie::new("refresh_token", "");
+        cookie.set_http_only(true);
+        cookie.set_same_site(SameSite::Lax);
+        cookie.set_secure(true);
+        cookie.set_max_age(time::Duration::ZERO);
+        Ok((jar.remove(cookie), Json(true)))
     }
 
     pub async fn refresh_access_token<T: AppStateTrait>(

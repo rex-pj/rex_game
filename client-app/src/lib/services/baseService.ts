@@ -122,7 +122,7 @@ export class BaseService {
     fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
     url: string,
     options?: any
-  ) {
+  ): Promise<Response> {
     let headers = this._headers;
     if (options && options["headers"]) {
       headers = { ...this._headers, ...options["headers"] };

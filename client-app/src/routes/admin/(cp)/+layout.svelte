@@ -1,7 +1,6 @@
 <script>
-  import { AuthenticateService } from "$lib/services/authenticateService";
+  import * as authenticationClient from "$lib/helpers/authenticationClient";
   import { redirect } from "@sveltejs/kit";
-  import Cookies from "js-cookie";
   let menus = [
     { name: "Dashboard", link: "/admin/dashboard" },
     { name: "Falshcards", link: "/admin/flashcards" },
@@ -9,18 +8,15 @@
     { name: "Settings", link: "/admin/settings" },
   ];
 
-  function logout() {
-    let authenticationService = new AuthenticateService(Cookies);
-    authenticationService.logout(fetch).then(() => {
-      redirect(302, "/admin/authentication");
-    });
+  async function logout() {
+    await authenticationClient.logout();
   }
 </script>
 
 <div class="layout">
   <div class="header">
     <div class="logo">Admin Panel</div>
-    <button class="logout" on:click={logout}>Logout</button>
+    <button class="logout" onclick={logout}>Logout</button>
   </div>
   <div class="sidebar">
     {#each menus as menu}

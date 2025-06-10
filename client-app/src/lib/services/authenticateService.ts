@@ -1,11 +1,9 @@
-import type { Cookies } from "@sveltejs/kit";
-import JsCookies from "js-cookie";
+import { type Cookies } from "@sveltejs/kit";
 import { BaseService } from "./baseService";
-import { jwtDecode } from "jwt-decode";
 import { container } from "$lib/di";
 
 class AuthenticateService extends BaseService {
-  constructor(cookies?: Cookies | typeof JsCookies) {
+  constructor(cookies?: Cookies) {
     super(cookies);
   }
 
@@ -23,7 +21,12 @@ class AuthenticateService extends BaseService {
     return await response;
   }
 
-  setRefreshToken(response: Response, cookies: any) {
+  async logout(fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>) {
+    const response = await this.delete(fetch, "/auth/logout", { observe: true });
+    return response;
+  }
+
+  setRefreshToken(response: Response, cookies: Cookies) {
     const cookieHeaders = response.headers.getSetCookie();
     const cookie_key = "refresh_token";
     const refresh_token_data = container.cookieHelper.parseSetCookie(cookieHeaders, cookie_key);
@@ -33,6 +36,11 @@ class AuthenticateService extends BaseService {
     }
 
     cookies.set(cookie_key, refresh_token_data.value, refresh_token_data.options);
+  }
+
+  removeRefreshToken(cookies: Cookies) {
+    const cookie_key = "refresh_token";
+    cookies.delete(cookie_key, { path: "/" });
   }
 
   setAccessToken(response: { access_token: string; expiration: number }, cookies: any) {
@@ -52,25 +60,6 @@ class AuthenticateService extends BaseService {
       secure: true,
       expires: new Date(expiration),
     });
-  }
-
-  async logout(fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>) {
-    const response = await this.delete(fetch, "/auth/logout");
-    return response;
-  }
-
-  isTokenExpired(token: string): boolean {
-    try {
-      const decoded = jwtDecode(token);
-      if (!decoded || !decoded.exp) {
-        throw new Error("Invalid token");
-      }
-      const currentTime = Math.floor(Date.now() / 1000);
-      return decoded.exp < currentTime;
-    } catch (error) {
-      console.error("Error decoding token:", error);
-      return true; // Assume expired if there's an error
-    }
   }
 }
 

@@ -1,7 +1,7 @@
 <div class="d-flex justify-content-center align-items-center vh-100">
   <div class="card p-4" style="width: 400px;">
     <h3 class="text-center mb-4">Admin Login</h3>
-    <form method="POST" action="?/login">
+    <form method="POST" action="/authentication">
       <div class="mb-3">
         <label for="email" class="form-label">Email address</label>
         <input
