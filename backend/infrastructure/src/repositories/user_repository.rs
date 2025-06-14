@@ -174,7 +174,7 @@ impl UserRepositoryTrait for UserRepository {
             }),
             None => Err(DomainError::new(
                 ErrorType::NotFound,
-                "Role not found",
+                "User not found",
                 None,
             )),
         }

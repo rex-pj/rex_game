@@ -1,3 +1,4 @@
+use axum::http::HeaderMap;
 use axum::{extract::State, Json};
 use hyper::StatusCode;
 use rex_game_application::{
@@ -5,7 +6,7 @@ use rex_game_application::{
         application_user_dto::ApplicationUserDto,
         identity_user_usecase_trait::IdentityUserUseCaseTrait,
     },
-    users::user_statuses::UserStatuses,
+    users::{loggedin_user_dto::LoggedInUserDto, user_statuses::UserStatuses},
 };
 
 use crate::{app_state::AppStateTrait, view_models::users::signup_request::SignupRequest};
@@ -32,6 +33,32 @@ impl UserHandler {
             .await;
         match signup_result {
             Ok(created) => Ok(Json(created.id)),
+            Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+        }
+    }
+
+    pub async fn get_current_user<T: AppStateTrait>(
+        headers: HeaderMap,
+        State(_state): State<T>,
+    ) -> Result<Json<LoggedInUserDto>, StatusCode> {
+        let access_token_header = match headers.get("authorization") {
+            Some(authorization) => authorization,
+            None => return Err(StatusCode::BAD_REQUEST),
+        };
+
+        let access_token = match access_token_header.to_str() {
+            Ok(authorization) => authorization,
+            Err(_) => return Err(StatusCode::BAD_REQUEST),
+        };
+
+        let access_token = access_token.strip_prefix("Bearer ").unwrap();
+        let logged_in_user_result = _state
+            .identity_user_usecase()
+            .get_logged_in_user(access_token)
+            .await;
+
+        match logged_in_user_result {
+            Ok(user) => Ok(Json(user)),
             Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
         }
     }

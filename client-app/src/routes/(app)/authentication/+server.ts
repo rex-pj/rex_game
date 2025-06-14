@@ -1,5 +1,6 @@
 import { json, redirect } from "@sveltejs/kit";
 import { AuthenticateService } from "../../../lib/services/authenticateService";
+import { ADMIN_URLS } from "$lib/common/contants";
 
 export async function DELETE({ request, cookies, fetch }) {
   const authenticateService = new AuthenticateService(cookies);
@@ -31,13 +32,13 @@ export async function POST({ request, cookies, fetch }) {
       "and message:",
       await response?.text()
     );
-    redirect(302, "/admin/authentication");
+    redirect(302, ADMIN_URLS.LOGIN_URL);
   }
 
   authenticateService.setRefreshToken(response, cookies);
   const loginResult = await response.json();
   authenticateService.setAccessToken(loginResult, cookies);
-  redirect(302, "/admin/dashboard");
+  redirect(302, ADMIN_URLS.DASHBOARD_URL);
 }
 
 export async function PATCH({ request, cookies, fetch }) {

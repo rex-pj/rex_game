@@ -78,6 +78,7 @@ pub struct RegularAppState {
     pub identity_user_usecase: IdentityUserUseCase<
         IdentityPasswordHasher,
         UserUseCase<UserRepository, RoleRepository, UserRoleRepository>,
+        IdentityTokenHelper<ConfigurationHelper>,
     >,
     pub identity_authenticate_usecase: IdentityAuthenticateUseCase<
         IdentityPasswordHasher,
@@ -103,6 +104,7 @@ impl AppStateTrait for RegularAppState {
     type IdentityUserUseCase = IdentityUserUseCase<
         IdentityPasswordHasher,
         UserUseCase<UserRepository, RoleRepository, UserRoleRepository>,
+        IdentityTokenHelper<ConfigurationHelper>,
     >;
     type IdentityAuthenticateUseCase = IdentityAuthenticateUseCase<
         IdentityPasswordHasher,

@@ -80,7 +80,7 @@ impl UserRoleRepositoryTrait for UserRoleRepository {
             let db = db_connection.as_ref();
             let existing = UserRole::find()
                 .filter(user_role::Column::UserId.eq(user_id))
-                .join(JoinType::InnerJoin, role::Relation::UserRole.def())
+                .find_with_related(role::Entity)
                 .all(db)
                 .await
                 .map_err(|err| {
@@ -89,14 +89,21 @@ impl UserRoleRepositoryTrait for UserRoleRepository {
 
             let roles = existing
                 .into_iter()
-                .map(|i| UserRoleModel {
-                    id: i.id,
-                    role_id: i.role_id,
-                    user_id: i.user_id,
-                    created_date: i.created_date.with_timezone(&Utc),
-                    updated_date: i.updated_date.with_timezone(&Utc),
-                    created_by_id: i.created_by_id,
-                    updated_by_id: i.updated_by_id,
+                .map(|i| {
+                    let role_name = match i.1.first() {
+                        Some(role) => role.name.to_owned(),
+                        None => String::from(""),
+                    };
+                    return UserRoleModel {
+                        id: i.0.id,
+                        role_id: i.0.role_id,
+                        user_id: i.0.user_id,
+                        role_name: role_name,
+                        created_date: i.0.created_date.with_timezone(&Utc),
+                        updated_date: i.0.updated_date.with_timezone(&Utc),
+                        created_by_id: i.0.created_by_id,
+                        updated_by_id: i.0.updated_by_id,
+                    };
                 })
                 .collect::<Vec<UserRoleModel>>();
 

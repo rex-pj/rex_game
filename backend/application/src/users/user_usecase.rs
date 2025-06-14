@@ -20,14 +20,18 @@ pub struct UserUseCase<UT, RT, URT>
 where
     UT: UserRepositoryTrait,
     RT: RoleRepositoryTrait,
+    URT: UserRoleRepositoryTrait,
 {
     _user_repository: UT,
     _role_repository: RT,
     _user_role_repository: URT,
 }
 
-impl<UT: UserRepositoryTrait, RT: RoleRepositoryTrait, URT: UserRoleRepositoryTrait>
-    UserUseCase<UT, RT, URT>
+impl<UT, RT, URT> UserUseCase<UT, RT, URT>
+where
+    UT: UserRepositoryTrait,
+    RT: RoleRepositoryTrait,
+    URT: UserRoleRepositoryTrait,
 {
     pub fn new(user_repository: UT, role_repository: RT, user_role_repository: URT) -> Self {
         Self {
@@ -127,6 +131,7 @@ impl<UT: UserRepositoryTrait, RT: RoleRepositoryTrait, URT: UserRoleRepositoryTr
                     id: f.id,
                     user_id: f.user_id,
                     role_id: f.role_id,
+                    role_name: f.role_name,
                     ..Default::default()
                 })
                 .collect()),

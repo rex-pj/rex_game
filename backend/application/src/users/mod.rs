@@ -1,3 +1,4 @@
+pub mod loggedin_user_dto;
 pub mod roles;
 pub mod user_creation_dto;
 pub mod user_details_dto;

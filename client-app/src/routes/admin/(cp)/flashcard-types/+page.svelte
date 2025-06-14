@@ -23,6 +23,7 @@
   import Pagination from "../../../../components/molecules/pagination/pagination.svelte";
   import FlashcardTypeUpdateModal from "../../../../components/organisms/flashcardTypes/FlashcardTypeUpdateModal.svelte";
   import FlashcardTypeDeleteModal from "../../../../components/organisms/flashcardTypes/FlashcardTypeDeleteModal.svelte";
+  import { standardizeDate } from "$lib/helpers/dateTimeHelper";
 
   onMount(() => {
     fetchFlashcardTypes(pager.currentPage);
@@ -57,8 +58,8 @@
           <td>{flashcardType.id}</td>
           <td>{flashcardType.name}</td>
           <td>{flashcardType.description}</td>
-          <td>{flashcardType.created_date}</td>
-          <td>{flashcardType.updated_date}</td>
+          <td>{standardizeDate(flashcardType.created_date)}</td>
+          <td>{standardizeDate(flashcardType.updated_date)}</td>
           <td>
             <div class="dropdown">
               <button

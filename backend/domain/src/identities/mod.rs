@@ -34,3 +34,13 @@ pub struct UserRefreshTokenClaims {
     pub refresh_token: String,
     pub expiration: u64,
 }
+
+pub struct AccessTokenInfo {
+    pub sub: i32,
+    pub aud: String,
+    pub email: String,
+    pub company: String,
+    pub iss: String,
+    pub exp: u64,
+    pub token_type: String,
+}

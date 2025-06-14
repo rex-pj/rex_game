@@ -25,6 +25,7 @@
   import FlashcardUpdateModal from "../../../../components/organisms/flashcards/FlashcardUpdateModal.svelte";
   import type { SelectOption } from "$lib/models/select-option";
   import FlashcardDeleteModal from "../../../../components/organisms/flashcards/FlashcardDeleteModal.svelte";
+  import { standardizeDate } from "$lib/helpers/dateTimeHelper";
 
   onMount(() => {
     fetchFlashcards(pager.currentPage);
@@ -58,6 +59,8 @@
         <th>#</th>
         <th colspan="2">Name</th>
         <th>Description</th>
+        <th>Created On</th>
+        <th>Modified On</th>
         <th></th>
       </tr>
     </thead>
@@ -79,8 +82,10 @@
           <td>{flashcard.name}</td>
           <td>
             <p>{flashcard.description}</p>
-            <p>Sub: <b>{flashcard.sub_description}</b></p>
+            <p>Sub: <i>{flashcard.sub_description}</i></p>
           </td>
+          <td>{standardizeDate(flashcard.created_date)}</td>
+          <td>{standardizeDate(flashcard.updated_date)}</td>
           <td>
             <div class="dropdown">
               <button

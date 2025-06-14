@@ -9,6 +9,7 @@ use jsonwebtoken::{
     errors::{Error, ErrorKind},
     Header, Validation,
 };
+use rex_game_domain::identities::AccessTokenInfo;
 use rex_game_domain::identities::IdentityErrorKind;
 use rex_game_domain::identities::UserRefreshTokenClaims;
 use rex_game_domain::{
@@ -45,9 +46,7 @@ impl<CF: ConfigurationHelperTrait> IdentityTokenHelper<CF> {
             _configuration_helper: configuration_helper,
         };
     }
-}
 
-impl<CF: ConfigurationHelperTrait> IdentityTokenHelper<CF> {
     fn get_access_token_claims(
         &self,
         access_token: &str,
@@ -97,6 +96,25 @@ impl<CF: ConfigurationHelperTrait> IdentityTokenHelper<CF> {
 }
 
 impl<CF: ConfigurationHelperTrait> TokenHelperTrait for IdentityTokenHelper<CF> {
+    fn get_access_token_info(&self, access_token: &str) -> Option<AccessTokenInfo> {
+        if access_token.is_empty() {
+            return None;
+        }
+        let access_claims = self.get_access_token_claims(access_token);
+        match access_claims {
+            Ok(claims) => Some(AccessTokenInfo {
+                sub: claims.sub,
+                aud: claims.aud,
+                email: claims.email,
+                company: claims.company,
+                iss: claims.iss,
+                exp: claims.exp,
+                token_type: claims.token_type,
+            }),
+            Err(_) => None,
+        }
+    }
+
     fn generate_access_token(&self, user_id: i32, email: &str) -> Option<UserAccessClaims> {
         if user_id == 0 || email.is_empty() {
             return None;

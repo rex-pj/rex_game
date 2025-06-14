@@ -3,7 +3,7 @@ import type JsCookies from "js-cookie";
 import { PUBLIC_API_URL } from "$env/static/public";
 
 export class BaseService {
-  private readonly _baseUrl: string;
+  protected readonly _baseUrl: string;
   private readonly _headers: Headers = new Headers();
   protected readonly Cookies: Cookies | typeof JsCookies | undefined;
   constructor(cookies?: Cookies | typeof JsCookies) {

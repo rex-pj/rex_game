@@ -61,6 +61,10 @@ impl AppRouting {
                 "/auth/logout",
                 delete(AuthenticationHandler::logout::<RegularAppState>),
             )
+            .route(
+                "/users/me",
+                get(UserHandler::get_current_user::<RegularAppState>),
+            )
             .layer(ServiceBuilder::new().layer(AuthenticateLayer {
                 app_state: self.app_state.clone(),
             }))

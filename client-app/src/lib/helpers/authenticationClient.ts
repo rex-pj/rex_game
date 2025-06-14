@@ -1,6 +1,5 @@
 import { jwtDecode } from "jwt-decode";
 import Cookies from "js-cookie";
-import { goto } from "$app/navigation";
 
 export const logout = async () => {
   fetch("/authentication", {
@@ -8,7 +7,6 @@ export const logout = async () => {
   }).then((rs) => {
     Cookies.remove("access_token");
     Cookies.remove("access_token_exp");
-    goto("/admin/authentication");
   });
 };
 
