@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { FlashcardTypeRequest } from "$lib/models/flashcard-type";
+  import type { RoleRequest } from "$lib/models/role";
   import { writable, type Writable } from "svelte/store";
 
   const {
@@ -13,9 +13,9 @@
     showModal: Writable<boolean>;
     closeModal: () => void;
     isSubmitting: Writable<boolean>;
-    submit: (data: FlashcardTypeRequest) => Promise<void>;
+    submit: (data: RoleRequest) => Promise<void>;
     creationError: Writable<string>;
-    initialData: Writable<FlashcardTypeRequest>;
+    initialData: Writable<RoleRequest>;
   } = $props();
   // Submit handler
   async function handleSubmit(event: Event) {
@@ -32,19 +32,19 @@
         <form onsubmit={handleSubmit}>
           <div class="modal-header">
             {#if $initialData.id}
-              <h5 class="modal-title">Update Flashcard Type</h5>
+              <h5 class="modal-title">Update Role</h5>
               <button
                 type="button"
                 class="btn-close"
-                aria-label="Close update flashcard Type"
+                aria-label="Close Update Role"
                 onclick={closeModal}
               ></button>
             {:else}
-              <h5 class="modal-title">Create Flashcard Type</h5>
+              <h5 class="modal-title">Create Role</h5>
               <button
                 type="button"
                 class="btn-close"
-                aria-label="Close create flashcard Type"
+                aria-label="Close Create Role"
                 onclick={closeModal}
               ></button>
             {/if}

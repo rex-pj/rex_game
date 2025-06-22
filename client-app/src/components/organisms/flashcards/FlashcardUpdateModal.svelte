@@ -62,13 +62,23 @@
       <div class="modal-content">
         <form onsubmit={handleSubmit}>
           <div class="modal-header">
-            <h5 class="modal-title">Create Flashcard</h5>
-            <button
-              type="button"
-              class="btn-close"
-              aria-label="Close create flashcard"
-              onclick={closeModal}
-            ></button>
+            {#if $initialData.id}
+              <h5 class="modal-title">Update Flashcard</h5>
+              <button
+                type="button"
+                class="btn-close"
+                aria-label="Close update flashcard"
+                onclick={closeModal}
+              ></button>
+            {:else}
+              <h5 class="modal-title">Create Flashcard</h5>
+              <button
+                type="button"
+                class="btn-close"
+                aria-label="Close create flashcard"
+                onclick={closeModal}
+              ></button>
+            {/if}
           </div>
           <div class="modal-body">
             {#if $creationError}

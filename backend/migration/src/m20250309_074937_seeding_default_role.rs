@@ -20,6 +20,27 @@ impl MigrationTrait for Migration {
                 Role::IsActived,
             ])
             .values_panic([
+                "RootAdmin".into(),
+                "The root administrator from the system".into(),
+                now_utc.into(),
+                now_utc.into(),
+                true.into(),
+            ])
+            .columns([
+                Role::Name,
+                Role::Description,
+                Role::CreatedDate,
+                Role::UpdatedDate,
+                Role::IsActived,
+            ])
+            .columns([
+                Role::Name,
+                Role::Description,
+                Role::CreatedDate,
+                Role::UpdatedDate,
+                Role::IsActived,
+            ])
+            .values_panic([
                 "Admin".into(),
                 "The administrator".into(),
                 now_utc.into(),

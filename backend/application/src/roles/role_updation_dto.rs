@@ -1,6 +1,7 @@
 #[derive(Default)]
 pub struct RoleUpdationDto {
-    pub name: String,
+    pub name: Option<String>,
     pub description: Option<String>,
-    pub updated_by_id: Option<i32>,
+    pub is_actived: Option<bool>,
+    pub updated_by_id: i32,
 }

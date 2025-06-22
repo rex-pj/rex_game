@@ -4,7 +4,7 @@ use axum::{
     routing::{delete, get, patch, post},
     Router,
 };
-use rex_game_application::users::roles::ROLE_ADMIN;
+use rex_game_application::users::roles::{ROLE_ADMIN, ROLE_ROOT_ADMIN};
 use tower::ServiceBuilder;
 
 use crate::{
@@ -115,9 +115,25 @@ impl AppRouting {
     pub fn build_admin_routes(&self, router: Router<RegularAppState>) -> Router<RegularAppState> {
         router
             .route("/roles", get(RoleHandler::get_roles::<RegularAppState>))
+            .route(
+                "/roles/{id}",
+                get(RoleHandler::get_role_by_id::<RegularAppState>),
+            )
+            .route(
+                "/roles/{id}",
+                delete(RoleHandler::delete_role::<RegularAppState>),
+            )
+            .route("/roles", post(RoleHandler::create_role::<RegularAppState>))
+            .route(
+                "/roles/{id}",
+                patch(RoleHandler::update_role::<RegularAppState>),
+            )
             .layer(ServiceBuilder::new().layer(AuthenticateLayer {
                 app_state: self.app_state.clone(),
-                roles: Some(HashSet::from([ROLE_ADMIN.to_string()])),
+                roles: Some(HashSet::from([
+                    ROLE_ADMIN.to_string(),
+                    ROLE_ROOT_ADMIN.to_string(),
+                ])),
             }))
     }
 }

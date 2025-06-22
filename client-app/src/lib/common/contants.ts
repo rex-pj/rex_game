@@ -9,4 +9,5 @@ export const ADMIN_URLS = {
 
 export const ROLE_NAMES = {
   ADMIN: "Admin",
+  ROOT_ADMIN: "RootAdmin",
 };

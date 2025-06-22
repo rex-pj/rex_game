@@ -9,7 +9,7 @@ use axum::Extension;
 use axum::{extract::State, Json};
 use hyper::StatusCode;
 use rex_game_application::page_list_dto::PageListDto;
-use rex_game_application::users::roles::ROLE_ADMIN;
+use rex_game_application::users::roles::{ROLE_ADMIN, ROLE_ROOT_ADMIN};
 use rex_game_application::users::user_deletion_dto::UserDeletionDto;
 use rex_game_application::users::user_dto::UserDto;
 use rex_game_application::users::user_updation_dto::UserUpdationDto;
@@ -94,45 +94,6 @@ impl UserHandler {
         }
     }
 
-    pub async fn update_user<T: AppStateTrait>(
-        Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
-        Path(id): Path<i32>,
-        Json(payload): Json<Option<HashMap<String, String>>>,
-    ) -> Result<Json<bool>, StatusCode> {
-        let requests = match payload {
-            Some(req) => req,
-            None => return Err(StatusCode::BAD_REQUEST),
-        };
-        if requests.is_empty() {
-            return Err(StatusCode::BAD_REQUEST);
-        }
-
-        if requests.get("name").is_none() && requests.get("description").is_none() {
-            return Err(StatusCode::BAD_REQUEST);
-        }
-        let mut updating = UserUpdationDto {
-            updated_by_id: Some(current_user.id),
-            ..Default::default()
-        };
-
-        for (key, value) in &requests {
-            if key.to_lowercase() == "name" {
-                updating.name = Some(value.to_string());
-            } else if key.to_lowercase() == "display_name" {
-                updating.display_name = Some(value.to_string())
-            } else if key.to_lowercase() == "email" {
-                updating.email = Some(value.to_string())
-            }
-        }
-
-        let result = _state.user_usecase().update_user(id, updating).await;
-        return match result {
-            None => Err(StatusCode::INTERNAL_SERVER_ERROR),
-            Some(_) => Ok(Json(true)),
-        };
-    }
-
     pub async fn get_current_user<T: AppStateTrait>(
         headers: HeaderMap,
         State(_state): State<T>,
@@ -159,6 +120,65 @@ impl UserHandler {
         }
     }
 
+    pub async fn update_user<T: AppStateTrait>(
+        Extension(current_user): Extension<Arc<CurrentUser>>,
+        State(_state): State<T>,
+        Path(id): Path<i32>,
+        Json(payload): Json<Option<HashMap<String, String>>>,
+    ) -> Result<Json<bool>, StatusCode> {
+        let requests = match payload {
+            Some(req) => req,
+            None => return Err(StatusCode::BAD_REQUEST),
+        };
+
+        if requests.is_empty() {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+
+        let existing = _state
+            .user_usecase()
+            .get_user_by_id(current_user.id)
+            .await
+            .map_err(|_| StatusCode::NOT_FOUND)?;
+
+        if existing.id != current_user.id
+            && !current_user
+                .roles
+                .iter()
+                .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+        {
+            return Err(StatusCode::UNAUTHORIZED);
+        }
+
+        if requests.get("name").is_none()
+            && requests.get("display_name").is_none()
+            && requests.get("email").is_none()
+        {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+
+        let mut updating = UserUpdationDto {
+            updated_by_id: Some(current_user.id),
+            ..Default::default()
+        };
+
+        for (key, value) in &requests {
+            if key.to_lowercase() == "name" {
+                updating.name = Some(value.to_string());
+            } else if key.to_lowercase() == "display_name" {
+                updating.display_name = Some(value.to_string())
+            } else if key.to_lowercase() == "email" {
+                updating.email = Some(value.to_string())
+            }
+        }
+
+        let result = _state.user_usecase().update_user(id, updating).await;
+        return match result {
+            None => Err(StatusCode::INTERNAL_SERVER_ERROR),
+            Some(_) => Ok(Json(true)),
+        };
+    }
+
     pub async fn delete_user<T: AppStateTrait>(
         Extension(current_user): Extension<Arc<CurrentUser>>,
         State(_state): State<T>,
@@ -178,7 +198,11 @@ impl UserHandler {
             return Err(StatusCode::CONFLICT);
         }
 
-        if !current_user.roles.iter().any(|role| role == ROLE_ADMIN) {
+        if !current_user
+            .roles
+            .iter()
+            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+        {
             return Err(StatusCode::FORBIDDEN);
         }
 

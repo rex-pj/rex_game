@@ -17,5 +17,5 @@ pub trait RoleRepositoryTrait {
         page: u64,
         page_size: u64,
     ) -> impl Future<Output = Result<PageListModel<RoleModel>, DomainError>>;
-    fn update(&self, user_req: RoleModel) -> impl Future<Output = Result<bool, DomainError>>;
+    fn update(&self, role_req: RoleModel) -> impl Future<Output = Result<bool, DomainError>>;
 }

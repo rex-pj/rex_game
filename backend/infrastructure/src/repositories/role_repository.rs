@@ -191,9 +191,10 @@ impl RoleRepositoryTrait for RoleRepository {
         };
 
         role.updated_by_id = Set(role_req.updated_by_id);
-        role.updated_date = Set(Utc::now().fixed_offset());
         role.description = Set(role_req.description);
+        role.is_actived = Set(role_req.is_actived);
         role.name = Set(role_req.name);
+        role.updated_date = Set(Utc::now().fixed_offset());
 
         match Role::update(role).exec(db).await {
             Ok(_) => Ok(true),

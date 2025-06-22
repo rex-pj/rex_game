@@ -6,7 +6,7 @@ use rex_game_application::{
         identity_user_usecase_trait::IdentityUserUseCaseTrait, user_creation_dto::UserCreationDto,
     },
     users::{
-        roles::ROLE_ADMIN, user_role_creation_dto::UserRoleCreationDto,
+        roles::ROLE_ROOT_ADMIN, user_role_creation_dto::UserRoleCreationDto,
         user_usecase_trait::UserUseCaseTrait,
     },
 };
@@ -85,7 +85,7 @@ impl SetupHandler {
             .assign_role(
                 UserRoleCreationDto {
                     user_id: created_result.id,
-                    role_name: String::from(ROLE_ADMIN),
+                    role_name: String::from(ROLE_ROOT_ADMIN),
                     created_by_id: created_result.id,
                     updated_by_id: created_result.id,
                 },

@@ -10,6 +10,7 @@
     { name: "Falshcards", link: "/admin/flashcards" },
     { name: "Falshcard Types", link: "/admin/flashcard-types" },
     { name: "Users", link: "/admin/users" },
+    { name: "Roles", link: "/admin/roles" },
   ];
 
   async function logout() {
@@ -19,14 +20,17 @@
 
   const currentUser = getContext<CurrentUser | null>(SHARED_CONTEXT.CURRENT_USER);
   onMount(() => {
-    if (!currentUser || !currentUser.roles?.some((r) => r.role_name === ROLE_NAMES.ADMIN)) {
+    if (
+      !currentUser ||
+      !currentUser.roles?.some((r) => r.role_name === ROLE_NAMES.ADMIN || ROLE_NAMES.ROOT_ADMIN)
+    ) {
       goto(ADMIN_URLS.LOGIN_URL);
     }
   });
 </script>
 
 <div class="layout">
-  {#if currentUser && currentUser.roles?.some((r) => r.role_name === ROLE_NAMES.ADMIN)}
+  {#if currentUser && currentUser.roles?.some((r) => r.role_name === ROLE_NAMES.ADMIN || ROLE_NAMES.ROOT_ADMIN)}
     <div class="header">
       <div class="logo">Admin Panel</div>
       <button class="logout" onclick={logout}>Logout</button>

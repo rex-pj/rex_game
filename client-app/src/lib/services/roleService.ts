@@ -2,8 +2,8 @@ import type { Cookies } from "@sveltejs/kit";
 import { BaseService } from "./baseService";
 import type JsCookies from "js-cookie";
 
-export class FlashcardTypeService extends BaseService {
-  private readonly baseUrl = "/flashcard-types";
+export class RoleService extends BaseService {
+  private readonly baseUrl = "/roles";
   constructor(cookies?: Cookies | typeof JsCookies) {
     super(cookies);
   }
@@ -20,7 +20,7 @@ export class FlashcardTypeService extends BaseService {
       { observe: true }
     );
     if (response.status !== 200) {
-      throw new Error("Failed to fetch flashcard types");
+      throw new Error("Failed to fetch roles");
     }
     return await response.json();
   }
@@ -33,7 +33,7 @@ export class FlashcardTypeService extends BaseService {
       observe: true,
     });
     if (response.status !== 200) {
-      throw new Error("Failed to fetch flashcard type");
+      throw new Error("Failed to fetch role");
     }
     return await response.json();
   }
@@ -44,7 +44,7 @@ export class FlashcardTypeService extends BaseService {
   ) {
     const response = await this.post(fetch, this.baseUrl, data, { observe: true });
     if (response.status !== 200) {
-      throw new Error("Failed to create flashcard type");
+      throw new Error("Failed to create role");
     }
     return await response.json();
   }
@@ -56,7 +56,7 @@ export class FlashcardTypeService extends BaseService {
   ) {
     const response = await this.patch(fetch, `${this.baseUrl}/${id}`, data, { observe: true });
     if (response.status !== 200) {
-      throw new Error("Failed to update flashcard type");
+      throw new Error("Failed to update role");
     }
     return await response.json();
   }
@@ -67,7 +67,7 @@ export class FlashcardTypeService extends BaseService {
   ) {
     const response = await this.delete(fetch, `${this.baseUrl}/${id}`, { observe: true });
     if (response.status !== 200) {
-      throw new Error("Failed to delete flashcard type");
+      throw new Error("Failed to delete role");
     }
     return await response.json();
   }
