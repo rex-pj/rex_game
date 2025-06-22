@@ -35,9 +35,17 @@ pub struct UserQuery {
 
 impl UserHandler {
     pub async fn get_users<T: AppStateTrait>(
+        Extension(current_user): Extension<Arc<CurrentUser>>,
         State(_state): State<T>,
         Query(params): Query<UserQuery>,
     ) -> Result<Json<PageListDto<UserDto>>, StatusCode> {
+        if !current_user
+            .roles
+            .iter()
+            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+        {
+            return Err(StatusCode::FORBIDDEN);
+        }
         let page = params.page.unwrap_or(1);
         let page_size = params.page_size.unwrap_or(10);
         let users = _state
@@ -141,6 +149,13 @@ impl UserHandler {
             .await
             .map_err(|_| StatusCode::NOT_FOUND)?;
 
+        if requests.get("name").is_none()
+            && requests.get("display_name").is_none()
+            && requests.get("email").is_none()
+        {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+
         if existing.id != current_user.id
             && !current_user
                 .roles
@@ -148,13 +163,6 @@ impl UserHandler {
                 .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
         {
             return Err(StatusCode::UNAUTHORIZED);
-        }
-
-        if requests.get("name").is_none()
-            && requests.get("display_name").is_none()
-            && requests.get("email").is_none()
-        {
-            return Err(StatusCode::BAD_REQUEST);
         }
 
         let mut updating = UserUpdationDto {

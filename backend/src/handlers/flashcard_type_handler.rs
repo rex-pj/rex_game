@@ -13,6 +13,7 @@ use rex_game_application::{
         flashcard_type_usecase_trait::FlashcardTypeUseCaseTrait,
     },
     page_list_dto::PageListDto,
+    users::roles::{ROLE_ADMIN, ROLE_ROOT_ADMIN},
 };
 use serde::Deserialize;
 
@@ -76,6 +77,14 @@ impl FlashcardTypeHandler {
             return Err(StatusCode::BAD_REQUEST);
         }
 
+        if !current_user
+            .roles
+            .iter()
+            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+        {
+            return Err(StatusCode::FORBIDDEN);
+        }
+
         match req.description {
             Some(description) if description.is_empty() => {
                 return Err(StatusCode::BAD_REQUEST);
@@ -110,6 +119,7 @@ impl FlashcardTypeHandler {
             Some(req) => req,
             None => return Err(StatusCode::BAD_REQUEST),
         };
+
         if requests.is_empty() {
             return Err(StatusCode::BAD_REQUEST);
         }
@@ -117,10 +127,19 @@ impl FlashcardTypeHandler {
         if requests.get("name").is_none() && requests.get("description").is_none() {
             return Err(StatusCode::BAD_REQUEST);
         }
+
         let mut updating = FlashcardTypeUpdationDto {
             updated_by_id: current_user.id,
             ..Default::default()
         };
+
+        if !current_user
+            .roles
+            .iter()
+            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+        {
+            return Err(StatusCode::FORBIDDEN);
+        }
 
         for (key, value) in &requests {
             if key.to_lowercase() == "name" {
@@ -142,9 +161,17 @@ impl FlashcardTypeHandler {
     }
 
     pub async fn delete_flashcard_type<T: AppStateTrait>(
+        Extension(current_user): Extension<Arc<CurrentUser>>,
         State(_state): State<T>,
         Path(id): Path<i32>,
     ) -> Result<Json<u64>, StatusCode> {
+        if !current_user
+            .roles
+            .iter()
+            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+        {
+            return Err(StatusCode::FORBIDDEN);
+        }
         let deleted_numbers = _state
             .flashcard_type_usecase()
             .delete_flashcard_type_by_id(id)

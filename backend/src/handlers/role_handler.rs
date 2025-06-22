@@ -31,9 +31,18 @@ pub struct RoleQuery {
 
 impl RoleHandler {
     pub async fn get_roles<T: AppStateTrait>(
+        Extension(current_user): Extension<Arc<CurrentUser>>,
         State(_state): State<T>,
         Query(params): Query<RoleQuery>,
     ) -> Result<Json<PageListDto<RoleDto>>, StatusCode> {
+        if !current_user
+            .roles
+            .iter()
+            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+        {
+            return Err(StatusCode::FORBIDDEN);
+        }
+
         let page = params.page.unwrap_or(1);
         let page_size = params.page_size.unwrap_or(10);
         let roles = _state
@@ -68,6 +77,14 @@ impl RoleHandler {
             None => return Err(StatusCode::BAD_REQUEST),
         };
 
+        if !current_user
+            .roles
+            .iter()
+            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+        {
+            return Err(StatusCode::FORBIDDEN);
+        }
+
         let new_role = RoleCreationDto {
             name: req.name,
             description: req.description,
@@ -98,6 +115,14 @@ impl RoleHandler {
 
         if requests.get("name").is_none() && requests.get("description").is_none() {
             return Err(StatusCode::BAD_REQUEST);
+        }
+
+        if !current_user
+            .roles
+            .iter()
+            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+        {
+            return Err(StatusCode::FORBIDDEN);
         }
 
         let existing = _state

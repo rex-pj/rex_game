@@ -17,6 +17,7 @@ use rex_game_application::{
         flashcard_usecase_trait::FlashcardUseCaseTrait,
     },
     page_list_dto::PageListDto,
+    users::roles::{ROLE_ADMIN, ROLE_ROOT_ADMIN},
 };
 use serde::Deserialize;
 use std::sync::Arc;
@@ -102,6 +103,13 @@ impl FlashcardHandler {
         State(_state): State<T>,
         mut multipart: Multipart,
     ) -> Result<Json<i32>, StatusCode> {
+        if !current_user
+            .roles
+            .iter()
+            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+        {
+            return Err(StatusCode::FORBIDDEN);
+        }
         let mut flashcard = FlashcardCreationDto {
             name: "".to_string(),
             description: None,
@@ -168,6 +176,14 @@ impl FlashcardHandler {
         Path(id): Path<i32>,
         mut multipart: Multipart,
     ) -> Result<Json<bool>, StatusCode> {
+        if !current_user
+            .roles
+            .iter()
+            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+        {
+            return Err(StatusCode::FORBIDDEN);
+        }
+
         let mut flashcard = FlashcardUpdationDto {
             updated_by_id: current_user.id,
             type_ids: Some(vec![]),
@@ -227,9 +243,18 @@ impl FlashcardHandler {
     }
 
     pub async fn delete_flashcard<T: AppStateTrait>(
+        Extension(current_user): Extension<Arc<CurrentUser>>,
         State(_state): State<T>,
         Path(id): Path<i32>,
     ) -> Result<Json<u64>, StatusCode> {
+        if !current_user
+            .roles
+            .iter()
+            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+        {
+            return Err(StatusCode::FORBIDDEN);
+        }
+
         let deleted_numbers = _state.flashcard_usecase().delete_flashcard_by_id(id).await;
 
         match deleted_numbers {
