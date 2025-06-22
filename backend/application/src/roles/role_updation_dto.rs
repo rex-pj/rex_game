@@ -1,6 +1,6 @@
 #[derive(Default)]
-pub struct FlashcardTypeUpdationDto {
+pub struct RoleUpdationDto {
     pub name: String,
     pub description: Option<String>,
-    pub updated_by_id: i32,
+    pub updated_by_id: Option<i32>,
 }

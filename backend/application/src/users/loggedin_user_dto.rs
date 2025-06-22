@@ -12,4 +12,5 @@ pub struct LoggedInUserDto {
 #[derive(Serialize, Deserialize, Default)]
 pub struct LoggedInUserRoleDto {
     pub role_name: String,
+    pub role_id: i32,
 }

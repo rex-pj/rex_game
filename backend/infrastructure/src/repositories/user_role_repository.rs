@@ -44,6 +44,7 @@ impl UserRoleRepositoryTrait for UserRoleRepository {
             updated_by_id: Set(user_role_req.updated_by_id),
             created_date: Set(Utc::now().fixed_offset()),
             updated_date: Set(Utc::now().fixed_offset()),
+            is_actived: Set(true),
             ..Default::default()
         };
 
@@ -103,6 +104,7 @@ impl UserRoleRepositoryTrait for UserRoleRepository {
                         updated_date: i.0.updated_date.with_timezone(&Utc),
                         created_by_id: i.0.created_by_id,
                         updated_by_id: i.0.updated_by_id,
+                        is_actived: i.0.is_actived,
                     };
                 })
                 .collect::<Vec<UserRoleModel>>();

@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 
 #[derive(Default)]
-pub struct UseRoleDto {
+pub struct UserRoleDto {
     pub id: i32,
     pub user_id: i32,
     pub role_id: i32,

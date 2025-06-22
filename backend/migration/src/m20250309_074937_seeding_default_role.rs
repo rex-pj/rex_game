@@ -17,36 +17,42 @@ impl MigrationTrait for Migration {
                 Role::Description,
                 Role::CreatedDate,
                 Role::UpdatedDate,
+                Role::IsActived,
             ])
             .values_panic([
                 "Admin".into(),
                 "The administrator".into(),
                 now_utc.into(),
                 now_utc.into(),
+                true.into(),
             ])
             .columns([
                 Role::Name,
                 Role::Description,
                 Role::CreatedDate,
                 Role::UpdatedDate,
+                Role::IsActived,
             ])
             .values_panic([
                 "ContentCreator".into(),
                 "The content creator, who can create/update the content of the game".into(),
                 now_utc.into(),
                 now_utc.into(),
+                true.into(),
             ])
             .columns([
                 Role::Name,
                 Role::Description,
                 Role::CreatedDate,
                 Role::UpdatedDate,
+                Role::IsActived,
             ])
             .values_panic([
                 "Player".into(),
                 "The player, who can only play the game".into(),
                 now_utc.into(),
                 now_utc.into(),
+                true.into(),
             ])
             .to_owned();
         manager.exec_stmt(insert).await?;

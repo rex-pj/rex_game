@@ -3,15 +3,16 @@ use axum::{extract::State, Json};
 use hyper::StatusCode;
 use rex_game_application::{
     identities::{
-        application_user_dto::ApplicationUserDto,
-        identity_user_usecase_trait::IdentityUserUseCaseTrait,
+        identity_user_usecase_trait::IdentityUserUseCaseTrait, user_creation_dto::UserCreationDto,
     },
     users::{
         roles::ROLE_ADMIN, user_role_creation_dto::UserRoleCreationDto,
-        user_statuses::UserStatuses, user_usecase_trait::UserUseCaseTrait,
+        user_usecase_trait::UserUseCaseTrait,
     },
 };
-use rex_game_domain::transaction_manager_trait::TransactionManagerTrait;
+use rex_game_domain::{
+    models::user_statuses::UserStatuses, transaction_manager_trait::TransactionManagerTrait,
+};
 use rex_game_infrastructure::helpers::file_helper_object_trait::FileHelperObjectTrait;
 use serde::{Deserialize, Serialize};
 
@@ -52,7 +53,7 @@ impl SetupHandler {
             return Err(StatusCode::CONFLICT);
         };
 
-        let new_user = ApplicationUserDto {
+        let new_user = UserCreationDto {
             email: req.email,
             name: req.name,
             display_name: req.display_name,
@@ -85,8 +86,8 @@ impl SetupHandler {
                 UserRoleCreationDto {
                     user_id: created_result.id,
                     role_name: String::from(ROLE_ADMIN),
-                    created_by_id: Some(created_result.id),
-                    updated_by_id: Some(created_result.id),
+                    created_by_id: created_result.id,
+                    updated_by_id: created_result.id,
                 },
                 Box::new(&transaction_wrapper),
             )

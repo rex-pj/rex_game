@@ -1,6 +1,6 @@
 use crate::{
     app_state::AppStateTrait, helpers::http_helper::HttpHelper,
-    middlewares::authenticate_middleware::CurrentUser,
+    view_models::users::current_user::CurrentUser,
 };
 use axum::{
     body::Body,
@@ -108,8 +108,8 @@ impl FlashcardHandler {
             sub_description: None,
             content_type: "".to_string(),
             file_name: "".to_string(),
-            created_by_id: Some(current_user.id),
-            updated_by_id: Some(current_user.id),
+            created_by_id: current_user.id,
+            updated_by_id: current_user.id,
             type_ids: Vec::new(),
             ..Default::default()
         };
@@ -169,7 +169,7 @@ impl FlashcardHandler {
         mut multipart: Multipart,
     ) -> Result<Json<bool>, StatusCode> {
         let mut flashcard = FlashcardUpdationDto {
-            updated_by_id: Some(current_user.id),
+            updated_by_id: current_user.id,
             type_ids: Some(vec![]),
             ..Default::default()
         };

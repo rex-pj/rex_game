@@ -22,4 +22,6 @@ pub enum FlashcardFile {
     UpdatedDate,
     #[sea_orm(iden = "data")]
     Data,
+    #[sea_orm(iden = "is_actived")]
+    IsActived,
 }

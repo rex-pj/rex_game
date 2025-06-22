@@ -17,4 +17,6 @@ pub enum FlashcardType {
     UpdatedById,
     #[sea_orm(iden = "updated_date")]
     UpdatedDate,
+    #[sea_orm(iden = "is_actived")]
+    IsActived,
 }

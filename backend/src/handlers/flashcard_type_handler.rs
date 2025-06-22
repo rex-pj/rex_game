@@ -17,8 +17,11 @@ use rex_game_application::{
 use serde::Deserialize;
 
 use crate::{
-    app_state::AppStateTrait, middlewares::authenticate_middleware::CurrentUser,
-    view_models::flashcard_types::flashcard_type_create_request::FlashcardTypeCreateRequest,
+    app_state::AppStateTrait,
+    view_models::{
+        flashcard_types::flashcard_type_create_request::FlashcardTypeCreateRequest,
+        users::current_user::CurrentUser,
+    },
 };
 
 #[derive(Deserialize)]
@@ -83,8 +86,8 @@ impl FlashcardTypeHandler {
         let creation_request = FlashcardTypeCreationDto {
             name: req.name,
             description: req.description,
-            created_by_id: Some(current_user.id),
-            updated_by_id: Some(current_user.id),
+            created_by_id: current_user.id,
+            updated_by_id: current_user.id,
         };
         let inserted_id = _state
             .flashcard_type_usecase()
@@ -115,7 +118,7 @@ impl FlashcardTypeHandler {
             return Err(StatusCode::BAD_REQUEST);
         }
         let mut updating = FlashcardTypeUpdationDto {
-            updated_by_id: Some(current_user.id),
+            updated_by_id: current_user.id,
             ..Default::default()
         };
 

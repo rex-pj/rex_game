@@ -17,4 +17,6 @@ pub enum UserRole {
     UpdatedById,
     #[sea_orm(iden = "updated_date")]
     UpdatedDate,
+    #[sea_orm(iden = "is_actived")]
+    IsActived,
 }

@@ -9,7 +9,7 @@
     { name: "Dashboard", link: "/admin/dashboard" },
     { name: "Falshcards", link: "/admin/flashcards" },
     { name: "Falshcard Types", link: "/admin/flashcard-types" },
-    { name: "Settings", link: "/admin/settings" },
+    { name: "Users", link: "/admin/users" },
   ];
 
   async function logout() {

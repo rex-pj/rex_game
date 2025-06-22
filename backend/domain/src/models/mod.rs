@@ -6,3 +6,4 @@ pub mod page_list_model;
 pub mod role_model;
 pub mod user_model;
 pub mod user_role_model;
+pub mod user_statuses;

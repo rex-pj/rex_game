@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import {
-    flashcards,
+    users,
     pager,
-    fetchFlashcards,
+    fetchUsers,
     changePage,
     showCreationModal,
     isSubmitting,
@@ -11,7 +11,6 @@
     toggleCreationModal,
     edittingData,
     submit,
-    flashcardTypeSuggestions,
     deleteById,
     showDeletionModal,
     isDeletionSubmitting,
@@ -20,36 +19,22 @@
     toggleDeletionModal,
     deletingData,
     openEditingModal,
-  } from "./flashcardStore";
+  } from "./userStore";
   import Pagination from "../../../../components/molecules/pagination/pagination.svelte";
-  import FlashcardUpdateModal from "../../../../components/organisms/flashcards/FlashcardUpdateModal.svelte";
+  import UserUpdateModal from "../../../../components/organisms/users/UserUpdateModal.svelte";
   import type { SelectOption } from "$lib/models/select-option";
-  import FlashcardDeleteModal from "../../../../components/organisms/flashcards/FlashcardDeleteModal.svelte";
+  import UserDeleteModal from "../../../../components/organisms/users/UserDeleteModal.svelte";
   import { standardizeDate } from "$lib/helpers/dateTimeHelper";
 
   onMount(() => {
-    fetchFlashcards(pager.currentPage);
-  });
-
-  let flashcardTypeOptions: SelectOption[] = $state([]);
-  $effect(() => {
-    if ($flashcardTypeSuggestions) {
-      flashcardTypeOptions = $flashcardTypeSuggestions.map((type) => ({
-        value: type.id,
-        label: type.name,
-      }));
-    }
+    fetchUsers(pager.currentPage);
   });
 </script>
 
 <div class="container mt-4">
   <div class="row">
     <div class="col col-auto">
-      <h3 class="mb-4">Flashcard Manager</h3>
-    </div>
-    <div class="col">
-      <!-- Add button -->
-      <button class="btn btn-primary mb-3" onclick={() => toggleCreationModal(true)}>Add</button>
+      <h3 class="mb-4">User Manager</h3>
     </div>
   </div>
 
@@ -58,40 +43,29 @@
       <tr>
         <th>#</th>
         <th colspan="2">Name</th>
-        <th>Description</th>
+        <th>Email</th>
+        <th>Display Name</th>
         <th>Created On</th>
         <th>Modified On</th>
         <th></th>
       </tr>
     </thead>
     <tbody>
-      {#each $flashcards as flashcard}
+      {#each $users as user}
         <tr>
-          <td>{flashcard.id}</td>
-          <td width="50">
-            {#if flashcard.image_url}
-              <img
-                src={flashcard.image_url}
-                alt="Flashcard"
-                class="img-fluid"
-                width="50"
-                height="50"
-              />
-            {/if}
-          </td>
-          <td>{flashcard.name}</td>
-          <td>
-            <p class="mb-1">{flashcard.description}</p>
-            <p class="mb-0">Sub: <i>{flashcard.sub_description}</i></p>
-          </td>
-          <td>{standardizeDate(flashcard.created_date)}</td>
-          <td>{standardizeDate(flashcard.updated_date)}</td>
+          <td>{user.id}</td>
+          <td>{user.email}</td>
+          <td>{user.display_name}</td>
+          <td>{user.name}</td>
+
+          <td>{standardizeDate(user.created_date)}</td>
+          <td>{standardizeDate(user.updated_date)}</td>
           <td>
             <div class="dropdown">
               <button
                 class="btn btn-link p-0"
                 type="button"
-                id="dropdownMenuButton-{flashcard.id}"
+                id="dropdownMenuButton-{user.id}"
                 data-bs-toggle="dropdown"
                 aria-expanded="false"
                 aria-label="Actions"
@@ -104,14 +78,14 @@
               </button>
               <ul
                 class="dropdown-menu dropdown-menu-end"
-                aria-labelledby="dropdownMenuButton-{flashcard.id}"
+                aria-labelledby="dropdownMenuButton-{user.id}"
               >
                 <li>
                   <button
                     class="dropdown-item"
                     type="button"
                     onclick={() => {
-                      openEditingModal(flashcard.id);
+                      openEditingModal(user.id);
                     }}>Edit</button
                   >
                 </li>
@@ -120,7 +94,7 @@
                     class="dropdown-item text-danger"
                     type="button"
                     onclick={() => {
-                      openDeletingModal(flashcard.id);
+                      openDeletingModal(user.id);
                     }}>Delete</button
                   >
                 </li>
@@ -135,23 +109,22 @@
   <div class="d-flex justify-content-center">
     <Pagination {pager} {changePage} />
   </div>
-  <FlashcardUpdateModal
+  <UserUpdateModal
     initialData={edittingData}
     showModal={showCreationModal}
     closeModal={() => toggleCreationModal(false)}
     {submit}
     {isSubmitting}
     {creationError}
-    {flashcardTypeOptions}
-  ></FlashcardUpdateModal>
-  <FlashcardDeleteModal
+  ></UserUpdateModal>
+  <UserDeleteModal
     showModal={showDeletionModal}
     closeModal={() => toggleDeletionModal(false)}
     isSubmitting={isDeletionSubmitting}
     submit={deleteById}
     {deletionError}
     initialData={deletingData}
-  ></FlashcardDeleteModal>
+  ></UserDeleteModal>
 </div>
 
 <style>

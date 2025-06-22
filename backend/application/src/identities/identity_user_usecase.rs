@@ -161,6 +161,7 @@ where
             .iter()
             .map(|f| LoggedInUserRoleDto {
                 role_name: f.role_name.to_owned(),
+                role_id: f.role_id,
             })
             .collect();
 

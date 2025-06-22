@@ -143,6 +143,7 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
                     id: exist.id,
                     name: flashcard_type_req.name,
                     description: flashcard_type_req.description,
+                    updated_by_id: flashcard_type_req.updated_by_id,
                     ..Default::default()
                 };
                 let updated = self._flashcard_type_repository.update(updating).await;

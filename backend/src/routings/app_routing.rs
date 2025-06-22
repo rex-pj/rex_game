@@ -14,9 +14,7 @@ use crate::{
         flashcard_type_handler::FlashcardTypeHandler, role_handler::RoleHandler,
         setup_handler::SetupHandler, user_handler::UserHandler,
     },
-    middlewares::{
-        authenticate_middleware::AuthenticateLayer, authorize_middleware::AuthorizeLayer,
-    },
+    middlewares::authenticate_middleware::AuthenticateLayer,
 };
 
 pub struct AppRouting {
@@ -65,8 +63,18 @@ impl AppRouting {
                 "/users/me",
                 get(UserHandler::get_current_user::<RegularAppState>),
             )
+            .route("/users", get(UserHandler::get_users::<RegularAppState>))
+            .route(
+                "/users/{id}",
+                patch(UserHandler::update_user::<RegularAppState>),
+            )
+            .route(
+                "/users/{id}",
+                delete(UserHandler::delete_user::<RegularAppState>),
+            )
             .layer(ServiceBuilder::new().layer(AuthenticateLayer {
                 app_state: self.app_state.clone(),
+                roles: Some(HashSet::from([])),
             }))
     }
 
@@ -97,15 +105,19 @@ impl AppRouting {
                 post(AuthenticationHandler::login::<RegularAppState>),
             )
             .route("/users", post(UserHandler::create_user::<RegularAppState>))
+            .route(
+                "/users/{id}",
+                get(UserHandler::get_user_by_id::<RegularAppState>),
+            )
             .route("/setup", post(SetupHandler::setup::<RegularAppState>))
     }
 
     pub fn build_admin_routes(&self, router: Router<RegularAppState>) -> Router<RegularAppState> {
         router
             .route("/roles", get(RoleHandler::get_roles::<RegularAppState>))
-            .layer(ServiceBuilder::new().layer(AuthorizeLayer {
+            .layer(ServiceBuilder::new().layer(AuthenticateLayer {
                 app_state: self.app_state.clone(),
-                roles: HashSet::from([ROLE_ADMIN.to_string()]),
+                roles: Some(HashSet::from([ROLE_ADMIN.to_string()])),
             }))
     }
 }

@@ -250,6 +250,7 @@ impl<
             updated_by_id: flashcard_req.updated_by_id,
             created_date: existing_flashcard.created_date,
             updated_date: existing_flashcard.updated_date,
+            is_actived: existing_flashcard.is_actived,
         };
 
         if let Some(name) = flashcard_req.name {
@@ -264,9 +265,7 @@ impl<
             updating_flashcard.sub_description = Some(sub_description);
         }
 
-        if let Some(updated_by_id) = flashcard_req.updated_by_id {
-            updating_flashcard.updated_by_id = Some(updated_by_id);
-        }
+        updating_flashcard.updated_by_id = flashcard_req.updated_by_id;
 
         self._flashcard_repository
             .update(updating_flashcard)
@@ -293,6 +292,7 @@ impl<
                         flashcard_id: id,
                         flashcard_type_id: *type_relation_id,
                         updated_by_id: flashcard_req.updated_by_id,
+                        created_by_id: flashcard_req.updated_by_id,
                         ..Default::default()
                     };
                     existing_type_relations.push(active_type_relation);
@@ -349,14 +349,6 @@ impl<
             Some(f) => f,
             None => return None,
         };
-        match self
-            ._flashcard_file_repository
-            .delete_by_id(flashcard.file_id)
-            .await
-        {
-            Ok(i) => i,
-            Err(_) => return None,
-        };
 
         match self
             ._flashcard_type_relation_repository
@@ -367,8 +359,16 @@ impl<
             Err(_) => return None,
         };
 
-        let flashcard_deleted = self._flashcard_repository.delete_by_id(id).await;
-        match flashcard_deleted {
+        match self._flashcard_repository.delete_by_id(id).await {
+            Ok(i) => i,
+            Err(_) => return None,
+        };
+
+        match self
+            ._flashcard_file_repository
+            .delete_by_id(flashcard.file_id)
+            .await
+        {
             Ok(i) => Some(i),
             Err(_) => None,
         }

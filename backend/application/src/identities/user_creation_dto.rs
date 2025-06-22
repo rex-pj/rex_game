@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 
 use crate::identities::identity_user_trait::IdentityUserTrait;
 
-impl IdentityUserTrait<i32> for ApplicationUserDto {
+impl IdentityUserTrait<i32> for UserCreationDto {
     fn id(&self) -> i32 {
         self.id
     }
@@ -53,7 +53,7 @@ impl IdentityUserTrait<i32> for ApplicationUserDto {
 }
 
 #[derive(Default)]
-pub struct ApplicationUserDto {
+pub struct UserCreationDto {
     pub id: i32,
     pub email: String,
     pub name: String,

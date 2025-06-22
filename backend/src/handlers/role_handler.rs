@@ -10,6 +10,8 @@ use serde::Deserialize;
 pub struct RoleQuery {
     page: Option<u64>,
     page_size: Option<u64>,
+    name: Option<String>,
+    description: Option<String>,
 }
 
 impl RoleHandler {
@@ -19,7 +21,10 @@ impl RoleHandler {
     ) -> Json<Option<Vec<RoleDto>>> {
         let page = params.page.unwrap_or(1);
         let page_size = params.page_size.unwrap_or(10);
-        let roles = _state.role_usecase().get_roles(page, page_size).await;
+        let roles = _state
+            .role_usecase()
+            .get_roles(params.name, params.description, page, page_size)
+            .await;
         return match roles {
             None => Json(None),
             Some(i) => Json(Some(i)),

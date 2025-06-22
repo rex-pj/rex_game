@@ -1,4 +1,7 @@
-use crate::entities::flashcard::{self, Entity as Flashcard};
+use crate::entities::{
+    flashcard::{self, Entity as Flashcard},
+    prelude::FlashcardTypeRelation,
+};
 use chrono::Utc;
 use rex_game_domain::{
     errors::domain_error::{DomainError, ErrorType},
@@ -72,6 +75,7 @@ impl FlashcardRepositoryTrait for FlashcardRepository {
                 created_by_id: i.created_by_id,
                 updated_by_id: i.updated_by_id,
                 file_id: i.file_id,
+                is_actived: i.is_actived,
             })
             .collect::<Vec<FlashcardModel>>();
         return Ok(PageListModel { items, total_count });
@@ -93,6 +97,7 @@ impl FlashcardRepositoryTrait for FlashcardRepository {
                     created_by_id: f.created_by_id,
                     updated_by_id: f.updated_by_id,
                     file_id: f.file_id,
+                    is_actived: f.is_actived,
                 }),
                 None => None,
             },
@@ -112,6 +117,7 @@ impl FlashcardRepositoryTrait for FlashcardRepository {
             updated_by_id: Set(flashcard.updated_by_id),
             created_date: Set(Utc::now().fixed_offset()),
             updated_date: Set(Utc::now().fixed_offset()),
+            is_actived: Set(true),
             ..Default::default()
         };
 
@@ -164,6 +170,13 @@ impl FlashcardRepositoryTrait for FlashcardRepository {
 
     async fn delete_by_id(&self, id: i32) -> Result<u64, DomainError> {
         let db = self._db_connection.as_ref();
+        FlashcardTypeRelation::delete_many()
+            .filter(flashcard_type_relation::Column::FlashcardId.eq(id))
+            .exec(db)
+            .await
+            .map_err(|err| {
+                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
+            })?;
         match Flashcard::delete_by_id(id).exec(db).await {
             Ok(result) => Ok(result.rows_affected),
             Err(err) => Err(DomainError::new(

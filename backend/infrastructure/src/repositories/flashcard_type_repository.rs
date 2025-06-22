@@ -1,6 +1,7 @@
 use crate::entities::{
     flashcard_type::{self, Entity as FlashcardType},
     flashcard_type_relation,
+    prelude::FlashcardTypeRelation,
 };
 use chrono::Utc;
 use rex_game_domain::{
@@ -71,6 +72,7 @@ impl FlashcardTypeRepositoryTrait for FlashcardTypeRepository {
                         updated_date: i.updated_date.with_timezone(&Utc),
                         created_by_id: i.created_by_id,
                         updated_by_id: i.updated_by_id,
+                        is_actived: i.is_actived,
                     })
                     .collect::<Vec<FlashcardTypeModel>>();
                 return Ok(PageListModel {
@@ -96,6 +98,7 @@ impl FlashcardTypeRepositoryTrait for FlashcardTypeRepository {
                     updated_date: f.updated_date.with_timezone(&Utc),
                     created_by_id: f.created_by_id,
                     updated_by_id: f.updated_by_id,
+                    is_actived: f.is_actived,
                 }),
                 None => Err(DomainError::new(
                     ErrorType::NotFound,
@@ -147,6 +150,7 @@ impl FlashcardTypeRepositoryTrait for FlashcardTypeRepository {
                 updated_date: i.updated_date.with_timezone(&Utc),
                 created_by_id: i.created_by_id,
                 updated_by_id: i.updated_by_id,
+                is_actived: i.is_actived,
             })
             .collect::<Vec<FlashcardTypeModel>>();
 
@@ -163,6 +167,7 @@ impl FlashcardTypeRepositoryTrait for FlashcardTypeRepository {
             updated_by_id: Set(flashcard_type_req.updated_by_id),
             created_date: Set(Utc::now().fixed_offset()),
             updated_date: Set(Utc::now().fixed_offset()),
+            is_actived: Set(true),
             ..Default::default()
         };
 
@@ -214,6 +219,13 @@ impl FlashcardTypeRepositoryTrait for FlashcardTypeRepository {
 
     async fn delete_by_id(&self, id: i32) -> Result<u64, DomainError> {
         let db = self._db_connection.as_ref();
+        FlashcardTypeRelation::delete_many()
+            .filter(flashcard_type_relation::Column::FlashcardTypeId.eq(id))
+            .exec(db)
+            .await
+            .map_err(|err| {
+                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
+            })?;
         match FlashcardType::delete_by_id(id).exec(db).await {
             Ok(result) => Ok(result.rows_affected),
             Err(err) => Err(DomainError::new(

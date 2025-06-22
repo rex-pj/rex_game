@@ -1,8 +1,15 @@
-use crate::app_state::AppStateTrait;
+use crate::{app_state::AppStateTrait, view_models::users::current_user::CurrentUser};
 use axum::{body::Body, extract::Request, response::Response};
 use hyper::StatusCode;
-use rex_game_application::identities::identity_authenticate_usecase_trait::IdentityAuthenticateUseCaseTrait;
+use rex_game_application::{
+    identities::{
+        identity_authenticate_usecase_trait::IdentityAuthenticateUseCaseTrait,
+        identity_authorize_usecase_trait::IdentityAuthorizeUseCaseTrait,
+    },
+    users::user_usecase_trait::UserUseCaseTrait,
+};
 use std::{
+    collections::HashSet,
     future::Future,
     pin::Pin,
     sync::Arc,
@@ -16,6 +23,7 @@ where
     T: AppStateTrait,
 {
     pub app_state: Arc<T>,
+    pub roles: Option<HashSet<String>>,
 }
 
 impl<S, T> Layer<S> for AuthenticateLayer<T>
@@ -28,20 +36,16 @@ where
         AuthenticateMiddleware {
             inner,
             _app_state: self.app_state.clone(),
+            _roles: self.roles.clone(),
         }
     }
-}
-
-#[derive(Clone)]
-pub struct CurrentUser {
-    pub id: i32,
-    pub email: String,
 }
 
 #[derive(Clone)]
 pub struct AuthenticateMiddleware<S, T> {
     pub inner: S,
     _app_state: Arc<T>,
+    _roles: Option<HashSet<String>>,
 }
 
 impl<S, T> Service<Request> for AuthenticateMiddleware<S, T>
@@ -78,7 +82,7 @@ where
             }
         };
 
-        let current_user = match self
+        let current_user_claims = match self
             ._app_state
             .identity_authenticate_usecase()
             .verify_access_token(token)
@@ -86,6 +90,7 @@ where
             Ok(claims) => CurrentUser {
                 id: claims.sub,
                 email: claims.email,
+                roles: vec![],
             },
             Err(_) => {
                 return Box::pin(async {
@@ -97,11 +102,46 @@ where
             }
         };
 
-        req.extensions_mut().insert(Arc::new(current_user));
-        let future = self.inner.call(req);
+        let app_state = self._app_state.clone();
+        let mut inner = self.inner.clone();
+        let roles = self._roles.clone();
+
         Box::pin(async move {
-            let response: Response = future.await?;
-            Ok(response)
+            let user_roles = app_state
+                .user_usecase()
+                .get_user_roles(current_user_claims.id)
+                .await;
+            let role_names = match user_roles {
+                Ok(roles) => roles.into_iter().map(|f| f.role_name).collect(),
+                Err(_) => {
+                    return Ok(Response::builder()
+                        .status(StatusCode::UNAUTHORIZED)
+                        .body(Body::from("Unauthorized"))
+                        .unwrap());
+                }
+            };
+
+            if let Some(required_roles) = roles {
+                let authorized = app_state
+                    .identity_authorize_usecase()
+                    .is_user_in_role(current_user_claims.id, required_roles)
+                    .await
+                    .is_ok();
+                if !authorized {
+                    return Ok(Response::builder()
+                        .status(StatusCode::UNAUTHORIZED)
+                        .body(Body::from("Unauthorized"))
+                        .unwrap());
+                }
+            }
+
+            let user = Arc::new(CurrentUser {
+                id: current_user_claims.id,
+                email: current_user_claims.email,
+                roles: role_names,
+            });
+            req.extensions_mut().insert(user);
+            inner.call(req).await
         })
     }
 }

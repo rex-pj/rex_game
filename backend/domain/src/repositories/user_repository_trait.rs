@@ -1,11 +1,21 @@
 use std::future::Future;
 
 use crate::{
-    errors::domain_error::DomainError, models::user_model::UserModel,
+    errors::domain_error::DomainError,
+    models::{page_list_model::PageListModel, user_model::UserModel},
     transaction_manager_trait::TransactionWrapperTrait,
 };
 
 pub trait UserRepositoryTrait {
+    fn get_paged_list(
+        &self,
+        display_name: Option<String>,
+        name: Option<String>,
+        email: Option<String>,
+        role_name: Option<String>,
+        page: u64,
+        page_size: u64,
+    ) -> impl Future<Output = Result<PageListModel<UserModel>, DomainError>>;
     fn create(&self, user: UserModel) -> impl Future<Output = Result<i32, DomainError>>;
 
     fn create_without_commit(
@@ -15,4 +25,6 @@ pub trait UserRepositoryTrait {
     ) -> impl Future<Output = Result<i32, DomainError>>;
 
     fn get_by_email(&self, email: String) -> impl Future<Output = Result<UserModel, DomainError>>;
+    fn get_by_id(&self, id: i32) -> impl Future<Output = Result<UserModel, DomainError>>;
+    fn update(&self, user_req: UserModel) -> impl Future<Output = Result<bool, DomainError>>;
 }

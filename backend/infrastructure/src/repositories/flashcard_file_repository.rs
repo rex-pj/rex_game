@@ -42,6 +42,7 @@ impl FlashcardFileRepositoryTrait for FlashcardFileRepository {
                 updated_date: f.updated_date.with_timezone(&Utc),
                 id: f.id,
                 name: f.name,
+                is_actived: f.is_actived,
             }),
             None => Err(DomainError::new(
                 ErrorType::NotFound,
@@ -63,6 +64,7 @@ impl FlashcardFileRepositoryTrait for FlashcardFileRepository {
             updated_by_id: Set(flashcard_file_req.updated_by_id),
             created_date: Set(Utc::now().fixed_offset()),
             updated_date: Set(Utc::now().fixed_offset()),
+            is_actived: Set(true),
             ..Default::default()
         };
         match FlashcardFile::insert(new_flashcard_file).exec(db).await {

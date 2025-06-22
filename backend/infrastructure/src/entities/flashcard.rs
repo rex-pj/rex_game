@@ -13,8 +13,9 @@ pub struct Model {
     pub created_date: DateTimeWithTimeZone,
     pub updated_date: DateTimeWithTimeZone,
     pub file_id: i32,
-    pub created_by_id: Option<i32>,
-    pub updated_by_id: Option<i32>,
+    pub is_actived: bool,
+    pub created_by_id: i32,
+    pub updated_by_id: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

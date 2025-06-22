@@ -5,7 +5,7 @@ import Cookies from "js-cookie";
 import type { Pager } from "../../../../components/molecules/pagination/pager";
 import type { Flashcard, FlashcardDetail, FlashcardRequest } from "$lib/models/flashcard";
 import type { FlashcardType } from "$lib/models/flashcard-type";
-import { getImageBase64Url, setImageBase64Url } from "$lib/helpers/imageHelper";
+import { getImageBase64Url } from "$lib/helpers/imageHelper";
 
 const flashcardService: FlashcardService = new FlashcardService(Cookies);
 const flashcardTypeService: FlashcardTypeService = new FlashcardTypeService(Cookies);
