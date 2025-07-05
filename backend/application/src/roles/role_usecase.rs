@@ -1,35 +1,62 @@
+use std::{future::Future, pin::Pin};
+
 use crate::{
-    errors::application_error::{ApplicationError, ErrorKind},
+    errors::application_error::{ApplicationError, ApplicationErrorKind},
     page_list_dto::PageListDto,
     roles::{
         role_creation_dto::RoleCreationDto, role_deletion_dto::RoleDeletionDto,
         role_updation_dto::RoleUpdationDto,
+    },
+    users::{
+        role_permission_creation_dto::RolePermissionCreationDto,
+        role_permission_dto::RolePermissionDto,
     },
 };
 
 use super::{role_dto::RoleDto, role_usecase_trait::RoleUseCaseTrait};
 use chrono::Utc;
 use rex_game_domain::{
-    models::role_model::RoleModel, repositories::role_repository_trait::RoleRepositoryTrait,
+    models::{role_model::RoleModel, role_permission_model::RolePermissionModel},
+    repositories::{
+        permission_repository_trait::PermissionRepositoryTrait,
+        role_permission_repository_trait::RolePermissionRepositoryTrait,
+        role_repository_trait::RoleRepositoryTrait,
+    },
 };
 
 #[derive(Clone)]
-pub struct RoleUseCase<R>
+pub struct RoleUseCase<R, PT, RP>
 where
     R: RoleRepositoryTrait,
+    PT: PermissionRepositoryTrait,
+    RP: RolePermissionRepositoryTrait,
 {
     _role_repository: R,
+    _permission_repository: PT,
+    _role_permission_repository: RP,
 }
 
-impl<R: RoleRepositoryTrait> RoleUseCase<R> {
-    pub fn new(role_repository: R) -> Self {
+impl<R: RoleRepositoryTrait, PT: PermissionRepositoryTrait, RP: RolePermissionRepositoryTrait>
+    RoleUseCase<R, PT, RP>
+{
+    pub fn new(
+        role_repository: R,
+        permission_repository: PT,
+        role_permission_repository: RP,
+    ) -> Self {
         Self {
             _role_repository: role_repository,
+            _role_permission_repository: role_permission_repository,
+            _permission_repository: permission_repository,
         }
     }
 }
 
-impl<R: RoleRepositoryTrait> RoleUseCaseTrait for RoleUseCase<R> {
+impl<R: RoleRepositoryTrait, PT: PermissionRepositoryTrait, RP: RolePermissionRepositoryTrait>
+    RoleUseCaseTrait for RoleUseCase<R, PT, RP>
+where
+    RP: RolePermissionRepositoryTrait + Send + Sync + Clone + 'static,
+{
     async fn get_roles(
         &self,
         name: Option<String>,
@@ -64,7 +91,7 @@ impl<R: RoleRepositoryTrait> RoleUseCaseTrait for RoleUseCase<R> {
                 })
             }
             Err(_) => Err(ApplicationError::new(
-                ErrorKind::DatabaseError,
+                ApplicationErrorKind::DatabaseError,
                 "Failed to get roles",
                 None,
             )),
@@ -84,7 +111,7 @@ impl<R: RoleRepositoryTrait> RoleUseCaseTrait for RoleUseCase<R> {
                 updated_by_id: f.updated_by_id,
             }),
             Err(_) => Err(ApplicationError::new(
-                ErrorKind::DatabaseError,
+                ApplicationErrorKind::DatabaseError,
                 "Database error",
                 None,
             )),
@@ -104,7 +131,7 @@ impl<R: RoleRepositoryTrait> RoleUseCaseTrait for RoleUseCase<R> {
 
         match created {
             Err(_) => Err(ApplicationError::new(
-                ErrorKind::DatabaseError,
+                ApplicationErrorKind::DatabaseError,
                 "Database error",
                 None,
             )),
@@ -145,5 +172,115 @@ impl<R: RoleRepositoryTrait> RoleUseCaseTrait for RoleUseCase<R> {
             ..Default::default()
         };
         Some(self.update_role(id, updation).await?)
+    }
+
+    fn get_role_permissions(
+        &self,
+        role_id: i32,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<RolePermissionDto>, ApplicationError>> + Send>>
+    {
+        let role_permission_repository = self._role_permission_repository.clone();
+        Box::pin(async move {
+            let permissions = role_permission_repository
+                .get_role_permissions(role_id)
+                .await;
+            match permissions {
+                Ok(i) => {
+                    return Ok(i
+                        .into_iter()
+                        .map(|f| RolePermissionDto {
+                            id: f.id,
+                            role_id: f.role_id,
+                            permission_id: f.permission_id,
+                            permission_name: f.permission_name,
+                            permission_code: f.permission_code,
+                            permission_module: f.permission_module,
+                            ..Default::default()
+                        })
+                        .collect());
+                }
+                Err(_) => Err(ApplicationError::new(
+                    ApplicationErrorKind::DatabaseError,
+                    "Database error",
+                    None,
+                )),
+            }
+        })
+    }
+
+    fn get_roles_permissions(
+        &self,
+        role_ids: Vec<i32>,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<RolePermissionDto>, ApplicationError>> + Send>>
+    {
+        let role_permission_repository = self._role_permission_repository.clone();
+        Box::pin(async move {
+            let permissions = role_permission_repository
+                .get_roles_permissions(role_ids)
+                .await;
+            match permissions {
+                Ok(i) => {
+                    return Ok(i
+                        .into_iter()
+                        .map(|f| RolePermissionDto {
+                            id: f.id,
+                            role_id: f.role_id,
+                            permission_id: f.permission_id,
+                            permission_name: f.permission_name,
+                            permission_code: f.permission_code,
+                            permission_module: f.permission_module,
+                            ..Default::default()
+                        })
+                        .collect());
+                }
+                Err(_) => Err(ApplicationError::new(
+                    ApplicationErrorKind::DatabaseError,
+                    "Database error",
+                    None,
+                )),
+            }
+        })
+    }
+
+    async fn assign_role_permission(
+        &self,
+        role_id: i32,
+        role_permission_req: RolePermissionCreationDto,
+    ) -> Result<i32, ApplicationError> {
+        let permission = match self
+            ._permission_repository
+            .get_by_code(&role_permission_req.permission_code)
+            .await
+        {
+            Ok(permission_model) => permission_model,
+            Err(_) => {
+                return Err(ApplicationError::new(
+                    ApplicationErrorKind::DatabaseError,
+                    "Database error",
+                    None,
+                ))
+            }
+        };
+
+        match self
+            ._role_permission_repository
+            .create(RolePermissionModel {
+                role_id: role_id,
+                permission_id: permission.id,
+                created_by_id: role_permission_req.created_by_id,
+                updated_by_id: role_permission_req.updated_by_id,
+                ..Default::default()
+            })
+            .await
+        {
+            Ok(inserted) => Ok(inserted),
+            Err(_) => {
+                return Err(ApplicationError::new(
+                    ApplicationErrorKind::DatabaseError,
+                    "Assign role failed",
+                    None,
+                ))
+            }
+        }
     }
 }

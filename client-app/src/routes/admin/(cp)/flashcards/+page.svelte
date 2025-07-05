@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import {
-    flashcards,
+    items,
     pager,
-    fetchFlashcards,
+    fetchItems,
     changePage,
     showCreationModal,
     isSubmitting,
@@ -20,7 +20,7 @@
     toggleDeletionModal,
     deletingData,
     openEditingModal,
-  } from "./flashcardStore";
+  } from "./store";
   import Pagination from "../../../../components/molecules/pagination/pagination.svelte";
   import FlashcardUpdateModal from "../../../../components/organisms/flashcards/FlashcardUpdateModal.svelte";
   import type { SelectOption } from "$lib/models/select-option";
@@ -28,7 +28,7 @@
   import { standardizeDate } from "$lib/helpers/dateTimeHelper";
 
   onMount(() => {
-    fetchFlashcards(pager.currentPage);
+    fetchItems($pager.currentPage);
   });
 
   let flashcardTypeOptions: SelectOption[] = $state([]);
@@ -65,33 +65,27 @@
       </tr>
     </thead>
     <tbody>
-      {#each $flashcards as flashcard}
+      {#each $items as item}
         <tr>
-          <td>{flashcard.id}</td>
+          <td>{item.id}</td>
           <td width="50">
-            {#if flashcard.image_url}
-              <img
-                src={flashcard.image_url}
-                alt="Flashcard"
-                class="img-fluid"
-                width="50"
-                height="50"
-              />
+            {#if item.image_url}
+              <img src={item.image_url} alt="Flashcard" class="img-fluid" width="50" height="50" />
             {/if}
           </td>
-          <td>{flashcard.name}</td>
+          <td>{item.name}</td>
           <td>
-            <p class="mb-1">{flashcard.description}</p>
-            <p class="mb-0">Sub: <i>{flashcard.sub_description}</i></p>
+            <p class="mb-1">{item.description}</p>
+            <p class="mb-0">Sub: <i>{item.sub_description}</i></p>
           </td>
-          <td>{standardizeDate(flashcard.created_date)}</td>
-          <td>{standardizeDate(flashcard.updated_date)}</td>
+          <td>{standardizeDate(item.created_date)}</td>
+          <td>{standardizeDate(item.updated_date)}</td>
           <td>
             <div class="dropdown">
               <button
                 class="btn btn-link p-0"
                 type="button"
-                id="dropdownMenuButton-{flashcard.id}"
+                id="dropdownMenuButton-{item.id}"
                 data-bs-toggle="dropdown"
                 aria-expanded="false"
                 aria-label="Actions"
@@ -104,14 +98,14 @@
               </button>
               <ul
                 class="dropdown-menu dropdown-menu-end"
-                aria-labelledby="dropdownMenuButton-{flashcard.id}"
+                aria-labelledby="dropdownMenuButton-{item.id}"
               >
                 <li>
                   <button
                     class="dropdown-item"
                     type="button"
                     onclick={() => {
-                      openEditingModal(flashcard.id);
+                      openEditingModal(item.id);
                     }}>Edit</button
                   >
                 </li>
@@ -120,7 +114,7 @@
                     class="dropdown-item text-danger"
                     type="button"
                     onclick={() => {
-                      openDeletingModal(flashcard.id);
+                      openDeletingModal(item.id);
                     }}>Delete</button
                   >
                 </li>
@@ -133,7 +127,7 @@
   </table>
 
   <div class="d-flex justify-content-center">
-    <Pagination {pager} {changePage} />
+    <Pagination pager={$pager} {changePage} />
   </div>
   <FlashcardUpdateModal
     initialData={edittingData}

@@ -1,8 +1,8 @@
 <script>
   import { onMount } from "svelte";
   import {
-    flashcardTypes,
-    fetchFlashcardTypes,
+    items,
+    fetchItems,
     changePage,
     pager,
     showCreationModal,
@@ -19,14 +19,14 @@
     deletionError,
     toggleDeletionModal,
     deletingData,
-  } from "./flashcardTypeStore";
+  } from "./store";
   import Pagination from "../../../../components/molecules/pagination/pagination.svelte";
   import FlashcardTypeUpdateModal from "../../../../components/organisms/flashcardTypes/FlashcardTypeUpdateModal.svelte";
   import FlashcardTypeDeleteModal from "../../../../components/organisms/flashcardTypes/FlashcardTypeDeleteModal.svelte";
   import { standardizeDate } from "$lib/helpers/dateTimeHelper";
 
   onMount(() => {
-    fetchFlashcardTypes(pager.currentPage);
+    fetchItems($pager.currentPage);
   });
 </script>
 
@@ -53,19 +53,19 @@
       </tr>
     </thead>
     <tbody>
-      {#each $flashcardTypes as flashcardType}
+      {#each $items as item}
         <tr>
-          <td>{flashcardType.id}</td>
-          <td>{flashcardType.name}</td>
-          <td>{flashcardType.description}</td>
-          <td>{standardizeDate(flashcardType.created_date)}</td>
-          <td>{standardizeDate(flashcardType.updated_date)}</td>
+          <td>{item.id}</td>
+          <td>{item.name}</td>
+          <td>{item.description}</td>
+          <td>{standardizeDate(item.created_date)}</td>
+          <td>{standardizeDate(item.updated_date)}</td>
           <td>
             <div class="dropdown">
               <button
                 class="btn btn-link p-0"
                 type="button"
-                id="dropdownMenuButton-{flashcardType.id}"
+                id="dropdownMenuButton-{item.id}"
                 data-bs-toggle="dropdown"
                 aria-expanded="false"
                 aria-label="Actions"
@@ -78,14 +78,14 @@
               </button>
               <ul
                 class="dropdown-menu dropdown-menu-end"
-                aria-labelledby="dropdownMenuButton-{flashcardType.id}"
+                aria-labelledby="dropdownMenuButton-{item.id}"
               >
                 <li>
                   <button
                     class="dropdown-item"
                     type="button"
                     onclick={() => {
-                      openEditingModal(flashcardType.id);
+                      openEditingModal(item.id);
                     }}>Edit</button
                   >
                 </li>
@@ -94,7 +94,7 @@
                     class="dropdown-item text-danger"
                     type="button"
                     onclick={() => {
-                      openDeletingModal(flashcardType.id);
+                      openDeletingModal(item.id);
                     }}>Delete</button
                   >
                 </li>
@@ -107,7 +107,7 @@
   </table>
 
   <div class="d-flex justify-content-center">
-    <Pagination {pager} {changePage} />
+    <Pagination pager={$pager} {changePage} />
   </div>
   <FlashcardTypeUpdateModal
     initialData={edittingData}

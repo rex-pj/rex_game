@@ -14,6 +14,9 @@ use rex_game_application::{
         identity_user_usecase::IdentityUserUseCase,
         identity_user_usecase_trait::IdentityUserUseCaseTrait,
     },
+    permissions::{
+        permission_usecase::PermissionUseCase, permission_usecase_trait::PermissionUseCaseTrait,
+    },
     roles::{role_usecase::RoleUseCase, role_usecase_trait::RoleUseCaseTrait},
     users::{user_usecase::UserUseCase, user_usecase_trait::UserUseCaseTrait},
 };
@@ -34,8 +37,11 @@ use rex_game_infrastructure::{
         flashcard_file_repository::FlashcardFileRepository,
         flashcard_repository::FlashcardRepository,
         flashcard_type_relation_repository::FlashcardTypeRelationRepository,
-        flashcard_type_repository::FlashcardTypeRepository, role_repository::RoleRepository,
-        user_repository::UserRepository, user_role_repository::UserRoleRepository,
+        flashcard_type_repository::FlashcardTypeRepository,
+        permission_repository::PermissionRepository,
+        role_permission_repository::RolePermissionRepository, role_repository::RoleRepository,
+        user_permission_repository::UserPermissionRepository, user_repository::UserRepository,
+        user_role_repository::UserRoleRepository,
     },
     transaction_manager::TransactionManager,
 };
@@ -50,6 +56,7 @@ pub trait AppStateTrait: Clone + Send + Sync + 'static {
     type IdentityAuthenticateUseCase: IdentityAuthenticateUseCaseTrait;
     type IdentityAuthorizeUseCase: IdentityAuthorizeUseCaseTrait;
     type RoleUseCase: RoleUseCaseTrait;
+    type PermissionUseCase: PermissionUseCaseTrait;
     type FileHelper: FileHelperTrait + FileHelperObjectTrait;
     type DateTimeHelper: DateTimeHelperTrait;
     type TransactionManager: TransactionManagerTrait;
@@ -63,6 +70,7 @@ pub trait AppStateTrait: Clone + Send + Sync + 'static {
     fn date_time_helper(&self) -> &Self::DateTimeHelper;
     fn db_connection(&self) -> &Arc<DatabaseConnection>;
     fn role_usecase(&self) -> &Self::RoleUseCase;
+    fn permission_usecase(&self) -> &Self::PermissionUseCase;
     fn transaction_manager(&self) -> &Self::TransactionManager;
 }
 
@@ -74,22 +82,45 @@ pub struct RegularAppState {
         FlashcardTypeRelationRepository,
     >,
     pub flashcard_type_usecase: FlashcardTypeUseCase<FlashcardTypeRepository>,
-    pub user_usecase: UserUseCase<UserRepository, RoleRepository, UserRoleRepository>,
+    pub user_usecase: UserUseCase<
+        UserRepository,
+        RoleRepository,
+        UserRoleRepository,
+        PermissionRepository,
+        UserPermissionRepository,
+    >,
     pub identity_user_usecase: IdentityUserUseCase<
         IdentityPasswordHasher,
-        UserUseCase<UserRepository, RoleRepository, UserRoleRepository>,
+        UserUseCase<
+            UserRepository,
+            RoleRepository,
+            UserRoleRepository,
+            PermissionRepository,
+            UserPermissionRepository,
+        >,
         IdentityTokenHelper<ConfigurationHelper>,
     >,
     pub identity_authenticate_usecase: IdentityAuthenticateUseCase<
         IdentityPasswordHasher,
-        UserUseCase<UserRepository, RoleRepository, UserRoleRepository>,
+        UserUseCase<
+            UserRepository,
+            RoleRepository,
+            UserRoleRepository,
+            PermissionRepository,
+            UserPermissionRepository,
+        >,
         IdentityTokenHelper<ConfigurationHelper>,
     >,
     pub file_helper: FileHelper,
     pub date_time_helper: DateTimeHelper,
-    pub role_usecase: RoleUseCase<RoleRepository>,
+    pub role_usecase: RoleUseCase<RoleRepository, PermissionRepository, RolePermissionRepository>,
+    pub permission_usecase: PermissionUseCase<PermissionRepository>,
     pub db_connection: Arc<DatabaseConnection>,
-    pub identity_authorize_usecase: IdentityAuthorizeUseCase<UserRoleRepository>,
+    pub identity_authorize_usecase: IdentityAuthorizeUseCase<
+        UserRoleRepository,
+        UserPermissionRepository,
+        RolePermissionRepository,
+    >,
     pub transaction_manager: TransactionManager,
 }
 
@@ -100,21 +131,44 @@ impl AppStateTrait for RegularAppState {
         FlashcardTypeRelationRepository,
     >;
     type FlashcardTypeUseCase = FlashcardTypeUseCase<FlashcardTypeRepository>;
-    type UserUseCase = UserUseCase<UserRepository, RoleRepository, UserRoleRepository>;
+    type UserUseCase = UserUseCase<
+        UserRepository,
+        RoleRepository,
+        UserRoleRepository,
+        PermissionRepository,
+        UserPermissionRepository,
+    >;
     type IdentityUserUseCase = IdentityUserUseCase<
         IdentityPasswordHasher,
-        UserUseCase<UserRepository, RoleRepository, UserRoleRepository>,
+        UserUseCase<
+            UserRepository,
+            RoleRepository,
+            UserRoleRepository,
+            PermissionRepository,
+            UserPermissionRepository,
+        >,
         IdentityTokenHelper<ConfigurationHelper>,
     >;
     type IdentityAuthenticateUseCase = IdentityAuthenticateUseCase<
         IdentityPasswordHasher,
-        UserUseCase<UserRepository, RoleRepository, UserRoleRepository>,
+        UserUseCase<
+            UserRepository,
+            RoleRepository,
+            UserRoleRepository,
+            PermissionRepository,
+            UserPermissionRepository,
+        >,
         IdentityTokenHelper<ConfigurationHelper>,
     >;
-    type IdentityAuthorizeUseCase = IdentityAuthorizeUseCase<UserRoleRepository>;
+    type IdentityAuthorizeUseCase = IdentityAuthorizeUseCase<
+        UserRoleRepository,
+        UserPermissionRepository,
+        RolePermissionRepository,
+    >;
     type FileHelper = FileHelper;
     type DateTimeHelper = DateTimeHelper;
-    type RoleUseCase = RoleUseCase<RoleRepository>;
+    type RoleUseCase = RoleUseCase<RoleRepository, PermissionRepository, RolePermissionRepository>;
+    type PermissionUseCase = PermissionUseCase<PermissionRepository>;
     type TransactionManager = TransactionManager;
 
     fn flashcard_usecase(&self) -> &Self::FlashcardUseCase {
@@ -155,6 +209,10 @@ impl AppStateTrait for RegularAppState {
 
     fn role_usecase(&self) -> &Self::RoleUseCase {
         &self.role_usecase
+    }
+
+    fn permission_usecase(&self) -> &Self::PermissionUseCase {
+        &self.permission_usecase
     }
 
     fn transaction_manager(&self) -> &Self::TransactionManager {

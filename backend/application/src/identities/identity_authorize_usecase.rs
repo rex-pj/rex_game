@@ -1,28 +1,53 @@
 use std::{collections::HashSet, future::Future, pin::Pin};
 
 use super::identity_authorize_usecase_trait::IdentityAuthorizeUseCaseTrait;
-use crate::errors::application_error::{ApplicationError, ErrorKind};
-use rex_game_domain::repositories::user_role_repository_trait::UserRoleRepositoryTrait;
+use crate::errors::application_error::{ApplicationError, ApplicationErrorKind};
+use rex_game_domain::repositories::{
+    role_permission_repository_trait::RolePermissionRepositoryTrait,
+    user_permission_repository_trait::UserPermissionRepositoryTrait,
+    user_role_repository_trait::UserRoleRepositoryTrait,
+};
 
 #[derive(Clone)]
-pub struct IdentityAuthorizeUseCase<UR>
+pub struct IdentityAuthorizeUseCase<UR, UP, RP>
 where
     UR: UserRoleRepositoryTrait,
+    UP: UserPermissionRepositoryTrait,
+    RP: RolePermissionRepositoryTrait,
 {
     _user_role_repository: UR,
+    _user_permission_repository: UP,
+    _role_permission_repository: RP,
 }
 
-impl<UR: UserRoleRepositoryTrait> IdentityAuthorizeUseCase<UR> {
-    pub fn new(user_role_repository: UR) -> Self {
+impl<
+        UR: UserRoleRepositoryTrait,
+        UP: UserPermissionRepositoryTrait,
+        RP: RolePermissionRepositoryTrait,
+    > IdentityAuthorizeUseCase<UR, UP, RP>
+{
+    pub fn new(
+        user_role_repository: UR,
+        user_permission_repository: UP,
+        role_permission_repository: RP,
+    ) -> Self {
         Self {
             _user_role_repository: user_role_repository,
+            _user_permission_repository: user_permission_repository,
+            _role_permission_repository: role_permission_repository,
         }
     }
 }
 
-impl<UR: UserRoleRepositoryTrait> IdentityAuthorizeUseCaseTrait for IdentityAuthorizeUseCase<UR>
+impl<
+        UR: UserRoleRepositoryTrait,
+        UP: UserPermissionRepositoryTrait,
+        RP: RolePermissionRepositoryTrait,
+    > IdentityAuthorizeUseCaseTrait for IdentityAuthorizeUseCase<UR, UP, RP>
 where
     UR: UserRoleRepositoryTrait + Send + Sync + Clone + 'static,
+    UP: UserPermissionRepositoryTrait + Send + Sync + Clone + 'static,
+    RP: RolePermissionRepositoryTrait + Send + Sync + Clone + 'static,
 {
     fn is_user_in_role(
         &self,
@@ -36,12 +61,57 @@ where
                 .is_user_in_role(user_id, roles)
                 .await
                 .map_err(|_| ApplicationError {
-                    kind: ErrorKind::Unauthorized,
+                    kind: ApplicationErrorKind::Unauthorized,
                     message: String::from("Unauthorized"),
                     details: None,
                 })?;
 
             Ok(is_in_role)
+        })
+    }
+
+    fn is_user_in_permission(
+        &self,
+        user_id: i32,
+        permission_codes: HashSet<String>,
+    ) -> Pin<Box<dyn Future<Output = Result<bool, ApplicationError>> + Send>> {
+        let user_permission_repository = self._user_permission_repository.clone();
+        // Ownership of permissions is now transferred, avoiding lifetime issues.
+        Box::pin(async move {
+            let is_in_permission = user_permission_repository
+                .is_user_in_permission(user_id, permission_codes)
+                .await
+                .map_err(|_| ApplicationError {
+                    kind: ApplicationErrorKind::Unauthorized,
+                    message: String::from("Unauthorized"),
+                    details: None,
+                })?;
+
+            Ok(is_in_permission)
+        })
+    }
+
+    fn are_roles_in_permission(
+        &self,
+        role_ids: Vec<i32>,
+        permission_codes: HashSet<String>,
+    ) -> Pin<Box<dyn Future<Output = Result<bool, ApplicationError>> + Send>> {
+        let user_permission_repository = self._role_permission_repository.clone();
+        // Ownership of permissions is now transferred, avoiding lifetime issues.
+        Box::pin(async move {
+            if role_ids.is_empty() {
+                return Ok(false);
+            }
+            let is_in_permission = user_permission_repository
+                .are_roles_in_permission(role_ids, permission_codes)
+                .await
+                .map_err(|_| ApplicationError {
+                    kind: ApplicationErrorKind::Unauthorized,
+                    message: String::from("Unauthorized"),
+                    details: None,
+                })?;
+
+            Ok(is_in_permission)
         })
     }
 }

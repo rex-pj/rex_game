@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use crate::view_models::users::assign_permission_request::AssignPermissionRequest;
+use crate::view_models::users::assign_role_request::AssignRoleRequest;
 use crate::view_models::users::current_user::CurrentUser;
 use crate::{app_state::AppStateTrait, view_models::users::signup_request::SignupRequest};
 use axum::extract::{Path, Query};
@@ -12,6 +14,10 @@ use rex_game_application::page_list_dto::PageListDto;
 use rex_game_application::users::roles::{ROLE_ADMIN, ROLE_ROOT_ADMIN};
 use rex_game_application::users::user_deletion_dto::UserDeletionDto;
 use rex_game_application::users::user_dto::UserDto;
+use rex_game_application::users::user_permission_creation_dto::UserPermissionCreationDto;
+use rex_game_application::users::user_permission_dto::UserPermissionDto;
+use rex_game_application::users::user_role_creation_dto::UserRoleCreationDto;
+use rex_game_application::users::user_role_dto::UserRoleDto;
 use rex_game_application::users::user_updation_dto::UserUpdationDto;
 use rex_game_application::users::user_usecase_trait::UserUseCaseTrait;
 use rex_game_application::{
@@ -222,6 +228,154 @@ impl UserHandler {
         match is_succeed {
             Some(u) => Ok(Json(u)),
             None => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+        }
+    }
+
+    pub async fn assign_role<T: AppStateTrait>(
+        Extension(current_user): Extension<Arc<CurrentUser>>,
+        State(_state): State<T>,
+        Path(user_id): Path<i32>,
+        Json(payload): Json<Option<AssignRoleRequest>>,
+    ) -> Result<Json<i32>, StatusCode> {
+        let requests = match payload {
+            Some(req) => req,
+            None => return Err(StatusCode::BAD_REQUEST),
+        };
+
+        if requests.role_name.is_empty() {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+
+        _state
+            .user_usecase()
+            .get_user_by_id(user_id)
+            .await
+            .map_err(|_| StatusCode::NOT_FOUND)?;
+
+        if !current_user
+            .roles
+            .iter()
+            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+        {
+            return Err(StatusCode::FORBIDDEN);
+        }
+
+        let is_succeed = _state
+            .user_usecase()
+            .assign_role(
+                user_id,
+                UserRoleCreationDto {
+                    created_by_id: current_user.id,
+                    updated_by_id: current_user.id,
+                    role_name: requests.role_name,
+                },
+            )
+            .await;
+
+        match is_succeed {
+            Ok(u) => Ok(Json(u)),
+            Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+        }
+    }
+
+    pub async fn get_roles<T: AppStateTrait>(
+        Extension(current_user): Extension<Arc<CurrentUser>>,
+        State(_state): State<T>,
+        Path(user_id): Path<i32>,
+    ) -> Result<Json<Vec<UserRoleDto>>, StatusCode> {
+        _state
+            .user_usecase()
+            .get_user_by_id(user_id)
+            .await
+            .map_err(|_| StatusCode::NOT_FOUND)?;
+
+        if !current_user
+            .roles
+            .iter()
+            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+        {
+            return Err(StatusCode::FORBIDDEN);
+        }
+
+        let user_roles = _state.user_usecase().get_user_roles(user_id).await;
+
+        match user_roles {
+            Ok(u) => Ok(Json(u)),
+            Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+        }
+    }
+
+    pub async fn assign_permission<T: AppStateTrait>(
+        Extension(current_user): Extension<Arc<CurrentUser>>,
+        State(_state): State<T>,
+        Path(user_id): Path<i32>,
+        Json(payload): Json<Option<AssignPermissionRequest>>,
+    ) -> Result<Json<i32>, StatusCode> {
+        let requests = match payload {
+            Some(req) => req,
+            None => return Err(StatusCode::BAD_REQUEST),
+        };
+
+        if requests.permission_code.is_empty() {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+
+        _state
+            .user_usecase()
+            .get_user_by_id(user_id)
+            .await
+            .map_err(|_| StatusCode::NOT_FOUND)?;
+
+        if !current_user
+            .roles
+            .iter()
+            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+        {
+            return Err(StatusCode::FORBIDDEN);
+        }
+
+        let is_succeed = _state
+            .user_usecase()
+            .assign_user_permission(
+                user_id,
+                UserPermissionCreationDto {
+                    created_by_id: current_user.id,
+                    updated_by_id: current_user.id,
+                    permission_code: requests.permission_code,
+                },
+            )
+            .await;
+
+        match is_succeed {
+            Ok(u) => Ok(Json(u)),
+            Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+        }
+    }
+
+    pub async fn get_permissions<T: AppStateTrait>(
+        Extension(current_user): Extension<Arc<CurrentUser>>,
+        State(_state): State<T>,
+        Path(user_id): Path<i32>,
+    ) -> Result<Json<Vec<UserPermissionDto>>, StatusCode> {
+        _state
+            .user_usecase()
+            .get_user_by_id(user_id)
+            .await
+            .map_err(|_| StatusCode::NOT_FOUND)?;
+
+        if !current_user
+            .roles
+            .iter()
+            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+        {
+            return Err(StatusCode::FORBIDDEN);
+        }
+
+        let user_permissions = _state.user_usecase().get_user_permissions(user_id).await;
+
+        match user_permissions {
+            Ok(u) => Ok(Json(u)),
+            Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
         }
     }
 }

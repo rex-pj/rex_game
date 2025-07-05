@@ -8,6 +8,7 @@ use hyper::{header, Method};
 use rex_game_application::identities::identity_authenticate_usecase::IdentityAuthenticateUseCase;
 use rex_game_application::identities::identity_authorize_usecase::IdentityAuthorizeUseCase;
 use rex_game_application::identities::identity_user_usecase::IdentityUserUseCase;
+use rex_game_application::permissions::permission_usecase::PermissionUseCase;
 use rex_game_application::roles::role_usecase::RoleUseCase;
 use rex_game_application::{
     flashcard_types::flashcard_type_usecase::FlashcardTypeUseCase,
@@ -18,7 +19,10 @@ use rex_game_infrastructure::helpers::datetime_helper::DateTimeHelper;
 use rex_game_infrastructure::helpers::file_helper::FileHelper;
 use rex_game_infrastructure::identities::identity_password_hasher::IdentityPasswordHasher;
 use rex_game_infrastructure::identities::identity_token_helper::IdentityTokenHelper;
+use rex_game_infrastructure::repositories::permission_repository::PermissionRepository;
+use rex_game_infrastructure::repositories::role_permission_repository::RolePermissionRepository;
 use rex_game_infrastructure::repositories::role_repository::RoleRepository;
+use rex_game_infrastructure::repositories::user_permission_repository::UserPermissionRepository;
 use rex_game_infrastructure::repositories::user_role_repository::UserRoleRepository;
 use rex_game_infrastructure::transaction_manager::TransactionManager;
 use rex_game_infrastructure::{
@@ -53,6 +57,9 @@ pub async fn start() {
     let user_repository = UserRepository::new(Arc::clone(&db_connection.pool));
     let role_repository = RoleRepository::new(Arc::clone(&db_connection.pool));
     let user_role_repository = UserRoleRepository::new(Arc::clone(&db_connection.pool));
+    let permission_repository = PermissionRepository::new(Arc::clone(&db_connection.pool));
+    let user_permission_repository = UserPermissionRepository::new(Arc::clone(&db_connection.pool));
+    let role_permission_repository = RolePermissionRepository::new(Arc::clone(&db_connection.pool));
     let identity_password_hasher = IdentityPasswordHasher::new();
     let identity_token_helper = IdentityTokenHelper::new(configuration_helper.clone());
 
@@ -68,8 +75,15 @@ pub async fn start() {
         user_repository,
         role_repository.clone(),
         user_role_repository.clone(),
+        permission_repository.clone(),
+        user_permission_repository.clone(),
     );
-    let role_usecase = RoleUseCase::new(role_repository);
+    let role_usecase = RoleUseCase::new(
+        role_repository,
+        permission_repository.clone(),
+        role_permission_repository.clone(),
+    );
+    let permission_usecase = PermissionUseCase::new(permission_repository);
     let identity_user_usecase = IdentityUserUseCase::new(
         identity_password_hasher.clone(),
         user_usecase.clone(),
@@ -80,7 +94,11 @@ pub async fn start() {
         user_usecase.clone(),
         identity_token_helper,
     );
-    let identity_authorize_usecase = IdentityAuthorizeUseCase::new(user_role_repository.clone());
+    let identity_authorize_usecase = IdentityAuthorizeUseCase::new(
+        user_role_repository,
+        user_permission_repository,
+        role_permission_repository,
+    );
     let file_helper = FileHelper::new();
     let date_time_helper = DateTimeHelper::new();
     let transaction_manager = TransactionManager::new(Arc::clone(&db_connection.pool));
@@ -96,6 +114,7 @@ pub async fn start() {
         db_connection: Arc::clone(&db_connection.pool),
         role_usecase: role_usecase,
         identity_authorize_usecase: identity_authorize_usecase,
+        permission_usecase: permission_usecase,
     };
 
     let authenticated_routes = AppRouting {

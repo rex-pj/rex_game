@@ -5,7 +5,7 @@ use rex_game_domain::{
 };
 
 use crate::{
-    errors::application_error::{ApplicationError, ErrorKind},
+    errors::application_error::{ApplicationError, ApplicationErrorKind},
     page_list_dto::PageListDto,
 };
 
@@ -63,7 +63,7 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
                 })
             }
             Err(_) => Err(ApplicationError::new(
-                ErrorKind::DatabaseError,
+                ApplicationErrorKind::DatabaseError,
                 "Failed to get flashcard types",
                 None,
             )),

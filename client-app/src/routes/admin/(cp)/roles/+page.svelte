@@ -1,8 +1,8 @@
 <script>
   import { onMount } from "svelte";
   import {
-    roles,
-    fetchRoles,
+    items,
+    getList,
     changePage,
     pager,
     showCreationModal,
@@ -19,14 +19,14 @@
     deletionError,
     toggleDeletionModal,
     deletingData,
-  } from "./roleStore";
+  } from "./store";
   import Pagination from "../../../../components/molecules/pagination/pagination.svelte";
   import RoleUpdateModal from "../../../../components/organisms/roles/RoleUpdateModal.svelte";
   import RoleDeleteModal from "../../../../components/organisms/roles/RoleDeleteModal.svelte";
   import { standardizeDate } from "$lib/helpers/dateTimeHelper";
 
   onMount(() => {
-    fetchRoles(pager.currentPage);
+    getList($pager.currentPage);
   });
 </script>
 
@@ -53,19 +53,19 @@
       </tr>
     </thead>
     <tbody>
-      {#each $roles as role}
+      {#each $items as item}
         <tr>
-          <td>{role.id}</td>
-          <td>{role.name}</td>
-          <td>{role.description}</td>
-          <td>{standardizeDate(role.created_date)}</td>
-          <td>{standardizeDate(role.updated_date)}</td>
+          <td>{item.id}</td>
+          <td>{item.name}</td>
+          <td>{item.description}</td>
+          <td>{standardizeDate(item.created_date)}</td>
+          <td>{standardizeDate(item.updated_date)}</td>
           <td>
             <div class="dropdown">
               <button
                 class="btn btn-link p-0"
                 type="button"
-                id="dropdownMenuButton-{role.id}"
+                id="dropdownMenuButton-{item.id}"
                 data-bs-toggle="dropdown"
                 aria-expanded="false"
                 aria-label="Actions"
@@ -78,14 +78,14 @@
               </button>
               <ul
                 class="dropdown-menu dropdown-menu-end"
-                aria-labelledby="dropdownMenuButton-{role.id}"
+                aria-labelledby="dropdownMenuButton-{item.id}"
               >
                 <li>
                   <button
                     class="dropdown-item"
                     type="button"
                     onclick={() => {
-                      openEditingModal(role.id);
+                      openEditingModal(item.id);
                     }}>Edit</button
                   >
                 </li>
@@ -94,7 +94,7 @@
                     class="dropdown-item text-danger"
                     type="button"
                     onclick={() => {
-                      openDeletingModal(role.id);
+                      openDeletingModal(item.id);
                     }}>Delete</button
                   >
                 </li>
@@ -107,7 +107,7 @@
   </table>
 
   <div class="d-flex justify-content-center">
-    <Pagination {pager} {changePage} />
+    <Pagination pager={$pager} {changePage} />
   </div>
   <RoleUpdateModal
     initialData={edittingData}

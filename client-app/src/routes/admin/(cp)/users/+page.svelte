@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import {
-    users,
+    items,
     pager,
-    fetchUsers,
+    getList,
     changePage,
     showCreationModal,
     isSubmitting,
@@ -19,7 +19,7 @@
     toggleDeletionModal,
     deletingData,
     openEditingModal,
-  } from "./userStore";
+  } from "./store";
   import Pagination from "../../../../components/molecules/pagination/pagination.svelte";
   import UserUpdateModal from "../../../../components/organisms/users/UserUpdateModal.svelte";
   import type { SelectOption } from "$lib/models/select-option";
@@ -27,7 +27,7 @@
   import { standardizeDate } from "$lib/helpers/dateTimeHelper";
 
   onMount(() => {
-    fetchUsers(pager.currentPage);
+    getList($pager.currentPage);
   });
 </script>
 
@@ -51,21 +51,21 @@
       </tr>
     </thead>
     <tbody>
-      {#each $users as user}
+      {#each $items as item}
         <tr>
-          <td>{user.id}</td>
-          <td>{user.email}</td>
-          <td>{user.display_name}</td>
-          <td>{user.name}</td>
+          <td>{item.id}</td>
+          <td>{item.email}</td>
+          <td>{item.display_name}</td>
+          <td>{item.name}</td>
 
-          <td>{standardizeDate(user.created_date)}</td>
-          <td>{standardizeDate(user.updated_date)}</td>
+          <td>{standardizeDate(item.created_date)}</td>
+          <td>{standardizeDate(item.updated_date)}</td>
           <td>
             <div class="dropdown">
               <button
                 class="btn btn-link p-0"
                 type="button"
-                id="dropdownMenuButton-{user.id}"
+                id="dropdownMenuButton-{item.id}"
                 data-bs-toggle="dropdown"
                 aria-expanded="false"
                 aria-label="Actions"
@@ -78,14 +78,14 @@
               </button>
               <ul
                 class="dropdown-menu dropdown-menu-end"
-                aria-labelledby="dropdownMenuButton-{user.id}"
+                aria-labelledby="dropdownMenuButton-{item.id}"
               >
                 <li>
                   <button
                     class="dropdown-item"
                     type="button"
                     onclick={() => {
-                      openEditingModal(user.id);
+                      openEditingModal(item.id);
                     }}>Edit</button
                   >
                 </li>
@@ -94,7 +94,7 @@
                     class="dropdown-item text-danger"
                     type="button"
                     onclick={() => {
-                      openDeletingModal(user.id);
+                      openDeletingModal(item.id);
                     }}>Delete</button
                   >
                 </li>
@@ -107,7 +107,7 @@
   </table>
 
   <div class="d-flex justify-content-center">
-    <Pagination {pager} {changePage} />
+    <Pagination pager={$pager} {changePage} />
   </div>
   <UserUpdateModal
     initialData={edittingData}

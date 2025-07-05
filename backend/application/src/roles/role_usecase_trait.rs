@@ -5,10 +5,14 @@ use crate::{
         role_creation_dto::RoleCreationDto, role_deletion_dto::RoleDeletionDto,
         role_updation_dto::RoleUpdationDto,
     },
+    users::{
+        role_permission_creation_dto::RolePermissionCreationDto,
+        role_permission_dto::RolePermissionDto,
+    },
 };
 
 use super::role_dto::RoleDto;
-use std::future::Future;
+use std::{future::Future, pin::Pin};
 
 pub trait RoleUseCaseTrait {
     fn get_role_by_id(&self, id: i32) -> impl Future<Output = Result<RoleDto, ApplicationError>>;
@@ -33,4 +37,17 @@ pub trait RoleUseCaseTrait {
         id: i32,
         delete_req: RoleDeletionDto,
     ) -> impl Future<Output = Option<bool>>;
+    fn get_role_permissions(
+        &self,
+        role_id: i32,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<RolePermissionDto>, ApplicationError>> + Send>>;
+    fn get_roles_permissions(
+        &self,
+        role_ids: Vec<i32>,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<RolePermissionDto>, ApplicationError>> + Send>>;
+    fn assign_role_permission(
+        &self,
+        role_id: i32,
+        role_permission_req: RolePermissionCreationDto,
+    ) -> impl Future<Output = Result<i32, ApplicationError>>;
 }

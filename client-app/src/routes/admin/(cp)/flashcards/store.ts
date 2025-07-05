@@ -9,10 +9,8 @@ import { getImageBase64Url } from "$lib/helpers/imageHelper";
 
 const flashcardService: FlashcardService = new FlashcardService(Cookies);
 const flashcardTypeService: FlashcardTypeService = new FlashcardTypeService(Cookies);
-export const flashcards: Writable<Flashcard[]> = writable([]);
-export const currentPage = writable(1);
-export const totalPages = writable(1);
-export const pager = { currentPage: 1, totalPages: 0 } as Pager;
+export const items: Writable<Flashcard[]> = writable([]);
+export const pager: Writable<Pager> = writable({ currentPage: 1, totalPages: 0 });
 const itemsPerPage = 10;
 export const showCreationModal = writable(false);
 export const creationError = writable("");
@@ -32,30 +30,31 @@ export const isDeletionSubmitting = writable(false);
 export const deletingData = writable({ id: 0, name: "" });
 
 // Fetch flashcards data (mocked for now)
-export const fetchFlashcards = async (page: number) => {
+export const fetchItems = async (page: number) => {
   // Replace this with your API call
   const response = await flashcardService.getList(fetch, page, itemsPerPage);
 
-  const start = (page - 1) * itemsPerPage;
-  const end = start + itemsPerPage;
-  const items = response.items;
-  for (const item of items) {
+  for (const item of response.items) {
     if (item.image_id) {
       item.image_url = await getImageBase64Url(item.image_id);
     }
   }
-  flashcards.set(items.slice(start, end));
-  pager.totalPages = Math.ceil(response.total_count / itemsPerPage);
+  items.set(response.items);
+  const totalPages = Math.ceil(response.total_count / itemsPerPage);
+  pager.update((current) => ({
+    ...current,
+    totalPages: totalPages,
+  }));
 };
 
 export const submit = async (data: FlashcardRequest) => {
   if (data.id) {
-    return await updateFlashcard(data.id, data);
+    return await update(data.id, data);
   }
-  return await createFlashcard(data);
+  return await create(data);
 };
 
-export const createFlashcard = async (data: FlashcardRequest) => {
+export const create = async (data: FlashcardRequest) => {
   isSubmitting.set(true);
 
   const formData = new FormData();
@@ -75,7 +74,7 @@ export const createFlashcard = async (data: FlashcardRequest) => {
   await flashcardService
     .create(fetch, formData)
     .then(async () => {
-      await fetchFlashcards(1);
+      await fetchItems(1);
       toggleCreationModal(false);
     })
     .catch((error) => {
@@ -86,7 +85,7 @@ export const createFlashcard = async (data: FlashcardRequest) => {
     });
 };
 
-export const updateFlashcard = async (id: number, data: FlashcardRequest) => {
+export const update = async (id: number, data: FlashcardRequest) => {
   isSubmitting.set(true);
 
   const formData = new FormData();
@@ -106,7 +105,7 @@ export const updateFlashcard = async (id: number, data: FlashcardRequest) => {
   await flashcardService
     .update(fetch, id, formData)
     .then(async () => {
-      await fetchFlashcards(pager.currentPage);
+      await fetchItems(1);
       toggleCreationModal(false);
     })
     .catch((error) => {
@@ -118,7 +117,7 @@ export const updateFlashcard = async (id: number, data: FlashcardRequest) => {
 };
 
 export const openDeletingModal = (id: number) => {
-  getFlashcard(id).then((response) => {
+  getById(id).then((response) => {
     if (response) {
       deletingData.set({ id: response.id, name: response.name });
       showDeletionModal.set(true);
@@ -127,13 +126,16 @@ export const openDeletingModal = (id: number) => {
 };
 
 export const changePage = (page: number) => {
-  if (page >= 1 && page <= get(totalPages)) {
-    currentPage.set(page);
-    fetchFlashcards(page);
+  if (page >= 1 && page <= get(pager).totalPages) {
+    pager.update((current) => ({
+      ...current,
+      currentPage: page,
+    }));
+    fetchItems(page);
   }
 };
 
-export const getFlashcard = async (id: number) => {
+export const getById = async (id: number) => {
   isSubmitting.set(true);
   return await flashcardService
     .getById(fetch, id)
@@ -171,7 +173,7 @@ export const openEditingModal = async (id: number) => {
   await flashcardTypeService.getList(fetch).then((data) => {
     flashcardTypeSuggestions.set(data.items);
   });
-  getFlashcard(id).then(async (response: FlashcardDetail) => {
+  getById(id).then(async (response: FlashcardDetail) => {
     if (response) {
       const imageBase64Url = await getImageBase64Url(response.image_id);
       const data: FlashcardRequest = {
@@ -203,7 +205,7 @@ export const deleteById = async (id: number) => {
   await flashcardService
     .deleteById(fetch, id)
     .then(async () => {
-      await fetchFlashcards(1);
+      await fetchItems(1);
       toggleDeletionModal(false);
     })
     .catch((error) => {

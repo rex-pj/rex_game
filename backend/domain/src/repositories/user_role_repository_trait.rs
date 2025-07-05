@@ -10,7 +10,10 @@ pub trait UserRoleRepositoryTrait {
         user_role: UserRoleModel,
         transaction: Box<&dyn TransactionWrapperTrait>,
     ) -> impl Future<Output = Result<i32, DomainError>>;
-
+    fn create(
+        &self,
+        user_role_req: UserRoleModel,
+    ) -> impl Future<Output = Result<i32, DomainError>> + Send;
     fn is_user_in_role(
         &self,
         user_id: i32,

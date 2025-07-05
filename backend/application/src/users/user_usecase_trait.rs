@@ -4,7 +4,9 @@ use crate::{
     errors::application_error::ApplicationError,
     page_list_dto::PageListDto,
     users::{
-        user_deletion_dto::UserDeletionDto, user_dto::UserDto, user_updation_dto::UserUpdationDto,
+        user_deletion_dto::UserDeletionDto, user_dto::UserDto,
+        user_permission_creation_dto::UserPermissionCreationDto,
+        user_permission_dto::UserPermissionDto, user_updation_dto::UserUpdationDto,
     },
 };
 use std::{future::Future, pin::Pin};
@@ -42,10 +44,16 @@ pub trait UserUseCaseTrait {
         &self,
         user_req: UserCreationDto,
     ) -> impl Future<Output = Result<i32, ApplicationError>>;
-    fn assign_role(
+    fn assign_role_with_transaction(
         &self,
+        user_id: i32,
         user_role_req: UserRoleCreationDto,
         transaction: Box<&dyn TransactionWrapperTrait>,
+    ) -> impl Future<Output = Result<i32, ApplicationError>>;
+    fn assign_role(
+        &self,
+        user_id: i32,
+        user_role_req: UserRoleCreationDto,
     ) -> impl Future<Output = Result<i32, ApplicationError>>;
     fn get_user_roles(
         &self,
@@ -61,4 +69,14 @@ pub trait UserUseCaseTrait {
         id: i32,
         user_req: UserDeletionDto,
     ) -> impl Future<Output = Option<bool>>;
+    fn get_user_permissions(
+        &self,
+        user_id: i32,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<UserPermissionDto>, ApplicationError>> + Send>>;
+
+    fn assign_user_permission(
+        &self,
+        user_id: i32,
+        user_permission_req: UserPermissionCreationDto,
+    ) -> impl Future<Output = Result<i32, ApplicationError>>;
 }

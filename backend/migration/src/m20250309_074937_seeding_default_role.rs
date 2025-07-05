@@ -33,13 +33,6 @@ impl MigrationTrait for Migration {
                 Role::UpdatedDate,
                 Role::IsActived,
             ])
-            .columns([
-                Role::Name,
-                Role::Description,
-                Role::CreatedDate,
-                Role::UpdatedDate,
-                Role::IsActived,
-            ])
             .values_panic([
                 "Admin".into(),
                 "The administrator".into(),

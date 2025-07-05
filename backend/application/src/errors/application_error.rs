@@ -1,11 +1,11 @@
 pub struct ApplicationError {
-    pub kind: ErrorKind,
+    pub kind: ApplicationErrorKind,
     pub message: String,
     pub details: Option<String>,
 }
 
 impl ApplicationError {
-    pub fn new(kind: ErrorKind, message: &str, details: Option<String>) -> Self {
+    pub fn new(kind: ApplicationErrorKind, message: &str, details: Option<String>) -> Self {
         Self {
             kind,
             message: String::from(message),
@@ -14,7 +14,7 @@ impl ApplicationError {
     }
 }
 
-pub enum ErrorKind {
+pub enum ApplicationErrorKind {
     NotFound,
     InvalidInput,
     DatabaseError,

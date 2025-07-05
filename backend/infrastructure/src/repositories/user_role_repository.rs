@@ -72,6 +72,29 @@ impl UserRoleRepositoryTrait for UserRoleRepository {
         }
     }
 
+    async fn create(&self, user_role_req: UserRoleModel) -> Result<i32, DomainError> {
+        let db = self._db_connection.as_ref();
+        let user_role = user_role::ActiveModel {
+            user_id: Set(user_role_req.user_id),
+            role_id: Set(user_role_req.role_id),
+            created_by_id: Set(user_role_req.created_by_id),
+            updated_by_id: Set(user_role_req.updated_by_id),
+            created_date: Set(Utc::now().fixed_offset()),
+            updated_date: Set(Utc::now().fixed_offset()),
+            is_actived: Set(true),
+            ..Default::default()
+        };
+
+        match UserRole::insert(user_role).exec(db).await {
+            Ok(result) => Ok(result.last_insert_id),
+            Err(err) => Err(DomainError::new(
+                ErrorType::DatabaseError,
+                err.to_string().as_str(),
+                None,
+            )),
+        }
+    }
+
     fn get_user_roles(
         &self,
         user_id: i32,

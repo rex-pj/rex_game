@@ -12,7 +12,7 @@ use rex_game_domain::{
 };
 
 use crate::{
-    errors::application_error::{ApplicationError, ErrorKind},
+    errors::application_error::{ApplicationError, ApplicationErrorKind},
     page_list_dto::PageListDto,
 };
 
@@ -93,7 +93,7 @@ impl<
                 })
             }
             Err(_) => Err(ApplicationError::new(
-                ErrorKind::DatabaseError,
+                ApplicationErrorKind::DatabaseError,
                 "Failed to get flashcards",
                 None,
             )),
@@ -136,7 +136,7 @@ impl<
             .await
             .map_err(|_| {
                 ApplicationError::new(
-                    ErrorKind::DatabaseError,
+                    ApplicationErrorKind::DatabaseError,
                     "Failed to create flashcard file",
                     None,
                 )
@@ -155,7 +155,11 @@ impl<
             .create(active_flashcard)
             .await
             .map_err(|_| {
-                ApplicationError::new(ErrorKind::DatabaseError, "Failed to create flashcard", None)
+                ApplicationError::new(
+                    ApplicationErrorKind::DatabaseError,
+                    "Failed to create flashcard",
+                    None,
+                )
             })?;
 
         let mut active_type_relations: Vec<FlashcardTypeRelationModel> = Vec::new();
@@ -176,7 +180,7 @@ impl<
             .await
             .map_err(|_| {
                 ApplicationError::new(
-                    ErrorKind::DatabaseError,
+                    ApplicationErrorKind::DatabaseError,
                     "Failed to create flashcard type relation",
                     None,
                 )
@@ -197,7 +201,7 @@ impl<
             Some(flashcard) => flashcard,
             None => {
                 return Err(ApplicationError::new(
-                    ErrorKind::NotFound,
+                    ApplicationErrorKind::NotFound,
                     "Flashcard not found",
                     None,
                 ))
@@ -212,7 +216,7 @@ impl<
                 .await
                 .map_err(|_| {
                     ApplicationError::new(
-                        ErrorKind::DatabaseError,
+                        ApplicationErrorKind::DatabaseError,
                         "Failed to get flashcard file",
                         None,
                     )
@@ -232,7 +236,7 @@ impl<
                 .await
                 .map_err(|_| {
                     ApplicationError::new(
-                        ErrorKind::DatabaseError,
+                        ApplicationErrorKind::DatabaseError,
                         "Failed to update flashcard file",
                         None,
                     )
@@ -271,7 +275,11 @@ impl<
             .update(updating_flashcard)
             .await
             .map_err(|_| {
-                ApplicationError::new(ErrorKind::DatabaseError, "Failed to update flashcard", None)
+                ApplicationError::new(
+                    ApplicationErrorKind::DatabaseError,
+                    "Failed to update flashcard",
+                    None,
+                )
             })?;
 
         match flashcard_req.type_ids {
@@ -281,7 +289,7 @@ impl<
                     .await
                     .map_err(|_| {
                         ApplicationError::new(
-                            ErrorKind::DatabaseError,
+                            ApplicationErrorKind::DatabaseError,
                             "Failed to delete flashcard type relation",
                             None,
                         )
@@ -303,7 +311,7 @@ impl<
                     .await
                     .map_err(|_| {
                         ApplicationError::new(
-                            ErrorKind::DatabaseError,
+                            ApplicationErrorKind::DatabaseError,
                             "Failed to update flashcard type relation",
                             None,
                         )
@@ -312,7 +320,7 @@ impl<
                 return Ok(true);
             }
             None => Err(ApplicationError::new(
-                ErrorKind::InvalidInput,
+                ApplicationErrorKind::InvalidInput,
                 "Type IDs are required for updating flashcard",
                 None,
             )),
@@ -329,7 +337,7 @@ impl<
             .await
             .map_err(|_| {
                 ApplicationError::new(
-                    ErrorKind::DatabaseError,
+                    ApplicationErrorKind::DatabaseError,
                     "Failed to get flashcard file",
                     None,
                 )

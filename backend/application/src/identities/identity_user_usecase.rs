@@ -1,5 +1,5 @@
 use crate::{
-    errors::application_error::{ApplicationError, ErrorKind},
+    errors::application_error::{ApplicationError, ApplicationErrorKind},
     users::{
         loggedin_user_dto::{LoggedInUserDto, LoggedInUserRoleDto},
         user_creation_dto::UserCreationDto,
@@ -78,7 +78,7 @@ where
             Ok(id) => id,
             Err(_) => {
                 return Err(ApplicationError::new(
-                    ErrorKind::InvalidInput,
+                    ApplicationErrorKind::InvalidInput,
                     "Create user failed",
                     None,
                 ))
@@ -113,7 +113,7 @@ where
             Ok(id) => id,
             Err(_) => {
                 return Err(ApplicationError::new(
-                    ErrorKind::InvalidInput,
+                    ApplicationErrorKind::InvalidInput,
                     "Create user failed",
                     None,
                 ))
@@ -132,7 +132,7 @@ where
             Some(claims) => claims,
             None => {
                 return Err(ApplicationError {
-                    kind: ErrorKind::InvalidInput,
+                    kind: ApplicationErrorKind::InvalidInput,
                     message: String::from("Failed to get token info"),
                     details: None,
                 })
@@ -144,7 +144,7 @@ where
             .get_user_by_email(access_token_info.email)
             .await
             .map_err(|_| ApplicationError {
-                kind: ErrorKind::InvalidInput,
+                kind: ApplicationErrorKind::InvalidInput,
                 message: String::from("Failed to get the user by email"),
                 details: None,
             })?;
@@ -154,7 +154,7 @@ where
             .get_user_roles(user.id)
             .await
             .map_err(|_| ApplicationError {
-                kind: ErrorKind::InvalidInput,
+                kind: ApplicationErrorKind::InvalidInput,
                 message: String::from("Failed to get the assigned roles"),
                 details: None,
             })?

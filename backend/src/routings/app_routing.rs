@@ -11,8 +11,8 @@ use crate::{
     app_state::RegularAppState,
     handlers::{
         authentication_handler::AuthenticationHandler, flashcard_handler::FlashcardHandler,
-        flashcard_type_handler::FlashcardTypeHandler, role_handler::RoleHandler,
-        setup_handler::SetupHandler, user_handler::UserHandler,
+        flashcard_type_handler::FlashcardTypeHandler, permission_handler::PermissionHandler,
+        role_handler::RoleHandler, setup_handler::SetupHandler, user_handler::UserHandler,
     },
     middlewares::authenticate_middleware::AuthenticateLayer,
 };
@@ -27,30 +27,6 @@ impl AppRouting {
         router: Router<RegularAppState>,
     ) -> Router<RegularAppState> {
         router
-            .route(
-                "/flashcards",
-                post(FlashcardHandler::create_flashcard::<RegularAppState>),
-            )
-            .route(
-                "/flashcards/{id}",
-                patch(FlashcardHandler::update_flashcard::<RegularAppState>),
-            )
-            .route(
-                "/flashcards/{id}",
-                delete(FlashcardHandler::delete_flashcard::<RegularAppState>),
-            )
-            .route(
-                "/flashcard-types",
-                post(FlashcardTypeHandler::create_flashcard_type::<RegularAppState>),
-            )
-            .route(
-                "/flashcard-types/{id}",
-                patch(FlashcardTypeHandler::update_flashcard_type::<RegularAppState>),
-            )
-            .route(
-                "/flashcard-types/{id}",
-                delete(FlashcardTypeHandler::delete_flashcard_type::<RegularAppState>),
-            )
             .route(
                 "/auth/refresh",
                 post(AuthenticationHandler::refresh_access_token::<RegularAppState>),
@@ -68,13 +44,9 @@ impl AppRouting {
                 "/users/{id}",
                 patch(UserHandler::update_user::<RegularAppState>),
             )
-            .route(
-                "/users/{id}",
-                delete(UserHandler::delete_user::<RegularAppState>),
-            )
             .layer(ServiceBuilder::new().layer(AuthenticateLayer {
                 app_state: self.app_state.clone(),
-                roles: Some(HashSet::from([])),
+                roles: None,
             }))
     }
 
@@ -127,6 +99,78 @@ impl AppRouting {
             .route(
                 "/roles/{id}",
                 patch(RoleHandler::update_role::<RegularAppState>),
+            )
+            .route(
+                "/roles/{role_id}/permissions",
+                post(RoleHandler::assign_permission::<RegularAppState>),
+            )
+            .route(
+                "/roles/{role_id}/permissions",
+                get(RoleHandler::get_permissions::<RegularAppState>),
+            )
+            .route(
+                "/users/{id}",
+                delete(UserHandler::delete_user::<RegularAppState>),
+            )
+            .route(
+                "/users/{user_id}/roles",
+                get(UserHandler::get_roles::<RegularAppState>),
+            )
+            .route(
+                "/users/{user_id}/roles",
+                post(UserHandler::assign_role::<RegularAppState>),
+            )
+            .route(
+                "/permissions",
+                get(PermissionHandler::get_permissions::<RegularAppState>),
+            )
+            .route(
+                "/permissions/{id}",
+                get(PermissionHandler::get_permission_by_id::<RegularAppState>),
+            )
+            .route(
+                "/permissions/{id}",
+                delete(PermissionHandler::delete_permission::<RegularAppState>),
+            )
+            .route(
+                "/permissions",
+                post(PermissionHandler::create_permission::<RegularAppState>),
+            )
+            .route(
+                "/permissions/{id}",
+                patch(PermissionHandler::update_permission::<RegularAppState>),
+            )
+            .route(
+                "/users/{user_id}/permissions",
+                post(UserHandler::assign_permission::<RegularAppState>),
+            )
+            .route(
+                "/users/{user_id}/permissions",
+                get(UserHandler::get_permissions::<RegularAppState>),
+            )
+            .route(
+                "/flashcards",
+                post(FlashcardHandler::create_flashcard::<RegularAppState>),
+            )
+            .route(
+                "/flashcards/{id}",
+                patch(FlashcardHandler::update_flashcard::<RegularAppState>),
+            )
+            .route(
+                "/flashcards/{id}",
+                delete(FlashcardHandler::delete_flashcard::<RegularAppState>),
+            )
+            .route(
+                "/flashcard-types",
+                post(FlashcardTypeHandler::create_flashcard_type::<RegularAppState>),
+            )
+            .route(
+                "/flashcard-types/{id}",
+                patch(FlashcardTypeHandler::update_flashcard_type::<RegularAppState>),
+            )
+            .route(
+                "/flashcard-types/{id}",
+                delete(FlashcardTypeHandler::delete_flashcard_type::<RegularAppState>),
             )
             .layer(ServiceBuilder::new().layer(AuthenticateLayer {
                 app_state: self.app_state.clone(),

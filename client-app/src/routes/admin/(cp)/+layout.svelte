@@ -11,6 +11,7 @@
     { name: "Falshcard Types", link: "/admin/flashcard-types" },
     { name: "Users", link: "/admin/users" },
     { name: "Roles", link: "/admin/roles" },
+    { name: "Permissions", link: "/admin/permissions" },
   ];
 
   async function logout() {

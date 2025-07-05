@@ -82,9 +82,9 @@ impl SetupHandler {
 
         if let Err(_) = _state
             .user_usecase()
-            .assign_role(
+            .assign_role_with_transaction(
+                created_result.id,
                 UserRoleCreationDto {
-                    user_id: created_result.id,
                     role_name: String::from(ROLE_ROOT_ADMIN),
                     created_by_id: created_result.id,
                     updated_by_id: created_result.id,

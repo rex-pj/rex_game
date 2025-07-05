@@ -1,0 +1,40 @@
+use crate::{
+    errors::application_error::ApplicationError,
+    page_list_dto::PageListDto,
+    permissions::{
+        permission_creation_dto::PermissionCreationDto,
+        permission_deletion_dto::PermissionDeletionDto,
+        permission_updation_dto::PermissionUpdationDto,
+    },
+};
+
+use super::permission_dto::PermissionDto;
+use std::future::Future;
+
+pub trait PermissionUseCaseTrait {
+    fn get_permission_by_id(
+        &self,
+        id: i32,
+    ) -> impl Future<Output = Result<PermissionDto, ApplicationError>>;
+    fn get_permissions<'a>(
+        &'a self,
+        name: Option<String>,
+        description: Option<String>,
+        page: u64,
+        page_size: u64,
+    ) -> impl Future<Output = Result<PageListDto<PermissionDto>, ApplicationError>>;
+    fn update_permission<'a>(
+        &'a self,
+        id: i32,
+        permission_req: PermissionUpdationDto,
+    ) -> impl Future<Output = Option<bool>>;
+    fn create_permission(
+        &self,
+        permission_req: PermissionCreationDto,
+    ) -> impl Future<Output = Result<i32, ApplicationError>>;
+    fn delete_permission_by_id(
+        &self,
+        id: i32,
+        delete_req: PermissionDeletionDto,
+    ) -> impl Future<Output = Option<bool>>;
+}

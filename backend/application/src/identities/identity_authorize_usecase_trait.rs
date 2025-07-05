@@ -8,4 +8,14 @@ pub trait IdentityAuthorizeUseCaseTrait {
         user_id: i32,
         roles: HashSet<String>,
     ) -> Pin<Box<dyn Future<Output = Result<bool, ApplicationError>> + Send>>;
+    fn is_user_in_permission(
+        &self,
+        user_id: i32,
+        permission_codes: HashSet<String>,
+    ) -> Pin<Box<dyn Future<Output = Result<bool, ApplicationError>> + Send>>;
+    fn are_roles_in_permission(
+        &self,
+        role_ids: Vec<i32>,
+        permission_codes: HashSet<String>,
+    ) -> Pin<Box<dyn Future<Output = Result<bool, ApplicationError>> + Send>>;
 }

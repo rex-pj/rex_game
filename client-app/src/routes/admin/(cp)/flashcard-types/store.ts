@@ -1,12 +1,12 @@
-import { writable, type Writable } from "svelte/store";
+import { get, writable, type Writable } from "svelte/store";
 import { FlashcardTypeService } from "$lib/services/flashcardTypeService";
 import Cookies from "js-cookie";
 import type { Pager } from "../../../../components/molecules/pagination/pager";
 import type { FlashcardType, FlashcardTypeRequest } from "$lib/models/flashcard-type";
 
 const flashcardTypeService: FlashcardTypeService = new FlashcardTypeService(Cookies);
-export const flashcardTypes: Writable<FlashcardType[]> = writable([]);
-export const pager = { currentPage: 1, totalPages: 0 } as Pager;
+export const items: Writable<FlashcardType[]> = writable([]);
+export const pager: Writable<Pager> = writable({ currentPage: 1, totalPages: 0 });
 const itemsPerPage = 10;
 export const showCreationModal = writable(false);
 export const creationError = writable("");
@@ -23,29 +23,31 @@ export const isDeletionSubmitting = writable(false);
 export const deletingData = writable({ id: 0, name: "" });
 
 // Fetch flashcards data (mocked for now)
-export const fetchFlashcardTypes = async (page: number) => {
+export const fetchItems = async (page: number) => {
   // Replace this with your API call
   const response = await flashcardTypeService.getList(fetch, page, itemsPerPage);
 
-  const start = (page - 1) * itemsPerPage;
-  const end = start + itemsPerPage;
-  flashcardTypes.set(response.items.slice(start, end));
-  pager.totalPages = Math.ceil(response.total_count / itemsPerPage);
+  items.set(response.items);
+  const totalPages = Math.ceil(response.total_count / itemsPerPage);
+  pager.update((current) => ({
+    ...current,
+    totalPages: totalPages,
+  }));
 };
 
 export const submit = async (data: FlashcardTypeRequest) => {
   if (data.id) {
-    return await updateFlashcardType(data.id, data);
+    return await update(data.id, data);
   }
-  return await createFlashcardType(data);
+  return await create(data);
 };
 
-export const createFlashcardType = async (data: FlashcardTypeRequest) => {
+export const create = async (data: FlashcardTypeRequest) => {
   isSubmitting.set(true);
   await flashcardTypeService
     .create(fetch, data)
     .then(async () => {
-      await fetchFlashcardTypes(1);
+      await fetchItems(1);
       toggleCreationModal(false);
     })
     .catch((error) => {
@@ -56,12 +58,12 @@ export const createFlashcardType = async (data: FlashcardTypeRequest) => {
     });
 };
 
-export const updateFlashcardType = async (id: number, data: FlashcardTypeRequest) => {
+export const update = async (id: number, data: FlashcardTypeRequest) => {
   isSubmitting.set(true);
   await flashcardTypeService
     .update(fetch, id, { name: data.name, description: data.description })
     .then(async () => {
-      await fetchFlashcardTypes(1);
+      await fetchItems(1);
       toggleCreationModal(false);
     })
     .catch((error) => {
@@ -72,7 +74,7 @@ export const updateFlashcardType = async (id: number, data: FlashcardTypeRequest
     });
 };
 
-export const getFlashcardType = async (id: number) => {
+export const getById = async (id: number) => {
   isSubmitting.set(true);
   return await flashcardTypeService
     .getById(fetch, id)
@@ -89,9 +91,12 @@ export const getFlashcardType = async (id: number) => {
 };
 
 export const changePage = (page: number) => {
-  if (page >= 1 && page <= pager.totalPages) {
-    pager.currentPage = page;
-    fetchFlashcardTypes(page);
+  if (page >= 1 && page <= get(pager).totalPages) {
+    pager.update((current) => ({
+      ...current,
+      currentPage: page,
+    }));
+    fetchItems(page);
   }
 };
 
@@ -101,7 +106,7 @@ export const toggleCreationModal = (isShown: boolean = false) => {
 };
 
 export const openEditingModal = (id: number) => {
-  getFlashcardType(id).then((response) => {
+  getById(id).then((response) => {
     if (response) {
       edittingData.set(response);
       showCreationModal.set(true);
@@ -110,7 +115,7 @@ export const openEditingModal = (id: number) => {
 };
 
 export const openDeletingModal = (id: number) => {
-  getFlashcardType(id).then((response) => {
+  getById(id).then((response) => {
     if (response) {
       deletingData.set({ id: response.id, name: response.name });
       showDeletionModal.set(true);
@@ -128,7 +133,7 @@ export const deleteById = async (id: number) => {
   await flashcardTypeService
     .deleteById(fetch, id)
     .then(async () => {
-      await fetchFlashcardTypes(1);
+      await fetchItems(1);
       toggleDeletionModal(false);
     })
     .catch((error) => {

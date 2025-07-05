@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
-#[derive(Default)]
+#[derive(Serialize, Deserialize, Default, Clone)]
 pub struct UserRoleDto {
     pub id: i32,
     pub user_id: i32,

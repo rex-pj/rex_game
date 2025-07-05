@@ -5,10 +5,8 @@ import type { Pager } from "../../../../components/molecules/pagination/pager";
 import type { UserDto, UserRequest } from "$lib/models/user";
 
 const userService: UserService = new UserService(Cookies);
-export const users: Writable<UserDto[]> = writable([]);
-export const currentPage = writable(1);
-export const totalPages = writable(1);
-export const pager = { currentPage: 1, totalPages: 0 } as Pager;
+export const items: Writable<UserDto[]> = writable([]);
+export const pager: Writable<Pager> = writable({ currentPage: 1, totalPages: 0 });
 const itemsPerPage = 10;
 export const showCreationModal = writable(false);
 export const creationError = writable("");
@@ -27,28 +25,29 @@ export const isDeletionSubmitting = writable(false);
 export const deletingData = writable({ id: 0, name: "" });
 
 // Fetch users data (mocked for now)
-export const fetchUsers = async (page: number) => {
+export const getList = async (page: number) => {
   // Replace this with your API call
   const response = await userService.getList(fetch, page, itemsPerPage);
 
-  const start = (page - 1) * itemsPerPage;
-  const end = start + itemsPerPage;
-  const items = response.items;
-  users.set(items.slice(start, end));
-  pager.totalPages = Math.ceil(response.total_count / itemsPerPage);
+  items.set(response.items);
+  const totalPages = Math.ceil(response.total_count / itemsPerPage);
+  pager.update((current) => ({
+    ...current,
+    totalPages: totalPages,
+  }));
 };
 
 export const submit = async (data: UserRequest) => {
-  return await updateUser(data.id, data);
+  return await update(data.id, data);
 };
 
-export const updateUser = async (id: number, data: UserRequest) => {
+export const update = async (id: number, data: UserRequest) => {
   isSubmitting.set(true);
 
   await userService
     .update(fetch, id, data)
     .then(async () => {
-      await fetchUsers(pager.currentPage);
+      await getList(1);
       toggleCreationModal(false);
     })
     .catch((error) => {
@@ -60,7 +59,7 @@ export const updateUser = async (id: number, data: UserRequest) => {
 };
 
 export const openDeletingModal = (id: number) => {
-  getUser(id).then((response) => {
+  getById(id).then((response) => {
     if (response) {
       deletingData.set({ id: response.id, name: response.name });
       showDeletionModal.set(true);
@@ -69,13 +68,16 @@ export const openDeletingModal = (id: number) => {
 };
 
 export const changePage = (page: number) => {
-  if (page >= 1 && page <= get(totalPages)) {
-    currentPage.set(page);
-    fetchUsers(page);
+  if (page >= 1 && page <= get(pager).totalPages) {
+    pager.update((current) => ({
+      ...current,
+      currentPage: page,
+    }));
+    getList(page);
   }
 };
 
-export const getUser = async (id: number) => {
+export const getById = async (id: number) => {
   isSubmitting.set(true);
   return await userService
     .getById(fetch, id)
@@ -102,7 +104,7 @@ export const toggleCreationModal = async (isShown: boolean = false) => {
 };
 
 export const openEditingModal = async (id: number) => {
-  getUser(id).then(async (response: UserDto) => {
+  getById(id).then(async (response: UserDto) => {
     if (response) {
       const data: UserRequest = {
         id: response.id,
@@ -126,7 +128,7 @@ export const deleteById = async (id: number) => {
   await userService
     .deleteById(fetch, id)
     .then(async () => {
-      await fetchUsers(1);
+      await getList(1);
       toggleDeletionModal(false);
     })
     .catch((error) => {

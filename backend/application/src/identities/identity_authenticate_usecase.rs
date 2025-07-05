@@ -8,7 +8,7 @@ use super::{
     login_claims::LoginClaims,
 };
 use crate::{
-    errors::application_error::{ApplicationError, ErrorKind},
+    errors::application_error::{ApplicationError, ApplicationErrorKind},
     users::user_usecase_trait::UserUseCaseTrait,
 };
 
@@ -60,7 +60,7 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
             Ok(_) => true,
             Err(e) => {
                 return Err(ApplicationError {
-                    kind: ErrorKind::InvalidInput,
+                    kind: ApplicationErrorKind::InvalidInput,
                     message: e.message,
                     details: None,
                 })
@@ -74,7 +74,7 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
             Some(claims) => claims,
             None => {
                 return Err(ApplicationError {
-                    kind: ErrorKind::InvalidInput,
+                    kind: ApplicationErrorKind::InvalidInput,
                     message: String::from("Failed to generate refresh token"),
                     details: None,
                 })
@@ -88,7 +88,7 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
             Some(refresh_token) => refresh_token,
             None => {
                 return Err(ApplicationError {
-                    kind: ErrorKind::InvalidInput,
+                    kind: ApplicationErrorKind::InvalidInput,
                     message: String::from("Failed to generate refresh token"),
                     details: None,
                 })
@@ -117,7 +117,7 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
             Some(claims) => claims,
             None => {
                 return Err(ApplicationError {
-                    kind: ErrorKind::InvalidInput,
+                    kind: ApplicationErrorKind::InvalidInput,
                     message: String::from("Failed to refresh access token"),
                     details: None,
                 })
@@ -131,7 +131,7 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
             Some(refresh_token) => refresh_token,
             None => {
                 return Err(ApplicationError {
-                    kind: ErrorKind::InvalidInput,
+                    kind: ApplicationErrorKind::InvalidInput,
                     message: String::from("Failed to generate refresh token"),
                     details: None,
                 })
@@ -154,7 +154,7 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
         match verify_result {
             Ok(claims) => Ok(claims),
             Err(_) => Err(ApplicationError {
-                kind: ErrorKind::Unauthorized,
+                kind: ApplicationErrorKind::Unauthorized,
                 message: String::from("Unauthorized"),
                 details: None,
             }),
