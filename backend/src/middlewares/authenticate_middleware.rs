@@ -114,7 +114,7 @@ where
         Box::pin(async move {
             let user_permissions = app_state
                 .user_usecase()
-                .get_user_permissions(current_user_claims.id)
+                .get_user_permissions_by_user_id(current_user_claims.id)
                 .await;
 
             let mut user_permission_codes = match user_permissions {
@@ -124,7 +124,7 @@ where
 
             let user_roles = match app_state
                 .user_usecase()
-                .get_user_roles(current_user_claims.id)
+                .get_user_roles_by_user_id(current_user_claims.id)
                 .await
             {
                 Ok(roles) => roles,
@@ -137,7 +137,7 @@ where
                 if !role_ids.is_empty() {
                     let role_permissions = app_state
                         .role_usecase()
-                        .get_roles_permissions(role_ids)
+                        .get_roles_permissions_by_role_ids(role_ids)
                         .await;
 
                     if let Ok(permissions) = role_permissions {

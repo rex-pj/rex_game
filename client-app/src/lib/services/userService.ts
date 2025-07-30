@@ -2,6 +2,8 @@ import { type Cookies } from "@sveltejs/kit";
 import { BaseService } from "./baseService";
 import type JsCookies from "js-cookie";
 import type { UserRequest } from "$lib/models/user";
+import type { UserPermission } from "$lib/models/user-permission";
+import type { UserRole } from "$lib/models/user-role";
 
 class UserService extends BaseService {
   private readonly baseUrl = "/users";
@@ -26,7 +28,7 @@ class UserService extends BaseService {
   ) {
     const response = await this.get(
       fetch,
-      "/users",
+      this.baseUrl,
       new URLSearchParams({ page: page.toString(), page_size: page_size.toString() }),
       { observe: true }
     );
@@ -87,6 +89,82 @@ class UserService extends BaseService {
     const response = await this.delete(fetch, `${this.baseUrl}/${id}`, { observe: true });
     if (response.status !== 200) {
       throw new Error("Failed to update user");
+    }
+    return await response.json();
+  }
+
+  async getRoleList(
+    fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+    id: number,
+    page?: number,
+    page_size?: number
+  ): Promise<UserRole[]> {
+    const params = new URLSearchParams();
+    if (page) {
+      params.append("page", page.toString());
+    }
+
+    if (page_size) {
+      params.append("page_size", page_size.toString());
+    }
+
+    const response = await this.get(fetch, `${this.baseUrl}/${id}/roles`, params, {
+      observe: true,
+    });
+    if (response.status !== 200) {
+      throw new Error("Failed to fetch user roles");
+    }
+    return await response.json();
+  }
+
+  async assignRoles(
+    fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+    id: number,
+    data: { role_ids: number[] }
+  ): Promise<number> {
+    const response = await this.post(fetch, `${this.baseUrl}/${id}/roles`, data, {
+      observe: true,
+    });
+    if (response.status !== 200) {
+      return Promise.reject(new Error("Failed to assign role to user"));
+    }
+    return await response.json();
+  }
+
+  async assignPermissions(
+    fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+    id: number,
+    data: { permission_codes: string[] }
+  ): Promise<number> {
+    const response = await this.post(fetch, `${this.baseUrl}/${id}/permissions`, data, {
+      observe: true,
+    });
+    if (response.status !== 200) {
+      return Promise.reject(new Error("Failed to assign permission to user"));
+    }
+    return await response.json();
+  }
+
+  async getPermissionList(
+    fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+    id: number,
+    page: number | null = null,
+    page_size: number | null = null
+  ): Promise<UserPermission[]> {
+    const params = new URLSearchParams();
+    if (page !== null) {
+      params.append("page", page.toString());
+    }
+
+    if (page_size !== null) {
+      params.append("page_size", page_size.toString());
+    }
+    const response = await this.get(fetch, `${this.baseUrl}/${id}/permissions`, params, {
+      observe: true,
+    });
+
+    if (response.status !== 200) {
+      throw new Error("Failed to fetch user permissions");
     }
     return await response.json();
   }

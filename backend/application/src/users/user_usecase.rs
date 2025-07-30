@@ -272,11 +272,7 @@ where
         user_role_req: UserRoleCreationDto,
         transaction: Box<&dyn TransactionWrapperTrait>,
     ) -> Result<i32, ApplicationError> {
-        let role = match self
-            ._role_repository
-            .get_by_name(&user_role_req.role_name)
-            .await
-        {
+        let role = match self._role_repository.get_by_id(user_role_req.role_id).await {
             Ok(role_model) => role_model,
             Err(_) => {
                 return Err(ApplicationError::new(
@@ -312,37 +308,22 @@ where
         }
     }
 
-    async fn assign_role(
+    async fn assign_roles(
         &self,
         user_id: i32,
-        user_role_req: UserRoleCreationDto,
+        user_role_req: Vec<UserRoleCreationDto>,
     ) -> Result<i32, ApplicationError> {
-        let role = match self
-            ._role_repository
-            .get_by_name(&user_role_req.role_name)
-            .await
-        {
-            Ok(role_model) => role_model,
-            Err(_) => {
-                return Err(ApplicationError::new(
-                    ApplicationErrorKind::DatabaseError,
-                    "Database error",
-                    None,
-                ))
-            }
-        };
-
-        match self
-            ._user_role_repository
-            .create(UserRoleModel {
+        let user_roles = user_role_req
+            .into_iter()
+            .map(|f| UserRoleModel {
                 user_id: user_id,
-                role_id: role.id,
-                created_by_id: user_role_req.created_by_id,
-                updated_by_id: user_role_req.updated_by_id,
+                role_id: f.role_id,
+                created_by_id: f.created_by_id,
+                updated_by_id: f.updated_by_id,
                 ..Default::default()
             })
-            .await
-        {
+            .collect::<Vec<UserRoleModel>>();
+        match self._user_role_repository.create_many(user_roles).await {
             Ok(inserted) => Ok(inserted),
             Err(_) => {
                 return Err(ApplicationError::new(
@@ -354,78 +335,65 @@ where
         }
     }
 
-    fn get_user_roles(
+    async fn unassign_roles(
+        &self,
+        user_id: i32,
+        user_role_req: Vec<UserRoleDto>,
+    ) -> Result<u64, ApplicationError> {
+        let deleted_roles = user_role_req
+            .into_iter()
+            .map(|f| UserRoleModel {
+                role_id: f.role_id,
+                ..Default::default()
+            })
+            .collect::<Vec<UserRoleModel>>();
+        match self
+            ._user_role_repository
+            .delete_many(user_id, deleted_roles)
+            .await
+        {
+            Ok(deleted) => Ok(deleted),
+            Err(_) => {
+                return Err(ApplicationError::new(
+                    ApplicationErrorKind::DatabaseError,
+                    "Assign role failed",
+                    None,
+                ))
+            }
+        }
+    }
+
+    fn get_user_roles_by_user_id(
         &self,
         user_id: i32,
     ) -> Pin<Box<dyn Future<Output = Result<Vec<UserRoleDto>, ApplicationError>> + Send>> {
         let user_role_repository = self._user_role_repository.clone();
         Box::pin(async move {
-            let roles = user_role_repository.get_user_roles(user_id).await;
-            match roles {
-                Ok(i) => {
-                    return Ok(i
-                        .into_iter()
-                        .map(|f| UserRoleDto {
-                            id: f.id,
-                            user_id: f.user_id,
-                            role_id: f.role_id,
-                            role_name: f.role_name,
-                            ..Default::default()
-                        })
-                        .collect());
-                }
-                Err(_) => Err(ApplicationError::new(
-                    ApplicationErrorKind::DatabaseError,
-                    "Database error",
-                    None,
-                )),
-            }
+            let roles = user_role_repository
+                .get_user_roles_by_user_id(user_id)
+                .await
+                .map_err(|_| {
+                    ApplicationError::new(
+                        ApplicationErrorKind::DatabaseError,
+                        "Database error",
+                        None,
+                    )
+                })?;
+            return Ok(roles
+                .into_iter()
+                .map(|f| UserRoleDto {
+                    id: f.id,
+                    user_id: f.user_id,
+                    user_name: f.user_name,
+                    role_id: f.role_id,
+                    role_name: f.role_name,
+                    ..Default::default()
+                })
+                .collect());
         })
     }
 
-    async fn assign_user_permission(
-        &self,
-        user_id: i32,
-        user_permission_req: UserPermissionCreationDto,
-    ) -> Result<i32, ApplicationError> {
-        let permission = match self
-            ._permission_repository
-            .get_by_code(&user_permission_req.permission_code)
-            .await
-        {
-            Ok(permission_model) => permission_model,
-            Err(_) => {
-                return Err(ApplicationError::new(
-                    ApplicationErrorKind::DatabaseError,
-                    "Database error",
-                    None,
-                ))
-            }
-        };
-
-        match self
-            ._user_permission_repository
-            .create(UserPermissionModel {
-                user_id: user_id,
-                permission_id: permission.id,
-                created_by_id: user_permission_req.created_by_id,
-                updated_by_id: user_permission_req.updated_by_id,
-                ..Default::default()
-            })
-            .await
-        {
-            Ok(inserted) => Ok(inserted),
-            Err(_) => {
-                return Err(ApplicationError::new(
-                    ApplicationErrorKind::DatabaseError,
-                    "Assign role failed",
-                    None,
-                ))
-            }
-        }
-    }
-
-    fn get_user_permissions(
+    fn get_user_permissions_by_user_id(
         &self,
         user_id: i32,
     ) -> Pin<Box<dyn Future<Output = Result<Vec<UserPermissionDto>, ApplicationError>> + Send>>
@@ -433,7 +401,7 @@ where
         let user_permission_repository = self._user_permission_repository.clone();
         Box::pin(async move {
             let permissions = user_permission_repository
-                .get_user_permissions(user_id)
+                .get_list_by_user_id(user_id)
                 .await;
             match permissions {
                 Ok(i) => {
@@ -442,6 +410,7 @@ where
                         .map(|f| UserPermissionDto {
                             id: f.id,
                             user_id: f.user_id,
+                            user_name: f.user_name,
                             permission_id: f.permission_id,
                             permission_name: f.permission_name,
                             permission_code: f.permission_code,
@@ -457,5 +426,91 @@ where
                 )),
             }
         })
+    }
+
+    async fn get_user_permissions(&self) -> Result<Vec<UserPermissionDto>, ApplicationError> {
+        let user_permission_repository = self._user_permission_repository.clone();
+        let permissions = user_permission_repository.get_list().await;
+        match permissions {
+            Ok(i) => {
+                return Ok(i
+                    .into_iter()
+                    .map(|f| UserPermissionDto {
+                        id: f.id,
+                        user_id: f.user_id,
+                        user_name: f.user_name,
+                        permission_id: f.permission_id,
+                        permission_name: f.permission_name,
+                        permission_code: f.permission_code,
+                        permission_module: f.permission_module,
+                        ..Default::default()
+                    })
+                    .collect());
+            }
+            Err(_) => Err(ApplicationError::new(
+                ApplicationErrorKind::DatabaseError,
+                "Database error",
+                None,
+            )),
+        }
+    }
+
+    async fn assign_permissions(
+        &self,
+        user_id: i32,
+        user_permission_req: Vec<UserPermissionCreationDto>,
+    ) -> Result<i32, ApplicationError> {
+        let user_permissions = user_permission_req
+            .into_iter()
+            .map(|f| UserPermissionModel {
+                user_id: user_id,
+                permission_id: f.permission_id,
+                created_by_id: f.created_by_id,
+                updated_by_id: f.updated_by_id,
+                ..Default::default()
+            })
+            .collect::<Vec<UserPermissionModel>>();
+        match self
+            ._user_permission_repository
+            .create_many(user_permissions)
+            .await
+        {
+            Ok(inserted) => Ok(inserted),
+            Err(_) => {
+                return Err(ApplicationError::new(
+                    ApplicationErrorKind::DatabaseError,
+                    "Assign permission failed",
+                    None,
+                ))
+            }
+        }
+    }
+
+    async fn unassign_permissions(
+        &self,
+        user_id: i32,
+        user_permission_req: Vec<UserPermissionDto>,
+    ) -> Result<u64, ApplicationError> {
+        let deleted_permissions = user_permission_req
+            .into_iter()
+            .map(|f| UserPermissionModel {
+                permission_id: f.permission_id,
+                ..Default::default()
+            })
+            .collect::<Vec<UserPermissionModel>>();
+        match self
+            ._user_permission_repository
+            .delete_many(user_id, deleted_permissions)
+            .await
+        {
+            Ok(deleted) => Ok(deleted),
+            Err(_) => {
+                return Err(ApplicationError::new(
+                    ApplicationErrorKind::DatabaseError,
+                    "Assign permission failed",
+                    None,
+                ))
+            }
+        }
     }
 }

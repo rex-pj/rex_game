@@ -6,8 +6,8 @@ use rex_game_domain::{
     repositories::permission_repository_trait::PermissionRepositoryTrait,
 };
 use sea_orm::{
-    ColumnTrait, Condition, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder, Set,
+    sea_query::Expr, sea_query::Func, ColumnTrait, Condition, DatabaseConnection, EntityTrait,
+    PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set,
 };
 use std::sync::Arc;
 
@@ -58,10 +58,17 @@ impl PermissionRepositoryTrait for PermissionRepository {
         }
     }
 
-    async fn get_by_code(&self, code: &str) -> Result<PermissionModel, DomainError> {
+    async fn get_by_code(&self, code: &str) -> Result<Option<PermissionModel>, DomainError> {
         let db = self._db_connection.as_ref();
         let existing = Permission::find()
-            .filter(Condition::all().add(permission::Column::Code.eq(code)))
+            .filter(
+                Condition::all()
+                    .add(
+                        Expr::expr(Func::lower(Expr::col(permission::Column::Code)))
+                            .eq(code.to_lowercase()),
+                    )
+                    .add(permission::Column::IsActived.eq(true)),
+            )
             .one(db)
             .await
             .map_err(|err| {
@@ -69,23 +76,51 @@ impl PermissionRepositoryTrait for PermissionRepository {
             })?;
 
         match existing {
-            Some(f) => Ok(PermissionModel {
-                id: f.id,
-                name: f.name,
-                code: f.code,
-                module: f.module,
-                description: f.description,
-                created_date: f.created_date.with_timezone(&Utc),
-                updated_date: f.updated_date.with_timezone(&Utc),
-                created_by_id: f.created_by_id,
-                updated_by_id: f.updated_by_id,
-                is_actived: f.is_actived,
-            }),
-            None => Err(DomainError::new(
-                ErrorType::NotFound,
-                "Permission not found",
-                None,
-            )),
+            Some(f) => Ok(Some(self::map_entity_to_model(f))),
+            None => Ok(None),
+        }
+    }
+
+    async fn get_by_codes(&self, codes: Vec<String>) -> Result<Vec<PermissionModel>, DomainError> {
+        let db = self._db_connection.as_ref();
+        let existing_permissions = Permission::find()
+            .filter(permission::Column::Code.is_in(codes))
+            .all(db)
+            .await
+            .map_err(|err| {
+                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
+            })?;
+
+        if existing_permissions.is_empty() {
+            return Ok(vec![]);
+        }
+        let list = existing_permissions
+            .into_iter()
+            .map(|i| self::map_entity_to_model(i))
+            .collect::<Vec<PermissionModel>>();
+        Ok(list)
+    }
+
+    async fn get_by_name(&self, name: &str) -> Result<Option<PermissionModel>, DomainError> {
+        let db = self._db_connection.as_ref();
+        let existing = Permission::find()
+            .filter(
+                Condition::all()
+                    .add(
+                        Expr::expr(Func::lower(Expr::col(permission::Column::Name)))
+                            .eq(name.to_lowercase()),
+                    )
+                    .add(permission::Column::IsActived.eq(true)),
+            )
+            .one(db)
+            .await
+            .map_err(|err| {
+                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
+            })?;
+
+        match existing {
+            Some(f) => Ok(Some(self::map_entity_to_model(f))),
+            None => Ok(None),
         }
     }
 
@@ -96,18 +131,7 @@ impl PermissionRepositoryTrait for PermissionRepository {
         })?;
 
         match existing {
-            Some(f) => Ok(PermissionModel {
-                id: f.id,
-                name: f.name,
-                description: f.description,
-                code: f.code,
-                module: f.module,
-                created_date: f.created_date.with_timezone(&Utc),
-                updated_date: f.updated_date.with_timezone(&Utc),
-                created_by_id: f.created_by_id,
-                updated_by_id: f.updated_by_id,
-                is_actived: f.is_actived,
-            }),
+            Some(f) => Ok(self::map_entity_to_model(f)),
             None => Err(DomainError::new(
                 ErrorType::NotFound,
                 "Permission not found",
@@ -121,7 +145,7 @@ impl PermissionRepositoryTrait for PermissionRepository {
         name: Option<String>,
         description: Option<String>,
         page: u64,
-        page_size: u64,
+        page_size_option: Option<u64>,
     ) -> Result<PageListModel<PermissionModel>, DomainError> {
         let db = self._db_connection.as_ref();
         let mut query = Permission::find();
@@ -134,50 +158,77 @@ impl PermissionRepositoryTrait for PermissionRepository {
             query = query.filter(permission::Column::Description.eq(n));
         }
 
-        query = query.order_by(permission::Column::UpdatedDate, sea_orm::Order::Desc);
+        query = query
+            .columns([
+                permission::Column::Id,
+                permission::Column::Name,
+                permission::Column::Description,
+                permission::Column::Code,
+                permission::Column::Module,
+                permission::Column::CreatedDate,
+                permission::Column::UpdatedDate,
+                permission::Column::CreatedById,
+                permission::Column::UpdatedById,
+                permission::Column::IsActived,
+            ])
+            .order_by(permission::Column::UpdatedDate, sea_orm::Order::Desc);
 
-        let paginator = query.paginate(db, page_size);
+        match page_size_option {
+            Some(page_size) if page > 0 => {
+                let paginator = query.paginate(db, page_size);
+                let total_count = match paginator.num_items().await {
+                    Ok(count) => count,
+                    Err(err) => {
+                        return Err(DomainError::new(
+                            ErrorType::DatabaseError,
+                            err.to_string().as_str(),
+                            None,
+                        ))
+                    }
+                };
 
-        let total_count = match paginator.num_items().await {
-            Ok(count) => count,
-            Err(err) => {
-                return Err(DomainError::new(
-                    ErrorType::DatabaseError,
-                    err.to_string().as_str(),
-                    None,
-                ))
+                let page_list = paginator.fetch_page(page - 1).await;
+                match page_list {
+                    Ok(items) => {
+                        let list = items
+                            .into_iter()
+                            .map(|i| self::map_entity_to_model(i))
+                            .collect::<Vec<PermissionModel>>();
+                        return Ok(PageListModel {
+                            items: list,
+                            total_count,
+                        });
+                    }
+                    Err(err) => {
+                        return Err(DomainError::new(
+                            ErrorType::DatabaseError,
+                            err.to_string().as_str(),
+                            None,
+                        ))
+                    }
+                }
             }
-        };
-
-        let page_list = paginator.fetch_page(page - 1).await;
-        match page_list {
-            Ok(items) => {
-                let list = items
-                    .into_iter()
-                    .map(|i| PermissionModel {
-                        id: i.id,
-                        name: i.name,
-                        description: i.description,
-                        code: i.code,
-                        module: i.module,
-                        created_date: i.created_date.with_timezone(&Utc),
-                        updated_date: i.updated_date.with_timezone(&Utc),
-                        created_by_id: i.created_by_id,
-                        updated_by_id: i.updated_by_id,
-                        is_actived: i.is_actived,
-                    })
-                    .collect::<Vec<PermissionModel>>();
-                return Ok(PageListModel {
-                    items: list,
-                    total_count,
-                });
-            }
-            Err(err) => {
-                return Err(DomainError::new(
-                    ErrorType::DatabaseError,
-                    err.to_string().as_str(),
-                    None,
-                ))
+            None | Some(_) => {
+                let page_list = query.all(db).await;
+                match page_list {
+                    Ok(items) => {
+                        let list = items
+                            .into_iter()
+                            .map(|i| self::map_entity_to_model(i))
+                            .collect::<Vec<PermissionModel>>();
+                        return Ok(PageListModel {
+                            items: list.clone(),
+                            total_count: list.len() as u64,
+                        });
+                    }
+                    Err(err) => {
+                        return Err(DomainError::new(
+                            ErrorType::DatabaseError,
+                            err.to_string().as_str(),
+                            None,
+                        ))
+                    }
+                }
             }
         }
     }
@@ -217,5 +268,20 @@ impl PermissionRepositoryTrait for PermissionRepository {
                 None,
             )),
         }
+    }
+}
+
+fn map_entity_to_model(permission: permission::Model) -> PermissionModel {
+    PermissionModel {
+        id: permission.id,
+        name: permission.name,
+        description: permission.description,
+        code: permission.code,
+        module: permission.module,
+        created_date: permission.created_date.with_timezone(&Utc),
+        updated_date: permission.updated_date.with_timezone(&Utc),
+        created_by_id: permission.created_by_id,
+        updated_by_id: permission.updated_by_id,
+        is_actived: permission.is_actived,
     }
 }

@@ -3,6 +3,7 @@ import { UserService } from "$lib/services/userService";
 import Cookies from "js-cookie";
 import type { Pager } from "../../../../components/molecules/pagination/pager";
 import type { UserDto, UserRequest } from "$lib/models/user";
+import { goto } from "$app/navigation";
 
 const userService: UserService = new UserService(Cookies);
 export const items: Writable<UserDto[]> = writable([]);
@@ -137,4 +138,8 @@ export const deleteById = async (id: number) => {
     .finally(() => {
       isDeletionSubmitting.set(false);
     });
+};
+
+export const redirectToAccesses = (id: number) => {
+  goto(`/admin/users/${id}/accesses`);
 };

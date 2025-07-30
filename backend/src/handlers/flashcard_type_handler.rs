@@ -13,7 +13,7 @@ use rex_game_application::{
         flashcard_type_usecase_trait::FlashcardTypeUseCaseTrait,
     },
     page_list_dto::PageListDto,
-    users::roles::{ROLE_ADMIN, ROLE_ROOT_ADMIN},
+    users::roles::ROLE_ROOT_ADMIN,
 };
 use serde::Deserialize;
 
@@ -80,7 +80,7 @@ impl FlashcardTypeHandler {
         if !current_user
             .roles
             .iter()
-            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+            .any(|role| role == ROLE_ROOT_ADMIN)
         {
             return Err(StatusCode::FORBIDDEN);
         }
@@ -136,7 +136,7 @@ impl FlashcardTypeHandler {
         if !current_user
             .roles
             .iter()
-            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+            .any(|role| role == ROLE_ROOT_ADMIN)
         {
             return Err(StatusCode::FORBIDDEN);
         }
@@ -168,7 +168,7 @@ impl FlashcardTypeHandler {
         if !current_user
             .roles
             .iter()
-            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+            .any(|role| role == ROLE_ROOT_ADMIN)
         {
             return Err(StatusCode::FORBIDDEN);
         }

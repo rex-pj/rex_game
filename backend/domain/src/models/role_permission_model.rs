@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 pub struct RolePermissionModel {
     pub id: i32,
     pub role_id: i32,
+    pub role_name: String,
     pub permission_id: i32,
     pub permission_name: String,
     pub permission_code: String,

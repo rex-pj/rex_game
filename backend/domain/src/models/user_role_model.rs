@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 pub struct UserRoleModel {
     pub id: i32,
     pub user_id: i32,
+    pub user_name: String,
     pub role_id: i32,
     pub role_name: String,
     pub created_by_id: i32,

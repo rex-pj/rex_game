@@ -5,6 +5,7 @@ use rex_game_application::{
     identities::{
         identity_user_usecase_trait::IdentityUserUseCaseTrait, user_creation_dto::UserCreationDto,
     },
+    roles::role_usecase_trait::RoleUseCaseTrait,
     users::{
         roles::ROLE_ROOT_ADMIN, user_role_creation_dto::UserRoleCreationDto,
         user_usecase_trait::UserUseCaseTrait,
@@ -80,12 +81,26 @@ impl SetupHandler {
             }
         };
 
+        let existing_role = _state
+            .role_usecase()
+            .get_role_by_name(ROLE_ROOT_ADMIN)
+            .await;
+        let role = match existing_role {
+            Some(role_model) => role_model,
+            None => {
+                if let Err(_) = transaction_manager.rollback(transaction_wrapper).await {
+                    return Err(StatusCode::INTERNAL_SERVER_ERROR);
+                }
+                return Err(StatusCode::INTERNAL_SERVER_ERROR);
+            }
+        };
+
         if let Err(_) = _state
             .user_usecase()
             .assign_role_with_transaction(
                 created_result.id,
                 UserRoleCreationDto {
-                    role_name: String::from(ROLE_ROOT_ADMIN),
+                    role_id: role.id,
                     created_by_id: created_result.id,
                     updated_by_id: created_result.id,
                 },

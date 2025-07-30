@@ -1,6 +1,7 @@
 import type { Cookies } from "@sveltejs/kit";
 import { BaseService } from "./baseService";
 import type JsCookies from "js-cookie";
+import type { Permission } from "$lib/models/permission";
 
 export class PermissionService extends BaseService {
   private readonly baseUrl = "/permissions";
@@ -10,15 +11,18 @@ export class PermissionService extends BaseService {
 
   async getList(
     fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
-    page: number = 1,
-    page_size: number = 10
-  ) {
-    const response = await this.get(
-      fetch,
-      this.baseUrl,
-      new URLSearchParams({ page: page.toString(), page_size: page_size.toString() }),
-      { observe: true }
-    );
+    page?: number,
+    page_size?: number
+  ): Promise<{ items: Permission[]; total_count: number }> {
+    const params = new URLSearchParams();
+    if (page) {
+      params.append("page", page.toString());
+    }
+
+    if (page_size) {
+      params.append("page_size", page_size.toString());
+    }
+    const response = await this.get(fetch, this.baseUrl, params, { observe: true });
     if (response.status !== 200) {
       throw new Error("Failed to fetch permissions");
     }
@@ -28,7 +32,7 @@ export class PermissionService extends BaseService {
   async getById(
     fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
     id: number
-  ) {
+  ): Promise<Permission> {
     const response = await this.get(fetch, `${this.baseUrl}/${id}`, new URLSearchParams(), {
       observe: true,
     });

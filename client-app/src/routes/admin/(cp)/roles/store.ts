@@ -3,6 +3,7 @@ import { RoleService } from "$lib/services/roleService";
 import Cookies from "js-cookie";
 import type { Pager } from "../../../../components/molecules/pagination/pager";
 import type { Role, RoleRequest } from "$lib/models/role";
+import { goto } from "$app/navigation";
 
 const roleService: RoleService = new RoleService(Cookies);
 export const items: Writable<Role[]> = writable([]);
@@ -126,6 +127,10 @@ export const openDeletingModal = (id: number) => {
 export const toggleDeletionModal = (isShown: boolean = false) => {
   showDeletionModal.set(isShown);
   deletingData.set({ id: 0, name: "" });
+};
+
+export const redirectToAccesses = (id: number) => {
+  goto(`/admin/roles/${id}/accesses`);
 };
 
 export const deleteById = async (id: number) => {

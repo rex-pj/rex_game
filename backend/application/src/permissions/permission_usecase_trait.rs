@@ -16,12 +16,24 @@ pub trait PermissionUseCaseTrait {
         &self,
         id: i32,
     ) -> impl Future<Output = Result<PermissionDto, ApplicationError>>;
+    fn get_permission_by_code(
+        &self,
+        code: &str,
+    ) -> impl Future<Output = Result<Option<PermissionDto>, ApplicationError>>;
+    fn get_permission_by_codes(
+        &self,
+        codes: Vec<String>,
+    ) -> impl Future<Output = Result<Vec<PermissionDto>, ApplicationError>>;
+    fn get_permission_by_name(
+        &self,
+        name: &str,
+    ) -> impl Future<Output = Result<Option<PermissionDto>, ApplicationError>>;
     fn get_permissions<'a>(
         &'a self,
         name: Option<String>,
         description: Option<String>,
         page: u64,
-        page_size: u64,
+        page_size_option: Option<u64>,
     ) -> impl Future<Output = Result<PageListDto<PermissionDto>, ApplicationError>>;
     fn update_permission<'a>(
         &'a self,

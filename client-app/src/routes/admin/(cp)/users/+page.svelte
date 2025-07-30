@@ -19,10 +19,10 @@
     toggleDeletionModal,
     deletingData,
     openEditingModal,
+    redirectToAccesses,
   } from "./store";
   import Pagination from "../../../../components/molecules/pagination/pagination.svelte";
   import UserUpdateModal from "../../../../components/organisms/users/UserUpdateModal.svelte";
-  import type { SelectOption } from "$lib/models/select-option";
   import UserDeleteModal from "../../../../components/organisms/users/UserDeleteModal.svelte";
   import { standardizeDate } from "$lib/helpers/dateTimeHelper";
 
@@ -96,6 +96,15 @@
                     onclick={() => {
                       openDeletingModal(item.id);
                     }}>Delete</button
+                  >
+                </li>
+                <li>
+                  <button
+                    class="dropdown-item text-success"
+                    type="button"
+                    onclick={() => {
+                      redirectToAccesses(item.id);
+                    }}>User accesses</button
                   >
                 </li>
               </ul>

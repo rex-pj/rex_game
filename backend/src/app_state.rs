@@ -113,7 +113,12 @@ pub struct RegularAppState {
     >,
     pub file_helper: FileHelper,
     pub date_time_helper: DateTimeHelper,
-    pub role_usecase: RoleUseCase<RoleRepository, PermissionRepository, RolePermissionRepository>,
+    pub role_usecase: RoleUseCase<
+        RoleRepository,
+        PermissionRepository,
+        RolePermissionRepository,
+        UserRoleRepository,
+    >,
     pub permission_usecase: PermissionUseCase<PermissionRepository>,
     pub db_connection: Arc<DatabaseConnection>,
     pub identity_authorize_usecase: IdentityAuthorizeUseCase<
@@ -167,7 +172,12 @@ impl AppStateTrait for RegularAppState {
     >;
     type FileHelper = FileHelper;
     type DateTimeHelper = DateTimeHelper;
-    type RoleUseCase = RoleUseCase<RoleRepository, PermissionRepository, RolePermissionRepository>;
+    type RoleUseCase = RoleUseCase<
+        RoleRepository,
+        PermissionRepository,
+        RolePermissionRepository,
+        UserRoleRepository,
+    >;
     type PermissionUseCase = PermissionUseCase<PermissionRepository>;
     type TransactionManager = TransactionManager;
 

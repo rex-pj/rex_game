@@ -17,7 +17,7 @@ use rex_game_application::{
         flashcard_usecase_trait::FlashcardUseCaseTrait,
     },
     page_list_dto::PageListDto,
-    users::roles::{ROLE_ADMIN, ROLE_ROOT_ADMIN},
+    users::roles::ROLE_ROOT_ADMIN,
 };
 use serde::Deserialize;
 use std::sync::Arc;
@@ -106,7 +106,7 @@ impl FlashcardHandler {
         if !current_user
             .roles
             .iter()
-            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+            .any(|role| role == ROLE_ROOT_ADMIN)
         {
             return Err(StatusCode::FORBIDDEN);
         }
@@ -179,7 +179,7 @@ impl FlashcardHandler {
         if !current_user
             .roles
             .iter()
-            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+            .any(|role| role == ROLE_ROOT_ADMIN)
         {
             return Err(StatusCode::FORBIDDEN);
         }
@@ -250,7 +250,7 @@ impl FlashcardHandler {
         if !current_user
             .roles
             .iter()
-            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+            .any(|role| role == ROLE_ROOT_ADMIN)
         {
             return Err(StatusCode::FORBIDDEN);
         }

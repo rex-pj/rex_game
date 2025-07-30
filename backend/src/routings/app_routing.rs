@@ -4,7 +4,7 @@ use axum::{
     routing::{delete, get, patch, post},
     Router,
 };
-use rex_game_application::users::roles::{ROLE_ADMIN, ROLE_ROOT_ADMIN};
+use rex_game_application::users::roles::ROLE_ROOT_ADMIN;
 use tower::ServiceBuilder;
 
 use crate::{
@@ -102,7 +102,7 @@ impl AppRouting {
             )
             .route(
                 "/roles/{role_id}/permissions",
-                post(RoleHandler::assign_permission::<RegularAppState>),
+                post(RoleHandler::assign_permissions::<RegularAppState>),
             )
             .route(
                 "/roles/{role_id}/permissions",
@@ -118,7 +118,7 @@ impl AppRouting {
             )
             .route(
                 "/users/{user_id}/roles",
-                post(UserHandler::assign_role::<RegularAppState>),
+                post(UserHandler::assign_roles::<RegularAppState>),
             )
             .route(
                 "/permissions",
@@ -142,7 +142,7 @@ impl AppRouting {
             )
             .route(
                 "/users/{user_id}/permissions",
-                post(UserHandler::assign_permission::<RegularAppState>),
+                post(UserHandler::assign_permissions::<RegularAppState>),
             )
             .route(
                 "/users/{user_id}/permissions",
@@ -172,12 +172,21 @@ impl AppRouting {
                 "/flashcard-types/{id}",
                 delete(FlashcardTypeHandler::delete_flashcard_type::<RegularAppState>),
             )
+            .route(
+                "/user-permissions",
+                get(PermissionHandler::get_user_permissions::<RegularAppState>),
+            )
+            .route(
+                "/role-permissions",
+                get(PermissionHandler::get_role_permissions::<RegularAppState>),
+            )
+            .route(
+                "/user-roles",
+                get(RoleHandler::get_user_roles::<RegularAppState>),
+            )
             .layer(ServiceBuilder::new().layer(AuthenticateLayer {
                 app_state: self.app_state.clone(),
-                roles: Some(HashSet::from([
-                    ROLE_ADMIN.to_string(),
-                    ROLE_ROOT_ADMIN.to_string(),
-                ])),
+                roles: Some(HashSet::from([ROLE_ROOT_ADMIN.to_string()])),
             }))
     }
 }

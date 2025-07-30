@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct RoleModel {
     pub id: i32,
     pub name: String,

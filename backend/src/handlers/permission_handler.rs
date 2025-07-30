@@ -20,7 +20,11 @@ use rex_game_application::{
         permission_updation_dto::PermissionUpdationDto,
         permission_usecase_trait::PermissionUseCaseTrait,
     },
-    users::roles::{ROLE_ADMIN, ROLE_ROOT_ADMIN},
+    roles::role_usecase_trait::RoleUseCaseTrait,
+    users::{
+        role_permission_dto::RolePermissionDto, roles::ROLE_ROOT_ADMIN,
+        user_permission_dto::UserPermissionDto, user_usecase_trait::UserUseCaseTrait,
+    },
 };
 use serde::Deserialize;
 
@@ -41,16 +45,15 @@ impl PermissionHandler {
         if !current_user
             .roles
             .iter()
-            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+            .any(|role| role == ROLE_ROOT_ADMIN)
         {
             return Err(StatusCode::FORBIDDEN);
         }
 
         let page = params.page.unwrap_or(1);
-        let page_size = params.page_size.unwrap_or(10);
         let permissions = _state
             .permission_usecase()
-            .get_permissions(params.name, params.description, page, page_size)
+            .get_permissions(params.name, params.description, page, params.page_size)
             .await;
         return match permissions {
             Ok(data) => Ok(Json(data)),
@@ -83,9 +86,29 @@ impl PermissionHandler {
         if !current_user
             .roles
             .iter()
-            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+            .any(|role| role == ROLE_ROOT_ADMIN)
         {
             return Err(StatusCode::FORBIDDEN);
+        }
+
+        let existing_permission: Option<PermissionDto> = _state
+            .permission_usecase()
+            .get_permission_by_code(&req.code)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        if let Some(_) = existing_permission {
+            return Err(StatusCode::CONFLICT);
+        }
+
+        let existing_permission_by_name: Option<PermissionDto> = _state
+            .permission_usecase()
+            .get_permission_by_name(&req.name)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        if let Some(_) = existing_permission_by_name {
+            return Err(StatusCode::CONFLICT);
         }
 
         let new_permission = PermissionCreationDto {
@@ -128,7 +151,7 @@ impl PermissionHandler {
         if !current_user
             .roles
             .iter()
-            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+            .any(|role| role == ROLE_ROOT_ADMIN)
         {
             return Err(StatusCode::FORBIDDEN);
         }
@@ -191,7 +214,7 @@ impl PermissionHandler {
         if !current_user
             .roles
             .iter()
-            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+            .any(|role| role == ROLE_ROOT_ADMIN)
         {
             return Err(StatusCode::FORBIDDEN);
         }
@@ -204,6 +227,46 @@ impl PermissionHandler {
         match is_succeed {
             Some(u) => Ok(Json(u)),
             None => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+        }
+    }
+
+    pub async fn get_user_permissions<T: AppStateTrait>(
+        Extension(current_user): Extension<Arc<CurrentUser>>,
+        State(_state): State<T>,
+    ) -> Result<Json<Vec<UserPermissionDto>>, StatusCode> {
+        if !current_user
+            .roles
+            .iter()
+            .any(|role| role == ROLE_ROOT_ADMIN)
+        {
+            return Err(StatusCode::FORBIDDEN);
+        }
+
+        let user_permissions = _state.user_usecase().get_user_permissions().await;
+
+        match user_permissions {
+            Ok(u) => Ok(Json(u)),
+            Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+        }
+    }
+
+    pub async fn get_role_permissions<T: AppStateTrait>(
+        Extension(current_user): Extension<Arc<CurrentUser>>,
+        State(_state): State<T>,
+    ) -> Result<Json<Vec<RolePermissionDto>>, StatusCode> {
+        if !current_user
+            .roles
+            .iter()
+            .any(|role| role == ROLE_ROOT_ADMIN)
+        {
+            return Err(StatusCode::FORBIDDEN);
+        }
+
+        let role_permissions = _state.role_usecase().get_role_permissions().await;
+
+        match role_permissions {
+            Ok(u) => Ok(Json(u)),
+            Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
         }
     }
 }

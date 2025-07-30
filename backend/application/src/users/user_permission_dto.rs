@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub struct UserPermissionDto {
     pub id: i32,
     pub user_id: i32,
+    pub user_name: String,
     pub permission_id: i32,
     pub permission_name: String,
     pub permission_code: String,

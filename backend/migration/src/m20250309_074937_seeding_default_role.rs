@@ -48,8 +48,8 @@ impl MigrationTrait for Migration {
                 Role::IsActived,
             ])
             .values_panic([
-                "ContentCreator".into(),
-                "The content creator, who can create/update the content of the game".into(),
+                "Moderator".into(),
+                "The moderator, who can create/update the content of the game".into(),
                 now_utc.into(),
                 now_utc.into(),
                 true.into(),
@@ -62,8 +62,8 @@ impl MigrationTrait for Migration {
                 Role::IsActived,
             ])
             .values_panic([
-                "Player".into(),
-                "The player, who can only play the game".into(),
+                "User".into(),
+                "The normal user, who can only play the game".into(),
                 now_utc.into(),
                 now_utc.into(),
                 true.into(),

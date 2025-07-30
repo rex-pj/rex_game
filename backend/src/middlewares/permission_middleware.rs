@@ -123,7 +123,7 @@ where
                 if !is_authorized {
                     let user_roles = app_state
                         .user_usecase()
-                        .get_user_roles(current_user_claims.id)
+                        .get_user_roles_by_user_id(current_user_claims.id)
                         .await;
                     let role_ids = match user_roles {
                         Ok(roles) => roles.into_iter().map(|f| f.role_id).collect(),

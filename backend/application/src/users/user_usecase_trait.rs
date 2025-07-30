@@ -50,12 +50,27 @@ pub trait UserUseCaseTrait {
         user_role_req: UserRoleCreationDto,
         transaction: Box<&dyn TransactionWrapperTrait>,
     ) -> impl Future<Output = Result<i32, ApplicationError>>;
-    fn assign_role(
+    fn assign_roles(
         &self,
         user_id: i32,
-        user_role_req: UserRoleCreationDto,
+        user_role_req: Vec<UserRoleCreationDto>,
     ) -> impl Future<Output = Result<i32, ApplicationError>>;
-    fn get_user_roles(
+    fn unassign_roles(
+        &self,
+        user_id: i32,
+        user_role_req: Vec<UserRoleDto>,
+    ) -> impl Future<Output = Result<u64, ApplicationError>>;
+    fn assign_permissions(
+        &self,
+        user_id: i32,
+        user_permisson_req: Vec<UserPermissionCreationDto>,
+    ) -> impl Future<Output = Result<i32, ApplicationError>>;
+    fn unassign_permissions(
+        &self,
+        user_id: i32,
+        user_permisson_req: Vec<UserPermissionDto>,
+    ) -> impl Future<Output = Result<u64, ApplicationError>>;
+    fn get_user_roles_by_user_id(
         &self,
         user_id: i32,
     ) -> Pin<Box<dyn Future<Output = Result<Vec<UserRoleDto>, ApplicationError>> + Send>>;
@@ -69,14 +84,12 @@ pub trait UserUseCaseTrait {
         id: i32,
         user_req: UserDeletionDto,
     ) -> impl Future<Output = Option<bool>>;
-    fn get_user_permissions(
+    fn get_user_permissions_by_user_id(
         &self,
         user_id: i32,
     ) -> Pin<Box<dyn Future<Output = Result<Vec<UserPermissionDto>, ApplicationError>> + Send>>;
 
-    fn assign_user_permission(
+    fn get_user_permissions(
         &self,
-        user_id: i32,
-        user_permission_req: UserPermissionCreationDto,
-    ) -> impl Future<Output = Result<i32, ApplicationError>>;
+    ) -> impl Future<Output = Result<Vec<UserPermissionDto>, ApplicationError>>;
 }

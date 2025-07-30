@@ -151,7 +151,7 @@ where
 
         let assigned_roles: Vec<LoggedInUserRoleDto> = self
             ._user_usecase
-            .get_user_roles(user.id)
+            .get_user_roles_by_user_id(user.id)
             .await
             .map_err(|_| ApplicationError {
                 kind: ApplicationErrorKind::InvalidInput,

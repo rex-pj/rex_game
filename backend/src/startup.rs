@@ -82,6 +82,7 @@ pub async fn start() {
         role_repository,
         permission_repository.clone(),
         role_permission_repository.clone(),
+        user_role_repository.clone(),
     );
     let permission_usecase = PermissionUseCase::new(permission_repository);
     let identity_user_usecase = IdentityUserUseCase::new(

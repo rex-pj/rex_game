@@ -19,6 +19,7 @@
     deletionError,
     toggleDeletionModal,
     deletingData,
+    redirectToAccesses,
   } from "./store";
   import Pagination from "../../../../components/molecules/pagination/pagination.svelte";
   import RoleUpdateModal from "../../../../components/organisms/roles/RoleUpdateModal.svelte";
@@ -96,6 +97,15 @@
                     onclick={() => {
                       openDeletingModal(item.id);
                     }}>Delete</button
+                  >
+                </li>
+                <li>
+                  <button
+                    class="dropdown-item text-success"
+                    type="button"
+                    onclick={() => {
+                      redirectToAccesses(item.id);
+                    }}>Role accesses</button
                   >
                 </li>
               </ul>

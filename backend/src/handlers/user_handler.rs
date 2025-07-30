@@ -11,7 +11,9 @@ use axum::Extension;
 use axum::{extract::State, Json};
 use hyper::StatusCode;
 use rex_game_application::page_list_dto::PageListDto;
-use rex_game_application::users::roles::{ROLE_ADMIN, ROLE_ROOT_ADMIN};
+use rex_game_application::permissions::permission_usecase_trait::PermissionUseCaseTrait;
+use rex_game_application::roles::role_usecase_trait::RoleUseCaseTrait;
+use rex_game_application::users::roles::ROLE_ROOT_ADMIN;
 use rex_game_application::users::user_deletion_dto::UserDeletionDto;
 use rex_game_application::users::user_dto::UserDto;
 use rex_game_application::users::user_permission_creation_dto::UserPermissionCreationDto;
@@ -48,7 +50,7 @@ impl UserHandler {
         if !current_user
             .roles
             .iter()
-            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+            .any(|role| role == ROLE_ROOT_ADMIN)
         {
             return Err(StatusCode::FORBIDDEN);
         }
@@ -166,7 +168,7 @@ impl UserHandler {
             && !current_user
                 .roles
                 .iter()
-                .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+                .any(|role| role == ROLE_ROOT_ADMIN)
         {
             return Err(StatusCode::UNAUTHORIZED);
         }
@@ -215,7 +217,7 @@ impl UserHandler {
         if !current_user
             .roles
             .iter()
-            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+            .any(|role| role == ROLE_ROOT_ADMIN)
         {
             return Err(StatusCode::FORBIDDEN);
         }
@@ -231,7 +233,7 @@ impl UserHandler {
         }
     }
 
-    pub async fn assign_role<T: AppStateTrait>(
+    pub async fn assign_roles<T: AppStateTrait>(
         Extension(current_user): Extension<Arc<CurrentUser>>,
         State(_state): State<T>,
         Path(user_id): Path<i32>,
@@ -242,8 +244,21 @@ impl UserHandler {
             None => return Err(StatusCode::BAD_REQUEST),
         };
 
-        if requests.role_name.is_empty() {
+        let role_ids = match requests.role_ids {
+            Some(id) => id,
+            None => return Err(StatusCode::BAD_REQUEST),
+        };
+
+        if role_ids.len() == 0 {
             return Err(StatusCode::BAD_REQUEST);
+        }
+
+        if !current_user
+            .roles
+            .iter()
+            .any(|role| role == ROLE_ROOT_ADMIN)
+        {
+            return Err(StatusCode::FORBIDDEN);
         }
 
         _state
@@ -252,30 +267,55 @@ impl UserHandler {
             .await
             .map_err(|_| StatusCode::NOT_FOUND)?;
 
-        if !current_user
-            .roles
-            .iter()
-            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
-        {
-            return Err(StatusCode::FORBIDDEN);
-        }
+        let incomming_roles = _state
+            .role_usecase()
+            .get_roles_by_ids(role_ids)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        let is_succeed = _state
+        let existing_assignments = _state
             .user_usecase()
-            .assign_role(
-                user_id,
-                UserRoleCreationDto {
-                    created_by_id: current_user.id,
-                    updated_by_id: current_user.id,
-                    role_name: requests.role_name,
-                },
-            )
-            .await;
+            .get_user_roles_by_user_id(user_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        match is_succeed {
-            Ok(u) => Ok(Json(u)),
-            Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
-        }
+        // Assign roles that are not already assigned
+        let to_be_assigned_roles: Vec<UserRoleCreationDto> = incomming_roles
+            .clone()
+            .into_iter()
+            .filter(|role| {
+                role.name != ROLE_ROOT_ADMIN
+                    && existing_assignments.iter().all(|r| r.role_id != role.id)
+            })
+            .map(|role| UserRoleCreationDto {
+                created_by_id: current_user.id,
+                updated_by_id: current_user.id,
+                role_id: role.id,
+            })
+            .collect::<Vec<UserRoleCreationDto>>();
+
+        _state
+            .user_usecase()
+            .assign_roles(user_id, to_be_assigned_roles.clone())
+            .await
+            .ok();
+
+        // Unassign roles that are not in the incoming roles
+        let to_be_deleted_roles: Vec<UserRoleDto> = existing_assignments
+            .into_iter()
+            .filter(|r| {
+                r.role_name != ROLE_ROOT_ADMIN
+                    && !incomming_roles.iter().any(|role| role.id == r.role_id)
+            })
+            .collect();
+
+        _state
+            .user_usecase()
+            .unassign_roles(user_id, to_be_deleted_roles)
+            .await
+            .ok();
+
+        Ok(Json(to_be_assigned_roles.len() as i32))
     }
 
     pub async fn get_roles<T: AppStateTrait>(
@@ -292,12 +332,15 @@ impl UserHandler {
         if !current_user
             .roles
             .iter()
-            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+            .any(|role| role == ROLE_ROOT_ADMIN)
         {
             return Err(StatusCode::FORBIDDEN);
         }
 
-        let user_roles = _state.user_usecase().get_user_roles(user_id).await;
+        let user_roles = _state
+            .user_usecase()
+            .get_user_roles_by_user_id(user_id)
+            .await;
 
         match user_roles {
             Ok(u) => Ok(Json(u)),
@@ -305,7 +348,7 @@ impl UserHandler {
         }
     }
 
-    pub async fn assign_permission<T: AppStateTrait>(
+    pub async fn assign_permissions<T: AppStateTrait>(
         Extension(current_user): Extension<Arc<CurrentUser>>,
         State(_state): State<T>,
         Path(user_id): Path<i32>,
@@ -316,8 +359,21 @@ impl UserHandler {
             None => return Err(StatusCode::BAD_REQUEST),
         };
 
-        if requests.permission_code.is_empty() {
+        let permission_codes = match requests.permission_codes {
+            Some(code) => code,
+            None => return Err(StatusCode::BAD_REQUEST),
+        };
+
+        if permission_codes.len() == 0 {
             return Err(StatusCode::BAD_REQUEST);
+        }
+
+        if !current_user
+            .roles
+            .iter()
+            .any(|role| role == ROLE_ROOT_ADMIN)
+        {
+            return Err(StatusCode::FORBIDDEN);
         }
 
         _state
@@ -326,30 +382,57 @@ impl UserHandler {
             .await
             .map_err(|_| StatusCode::NOT_FOUND)?;
 
-        if !current_user
-            .roles
-            .iter()
-            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
-        {
-            return Err(StatusCode::FORBIDDEN);
-        }
+        let incomming_permissions = _state
+            .permission_usecase()
+            .get_permission_by_codes(permission_codes)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        let is_succeed = _state
+        let existing_assignments = _state
             .user_usecase()
-            .assign_user_permission(
-                user_id,
-                UserPermissionCreationDto {
-                    created_by_id: current_user.id,
-                    updated_by_id: current_user.id,
-                    permission_code: requests.permission_code,
-                },
-            )
-            .await;
+            .get_user_permissions_by_user_id(user_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        match is_succeed {
-            Ok(u) => Ok(Json(u)),
-            Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
-        }
+        // Assign permissons that are not already assigned
+        let to_be_assigned_permissons: Vec<UserPermissionCreationDto> = incomming_permissions
+            .clone()
+            .into_iter()
+            .filter(|permission| {
+                existing_assignments
+                    .iter()
+                    .all(|r| r.permission_id != permission.id)
+            })
+            .map(|permission| UserPermissionCreationDto {
+                created_by_id: current_user.id,
+                updated_by_id: current_user.id,
+                permission_id: permission.id,
+            })
+            .collect::<Vec<UserPermissionCreationDto>>();
+
+        _state
+            .user_usecase()
+            .assign_permissions(user_id, to_be_assigned_permissons.clone())
+            .await
+            .ok();
+
+        // Unassign permissions that are not in the incoming permissions
+        let to_be_deleted_permissions: Vec<UserPermissionDto> = existing_assignments
+            .into_iter()
+            .filter(|r| {
+                !incomming_permissions
+                    .iter()
+                    .any(|permission| permission.id == r.permission_id)
+            })
+            .collect();
+
+        _state
+            .user_usecase()
+            .unassign_permissions(user_id, to_be_deleted_permissions)
+            .await
+            .ok();
+
+        Ok(Json(to_be_assigned_permissons.len() as i32))
     }
 
     pub async fn get_permissions<T: AppStateTrait>(
@@ -366,12 +449,15 @@ impl UserHandler {
         if !current_user
             .roles
             .iter()
-            .any(|role| role == ROLE_ROOT_ADMIN || role == ROLE_ADMIN)
+            .any(|role| role == ROLE_ROOT_ADMIN)
         {
             return Err(StatusCode::FORBIDDEN);
         }
 
-        let user_permissions = _state.user_usecase().get_user_permissions(user_id).await;
+        let user_permissions = _state
+            .user_usecase()
+            .get_user_permissions_by_user_id(user_id)
+            .await;
 
         match user_permissions {
             Ok(u) => Ok(Json(u)),

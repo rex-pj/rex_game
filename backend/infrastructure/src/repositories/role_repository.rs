@@ -53,32 +53,23 @@ impl RoleRepositoryTrait for RoleRepository {
         }
     }
 
-    async fn get_by_name(&self, name: &str) -> Result<RoleModel, DomainError> {
+    async fn get_by_name(&self, name: &str) -> Option<RoleModel> {
         let db = self._db_connection.as_ref();
         let existing = Role::find()
-            .filter(Condition::all().add(role::Column::Name.eq(name)))
+            .filter(
+                Condition::all()
+                    .add(role::Column::Name.eq(name))
+                    .add(role::Column::IsActived.eq(true)),
+            )
             .one(db)
-            .await
-            .map_err(|err| {
-                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-            })?;
+            .await;
 
         match existing {
-            Some(f) => Ok(RoleModel {
-                id: f.id,
-                name: f.name,
-                description: f.description,
-                created_date: f.created_date.with_timezone(&Utc),
-                updated_date: f.updated_date.with_timezone(&Utc),
-                created_by_id: f.created_by_id,
-                updated_by_id: f.updated_by_id,
-                is_actived: f.is_actived,
-            }),
-            None => Err(DomainError::new(
-                ErrorType::NotFound,
-                "Role not found",
-                None,
-            )),
+            Ok(f) => match f {
+                Some(role) => Some(self::map_entity_to_model(role)),
+                None => None,
+            },
+            Err(_) => None,
         }
     }
 
@@ -89,16 +80,17 @@ impl RoleRepositoryTrait for RoleRepository {
         })?;
 
         match existing {
-            Some(f) => Ok(RoleModel {
-                id: f.id,
-                name: f.name,
-                description: f.description,
-                created_date: f.created_date.with_timezone(&Utc),
-                updated_date: f.updated_date.with_timezone(&Utc),
-                created_by_id: f.created_by_id,
-                updated_by_id: f.updated_by_id,
-                is_actived: f.is_actived,
-            }),
+            Some(f) => {
+                if f.is_actived {
+                    return Ok(self::map_entity_to_model(f));
+                }
+
+                Err(DomainError::new(
+                    ErrorType::NotFound,
+                    "Role not found",
+                    None,
+                ))
+            }
             None => Err(DomainError::new(
                 ErrorType::NotFound,
                 "Role not found",
@@ -107,15 +99,32 @@ impl RoleRepositoryTrait for RoleRepository {
         }
     }
 
+    async fn get_by_ids(&self, ids: Vec<i32>) -> Result<Vec<RoleModel>, DomainError> {
+        let db = self._db_connection.as_ref();
+        let existing_roles = Role::find()
+            .filter(role::Column::Id.is_in(ids))
+            .all(db)
+            .await
+            .map_err(|err| {
+                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
+            })?;
+
+        let list = existing_roles
+            .into_iter()
+            .map(|i| self::map_entity_to_model(i))
+            .collect::<Vec<RoleModel>>();
+        return Ok(list);
+    }
+
     async fn get_paged_list(
         &self,
         name: Option<String>,
         description: Option<String>,
         page: u64,
-        page_size: u64,
+        page_size_option: Option<u64>,
     ) -> Result<PageListModel<RoleModel>, DomainError> {
         let db = self._db_connection.as_ref();
-        let mut query = Role::find();
+        let mut query = Role::find().filter(role::Column::IsActived.eq(true));
 
         if let Some(d) = name {
             query = query.filter(role::Column::Name.eq(d));
@@ -127,46 +136,62 @@ impl RoleRepositoryTrait for RoleRepository {
 
         query = query.order_by(role::Column::UpdatedDate, sea_orm::Order::Desc);
 
-        let paginator = query.paginate(db, page_size);
+        match page_size_option {
+            Some(page_size) if page > 0 => {
+                let paginator = query.paginate(db, page_size);
+                let total_count = match paginator.num_items().await {
+                    Ok(count) => count,
+                    Err(err) => {
+                        return Err(DomainError::new(
+                            ErrorType::DatabaseError,
+                            err.to_string().as_str(),
+                            None,
+                        ))
+                    }
+                };
 
-        let total_count = match paginator.num_items().await {
-            Ok(count) => count,
-            Err(err) => {
-                return Err(DomainError::new(
-                    ErrorType::DatabaseError,
-                    err.to_string().as_str(),
-                    None,
-                ))
+                let page_list = paginator.fetch_page(page - 1).await;
+                match page_list {
+                    Ok(items) => {
+                        let list = items
+                            .into_iter()
+                            .map(|i| self::map_entity_to_model(i))
+                            .collect::<Vec<RoleModel>>();
+                        return Ok(PageListModel {
+                            items: list,
+                            total_count,
+                        });
+                    }
+                    Err(err) => {
+                        return Err(DomainError::new(
+                            ErrorType::DatabaseError,
+                            err.to_string().as_str(),
+                            None,
+                        ))
+                    }
+                }
             }
-        };
-
-        let page_list = paginator.fetch_page(page - 1).await;
-        match page_list {
-            Ok(items) => {
-                let list = items
-                    .into_iter()
-                    .map(|i| RoleModel {
-                        id: i.id,
-                        name: i.name,
-                        description: i.description,
-                        created_date: i.created_date.with_timezone(&Utc),
-                        updated_date: i.updated_date.with_timezone(&Utc),
-                        created_by_id: i.created_by_id,
-                        updated_by_id: i.updated_by_id,
-                        is_actived: i.is_actived,
-                    })
-                    .collect::<Vec<RoleModel>>();
-                return Ok(PageListModel {
-                    items: list,
-                    total_count,
-                });
-            }
-            Err(err) => {
-                return Err(DomainError::new(
-                    ErrorType::DatabaseError,
-                    err.to_string().as_str(),
-                    None,
-                ))
+            None | Some(_) => {
+                let page_list = query.all(db).await;
+                match page_list {
+                    Ok(items) => {
+                        let list = items
+                            .into_iter()
+                            .map(|i| self::map_entity_to_model(i))
+                            .collect::<Vec<RoleModel>>();
+                        return Ok(PageListModel {
+                            items: list.clone(),
+                            total_count: list.len() as u64,
+                        });
+                    }
+                    Err(err) => {
+                        return Err(DomainError::new(
+                            ErrorType::DatabaseError,
+                            err.to_string().as_str(),
+                            None,
+                        ))
+                    }
+                }
             }
         }
     }
@@ -204,5 +229,18 @@ impl RoleRepositoryTrait for RoleRepository {
                 None,
             )),
         }
+    }
+}
+
+fn map_entity_to_model(permission: role::Model) -> RoleModel {
+    RoleModel {
+        id: permission.id,
+        name: permission.name,
+        description: permission.description,
+        created_date: permission.created_date.with_timezone(&Utc),
+        updated_date: permission.updated_date.with_timezone(&Utc),
+        created_by_id: permission.created_by_id,
+        updated_by_id: permission.updated_by_id,
+        is_actived: permission.is_actived,
     }
 }

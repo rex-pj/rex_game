@@ -37,11 +37,11 @@ impl<R: PermissionRepositoryTrait> PermissionUseCaseTrait for PermissionUseCase<
         name: Option<String>,
         description: Option<String>,
         page: u64,
-        page_size: u64,
+        page_size_option: Option<u64>,
     ) -> Result<PageListDto<PermissionDto>, ApplicationError> {
         let permissions_result = self
             ._permission_repository
-            .get_paged_list(name, description, page, page_size)
+            .get_paged_list(name, description, page, page_size_option)
             .await;
         match permissions_result {
             Ok(i) => {
@@ -60,10 +60,11 @@ impl<R: PermissionRepositoryTrait> PermissionUseCaseTrait for PermissionUseCase<
                         updated_by_id: f.updated_by_id,
                     })
                     .collect();
+                let page_size: u64 = page_size_option.unwrap_or(i.total_count);
                 Ok(PageListDto {
                     items,
                     total_count: i.total_count,
-                    page,
+                    page: page,
                     page_size,
                 })
             }
@@ -95,6 +96,88 @@ impl<R: PermissionRepositoryTrait> PermissionUseCaseTrait for PermissionUseCase<
                 None,
             )),
         }
+    }
+
+    async fn get_permission_by_name(
+        &self,
+        name: &str,
+    ) -> Result<Option<PermissionDto>, ApplicationError> {
+        let existing = self
+            ._permission_repository
+            .get_by_name(name)
+            .await
+            .map_err(|_| {
+                ApplicationError::new(ApplicationErrorKind::DatabaseError, "Database error", None)
+            })?;
+        match existing {
+            Some(f) => Ok(Some(PermissionDto {
+                id: f.id,
+                name: f.name,
+                description: f.description,
+                code: f.code,
+                module: f.module,
+                created_by_id: f.created_by_id,
+                created_date: f.created_date.with_timezone(&Utc),
+                updated_date: f.updated_date.with_timezone(&Utc),
+                updated_by_id: f.updated_by_id,
+            })),
+            None => Ok(None),
+        }
+    }
+
+    async fn get_permission_by_code(
+        &self,
+        code: &str,
+    ) -> Result<Option<PermissionDto>, ApplicationError> {
+        let existing = self
+            ._permission_repository
+            .get_by_code(code)
+            .await
+            .map_err(|_| {
+                ApplicationError::new(ApplicationErrorKind::DatabaseError, "Database error", None)
+            })?;
+        match existing {
+            Some(f) => Ok(Some(PermissionDto {
+                id: f.id,
+                name: f.name,
+                description: f.description,
+                code: f.code,
+                module: f.module,
+                created_by_id: f.created_by_id,
+                created_date: f.created_date.with_timezone(&Utc),
+                updated_date: f.updated_date.with_timezone(&Utc),
+                updated_by_id: f.updated_by_id,
+            })),
+            None => Ok(None),
+        }
+    }
+
+    async fn get_permission_by_codes(
+        &self,
+        codes: Vec<String>,
+    ) -> Result<Vec<PermissionDto>, ApplicationError> {
+        let existing = self
+            ._permission_repository
+            .get_by_codes(codes)
+            .await
+            .map_err(|_| {
+                ApplicationError::new(ApplicationErrorKind::DatabaseError, "Database error", None)
+            })?;
+        let items = existing
+            .into_iter()
+            .map(|f| PermissionDto {
+                id: f.id,
+                name: f.name,
+                description: f.description,
+                code: f.code,
+                module: f.module,
+                created_by_id: f.created_by_id,
+                created_date: f.created_date.with_timezone(&Utc),
+                updated_date: f.updated_date.with_timezone(&Utc),
+                updated_by_id: f.updated_by_id,
+            })
+            .collect();
+        Ok(items)
     }
 
     async fn create_permission(

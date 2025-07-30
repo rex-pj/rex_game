@@ -2,16 +2,18 @@
   import * as authenticationClient from "$lib/helpers/authenticationClient";
   import { getContext, onMount } from "svelte";
   import { SHARED_CONTEXT, ADMIN_URLS, ROLE_NAMES } from "$lib/common/contants";
-  import { redirect } from "@sveltejs/kit";
   import { type CurrentUser } from "$lib/models/current-user";
   import { goto } from "$app/navigation";
+  import { page } from "$app/stores";
   let menus = [
     { name: "Dashboard", link: "/admin/dashboard" },
     { name: "Falshcards", link: "/admin/flashcards" },
     { name: "Falshcard Types", link: "/admin/flashcard-types" },
     { name: "Users", link: "/admin/users" },
+    { name: "Security" },
     { name: "Roles", link: "/admin/roles" },
     { name: "Permissions", link: "/admin/permissions" },
+    { name: "User Accesses", link: "/admin/user-accesses" },
   ];
 
   async function logout() {
@@ -28,6 +30,8 @@
       goto(ADMIN_URLS.LOGIN_URL);
     }
   });
+
+  $: currentPath = $page.url.pathname;
 </script>
 
 <div class="layout">
@@ -39,7 +43,18 @@
     <div class="sidebar">
       {#each menus as menu}
         <div class="menu-item">
-          <a href={menu.link}>{menu.name}</a>
+          {#if !menu.link}
+            <span class="text-muted"
+              ><i class="fa-solid fa-minus fa-2xs"></i>
+              {menu.name}
+            </span>
+          {:else}
+            <a
+              class:actived={currentPath.includes(menu.link)}
+              class="py-1 ps-2 pe-1"
+              href={menu.link}>{menu.name}</a
+            >
+          {/if}
         </div>
       {/each}
     </div>
@@ -98,6 +113,10 @@
     text-decoration: none;
     color: #333;
     font-weight: bold;
+  }
+
+  .menu-item a.actived {
+    color: rgb(25, 135, 84);
   }
 
   .content {
