@@ -1,5 +1,5 @@
 pub mod authenticate_middleware;
-pub mod permission_middleware;
+pub mod authorize_middleware;
 
 #[derive(Debug, Clone)]
 pub enum AuthorizedState {

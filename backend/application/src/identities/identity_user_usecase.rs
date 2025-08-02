@@ -1,7 +1,8 @@
 use crate::{
     errors::application_error::{ApplicationError, ApplicationErrorKind},
+    roles::role_usecase_trait::RoleUseCaseTrait,
     users::{
-        loggedin_user_dto::{LoggedInUserDto, LoggedInUserRoleDto},
+        loggedin_user_dto::{LoggedInUserDto, LoggedInUserPermissonDto, LoggedInUserRoleDto},
         user_creation_dto::UserCreationDto,
         user_usecase_trait::UserUseCaseTrait,
     },
@@ -18,36 +19,41 @@ use rex_game_domain::{
 };
 
 #[derive(Clone)]
-pub struct IdentityUserUseCase<PH, US, TH>
+pub struct IdentityUserUseCase<PH, US, RS, TH>
 where
     PH: PasswordHasherTrait,
     US: UserUseCaseTrait,
+    RS: RoleUseCaseTrait,
     TH: TokenHelperTrait,
 {
     _password_hasher: PH,
     _user_usecase: US,
+    _role_usecase: RS,
     _token_helper: TH,
 }
 
-impl<PH, US, TH> IdentityUserUseCase<PH, US, TH>
+impl<PH, US, RS, TH> IdentityUserUseCase<PH, US, RS, TH>
 where
     PH: PasswordHasherTrait,
     US: UserUseCaseTrait,
+    RS: RoleUseCaseTrait,
     TH: TokenHelperTrait,
 {
-    pub fn new(password_hasher: PH, user_usecase: US, token_helper: TH) -> Self {
+    pub fn new(password_hasher: PH, user_usecase: US, role_usecase: RS, token_helper: TH) -> Self {
         Self {
             _password_hasher: password_hasher,
             _user_usecase: user_usecase,
+            _role_usecase: role_usecase,
             _token_helper: token_helper,
         }
     }
 }
 
-impl<PH, US, TH> IdentityUserUseCaseTrait for IdentityUserUseCase<PH, US, TH>
+impl<PH, US, RS, TH> IdentityUserUseCaseTrait for IdentityUserUseCase<PH, US, RS, TH>
 where
     PH: PasswordHasherTrait,
     US: UserUseCaseTrait,
+    RS: RoleUseCaseTrait,
     TH: TokenHelperTrait,
 {
     async fn create_user_with_transaction<UT: IdentityUserTrait<K>, K>(
@@ -165,12 +171,50 @@ where
             })
             .collect();
 
+        // Fetch permissions from user
+        let mut assigned_permissions: Vec<LoggedInUserPermissonDto> = self
+            ._user_usecase
+            .get_user_permissions_by_user_id(user.id)
+            .await
+            .map_err(|_| ApplicationError {
+                kind: ApplicationErrorKind::InvalidInput,
+                message: String::from("Failed to get the assigned roles"),
+                details: None,
+            })?
+            .iter()
+            .map(|f| LoggedInUserPermissonDto {
+                permisson_code: f.permission_code.to_owned(),
+                permisson_id: f.permission_id,
+                permisson_name: f.permission_name.to_owned(),
+            })
+            .collect();
+
+        // If the user has roles, fetch permissions for those roles
+        if !assigned_roles.is_empty() {
+            let role_ids: Vec<i32> = assigned_roles.iter().map(|f| f.role_id).collect();
+            let role_permissions = self
+                ._role_usecase
+                .get_roles_permissions_by_role_ids(role_ids)
+                .await;
+
+            if let Ok(permissions) = role_permissions {
+                permissions.into_iter().for_each(|f| {
+                    assigned_permissions.push(LoggedInUserPermissonDto {
+                        permisson_code: f.permission_code,
+                        permisson_id: f.permission_id,
+                        permisson_name: f.permission_name,
+                    });
+                });
+            }
+        }
+
         let logged_in_result = LoggedInUserDto {
             email: user.email,
             name: user.name,
             display_name: user.display_name,
             id: user.id,
             roles: assigned_roles,
+            permissions: assigned_permissions,
             ..Default::default()
         };
 

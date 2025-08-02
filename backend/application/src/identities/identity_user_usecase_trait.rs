@@ -28,4 +28,6 @@ pub trait IdentityUserUseCaseTrait {
         &self,
         access_token: &str,
     ) -> impl Future<Output = Result<LoggedInUserDto, ApplicationError>>;
+
+    // Pin<Box<dyn Future<Output = Result<LoggedInUserDto, ApplicationError>> + Send>>
 }

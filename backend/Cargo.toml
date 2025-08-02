@@ -17,6 +17,7 @@ rex-game-domain = { path = "./domain" }
 rex-game-infrastructure = { path = "./infrastructure" }
 rex-game-application = { path = "./application" }
 rex-game-migration = { path = "./migration" }
+rex-game-shared = { path = "./shared" }
 # The core APIs, including the Serialize and Deserialize traits. Always
 # required when using Serde. The "derive" feature is only required when
 # using #[derive(Serialize, Deserialize)] to make Serde work with structs
@@ -37,4 +38,11 @@ features = [
 ]
 
 [workspace]
-members = [".", "application", "domain", "infrastructure", "migration"]
+members = [
+    ".",
+    "application",
+    "domain",
+    "infrastructure",
+    "migration",
+    "shared",
+]

@@ -98,6 +98,12 @@ pub struct RegularAppState {
             PermissionRepository,
             UserPermissionRepository,
         >,
+        RoleUseCase<
+            RoleRepository,
+            PermissionRepository,
+            RolePermissionRepository,
+            UserRoleRepository,
+        >,
         IdentityTokenHelper<ConfigurationHelper>,
     >,
     pub identity_authenticate_usecase: IdentityAuthenticateUseCase<
@@ -151,6 +157,12 @@ impl AppStateTrait for RegularAppState {
             UserRoleRepository,
             PermissionRepository,
             UserPermissionRepository,
+        >,
+        RoleUseCase<
+            RoleRepository,
+            PermissionRepository,
+            RolePermissionRepository,
+            UserRoleRepository,
         >,
         IdentityTokenHelper<ConfigurationHelper>,
     >;

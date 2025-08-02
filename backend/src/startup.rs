@@ -88,6 +88,7 @@ pub async fn start() {
     let identity_user_usecase = IdentityUserUseCase::new(
         identity_password_hasher.clone(),
         user_usecase.clone(),
+        role_usecase.clone(),
         identity_token_helper.clone(),
     );
     let identity_authenticate_usecase = IdentityAuthenticateUseCase::new(

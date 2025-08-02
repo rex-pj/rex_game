@@ -2513,8 +2513,13 @@ version = "0.1.0"
 dependencies = [
  "async-std",
  "chrono",
+ "rex-game-shared",
  "sea-orm-migration",
 ]
+
+[[package]]
+name = "rex-game-shared"
+version = "0.1.0"
 
 [[package]]
 name = "rex_game"
@@ -2530,6 +2535,7 @@ dependencies = [
  "rex-game-domain",
  "rex-game-infrastructure",
  "rex-game-migration",
+ "rex-game-shared",
  "sea-orm",
  "serde",
  "time",

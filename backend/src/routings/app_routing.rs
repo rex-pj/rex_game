@@ -1,10 +1,11 @@
-use std::{collections::HashSet, sync::Arc};
+use std::sync::Arc;
 
 use axum::{
     routing::{delete, get, patch, post},
     Router,
 };
 use rex_game_application::users::roles::ROLE_ROOT_ADMIN;
+use rex_game_shared::enums::permission_codes::PermissionCodes;
 use tower::ServiceBuilder;
 
 use crate::{
@@ -14,7 +15,9 @@ use crate::{
         flashcard_type_handler::FlashcardTypeHandler, permission_handler::PermissionHandler,
         role_handler::RoleHandler, setup_handler::SetupHandler, user_handler::UserHandler,
     },
-    middlewares::authenticate_middleware::AuthenticateLayer,
+    middlewares::{
+        authenticate_middleware::AuthenticateLayer, authorize_middleware::AuthorizeLayer,
+    },
 };
 
 pub struct AppRouting {
@@ -86,107 +89,243 @@ impl AppRouting {
 
     pub fn build_admin_routes(&self, router: Router<RegularAppState>) -> Router<RegularAppState> {
         router
-            .route("/roles", get(RoleHandler::get_roles::<RegularAppState>))
             .route(
-                "/roles/{id}",
-                get(RoleHandler::get_role_by_id::<RegularAppState>),
+                "/roles",
+                get(RoleHandler::get_roles::<RegularAppState>).layer(AuthorizeLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: Some(vec![PermissionCodes::RoleRead.as_str().to_string()]),
+                }),
             )
             .route(
                 "/roles/{id}",
-                delete(RoleHandler::delete_role::<RegularAppState>),
+                get(RoleHandler::get_role_by_id::<RegularAppState>).layer(AuthorizeLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: Some(vec![PermissionCodes::RoleRead.as_str().to_string()]),
+                }),
             )
-            .route("/roles", post(RoleHandler::create_role::<RegularAppState>))
             .route(
                 "/roles/{id}",
-                patch(RoleHandler::update_role::<RegularAppState>),
+                delete(RoleHandler::delete_role::<RegularAppState>).layer(AuthorizeLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: Some(vec![PermissionCodes::RoleDelete.as_str().to_string()]),
+                }),
+            )
+            .route(
+                "/roles",
+                post(RoleHandler::create_role::<RegularAppState>).layer(AuthorizeLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: Some(vec![PermissionCodes::RoleCreate.as_str().to_string()]),
+                }),
+            )
+            .route(
+                "/roles/{id}",
+                patch(RoleHandler::update_role::<RegularAppState>).layer(AuthorizeLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: Some(vec![PermissionCodes::RoleUpdate.as_str().to_string()]),
+                }),
             )
             .route(
                 "/roles/{role_id}/permissions",
-                post(RoleHandler::assign_permissions::<RegularAppState>),
+                post(RoleHandler::assign_permissions::<RegularAppState>).layer(AuthorizeLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: Some(vec![PermissionCodes::RolePermissionCreate
+                        .as_str()
+                        .to_string()]),
+                }),
             )
             .route(
                 "/roles/{role_id}/permissions",
-                get(RoleHandler::get_permissions::<RegularAppState>),
+                get(RoleHandler::get_permissions::<RegularAppState>).layer(AuthorizeLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: Some(vec![PermissionCodes::RolePermissionRead
+                        .as_str()
+                        .to_string()]),
+                }),
             )
             .route(
                 "/users/{id}",
-                delete(UserHandler::delete_user::<RegularAppState>),
+                delete(UserHandler::delete_user::<RegularAppState>).layer(AuthorizeLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: Some(vec![PermissionCodes::UserDelete.as_str().to_string()]),
+                }),
             )
             .route(
                 "/users/{user_id}/roles",
-                get(UserHandler::get_roles::<RegularAppState>),
+                get(UserHandler::get_roles::<RegularAppState>).layer(AuthorizeLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: Some(vec![PermissionCodes::UserRoleRead.as_str().to_string()]),
+                }),
             )
             .route(
                 "/users/{user_id}/roles",
-                post(UserHandler::assign_roles::<RegularAppState>),
+                post(UserHandler::assign_roles::<RegularAppState>).layer(AuthorizeLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: Some(vec![PermissionCodes::UserRoleCreate.as_str().to_string()]),
+                }),
             )
             .route(
                 "/permissions",
-                get(PermissionHandler::get_permissions::<RegularAppState>),
+                get(PermissionHandler::get_permissions::<RegularAppState>).layer(AuthorizeLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: Some(vec![PermissionCodes::PermissionRead.as_str().to_string()]),
+                }),
             )
             .route(
                 "/permissions/{id}",
-                get(PermissionHandler::get_permission_by_id::<RegularAppState>),
+                get(PermissionHandler::get_permission_by_id::<RegularAppState>).layer(
+                    AuthorizeLayer {
+                        app_state: self.app_state.clone(),
+                        permissions: Some(vec![PermissionCodes::PermissionRead
+                            .as_str()
+                            .to_string()]),
+                    },
+                ),
             )
             .route(
                 "/permissions/{id}",
-                delete(PermissionHandler::delete_permission::<RegularAppState>),
+                delete(PermissionHandler::delete_permission::<RegularAppState>).layer(
+                    AuthorizeLayer {
+                        app_state: self.app_state.clone(),
+                        permissions: Some(vec![PermissionCodes::PermissionDelete
+                            .as_str()
+                            .to_string()]),
+                    },
+                ),
             )
             .route(
                 "/permissions",
-                post(PermissionHandler::create_permission::<RegularAppState>),
+                post(PermissionHandler::create_permission::<RegularAppState>).layer(
+                    AuthorizeLayer {
+                        app_state: self.app_state.clone(),
+                        permissions: Some(vec![PermissionCodes::PermissionCreate
+                            .as_str()
+                            .to_string()]),
+                    },
+                ),
             )
             .route(
                 "/permissions/{id}",
-                patch(PermissionHandler::update_permission::<RegularAppState>),
+                patch(PermissionHandler::update_permission::<RegularAppState>).layer(
+                    AuthorizeLayer {
+                        app_state: self.app_state.clone(),
+                        permissions: Some(vec![PermissionCodes::PermissionUpdate
+                            .as_str()
+                            .to_string()]),
+                    },
+                ),
             )
             .route(
                 "/users/{user_id}/permissions",
-                post(UserHandler::assign_permissions::<RegularAppState>),
+                post(UserHandler::assign_permissions::<RegularAppState>).layer(AuthorizeLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: Some(vec![PermissionCodes::UserPermissionCreate
+                        .as_str()
+                        .to_string()]),
+                }),
             )
             .route(
                 "/users/{user_id}/permissions",
-                get(UserHandler::get_permissions::<RegularAppState>),
+                get(UserHandler::get_permissions::<RegularAppState>).layer(AuthorizeLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: Some(vec![PermissionCodes::UserPermissionRead
+                        .as_str()
+                        .to_string()]),
+                }),
             )
             .route(
                 "/flashcards",
-                post(FlashcardHandler::create_flashcard::<RegularAppState>),
+                post(FlashcardHandler::create_flashcard::<RegularAppState>).layer(AuthorizeLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: Some(vec![PermissionCodes::FlashcardCreate.as_str().to_string()]),
+                }),
             )
             .route(
                 "/flashcards/{id}",
-                patch(FlashcardHandler::update_flashcard::<RegularAppState>),
+                patch(FlashcardHandler::update_flashcard::<RegularAppState>).layer(
+                    AuthorizeLayer {
+                        app_state: self.app_state.clone(),
+                        permissions: Some(vec![PermissionCodes::FlashcardUpdate
+                            .as_str()
+                            .to_string()]),
+                    },
+                ),
             )
             .route(
                 "/flashcards/{id}",
-                delete(FlashcardHandler::delete_flashcard::<RegularAppState>),
+                delete(FlashcardHandler::delete_flashcard::<RegularAppState>).layer(
+                    AuthorizeLayer {
+                        app_state: self.app_state.clone(),
+                        permissions: Some(vec![PermissionCodes::FlashcardDelete
+                            .as_str()
+                            .to_string()]),
+                    },
+                ),
             )
             .route(
                 "/flashcard-types",
-                post(FlashcardTypeHandler::create_flashcard_type::<RegularAppState>),
+                post(FlashcardTypeHandler::create_flashcard_type::<RegularAppState>).layer(
+                    AuthorizeLayer {
+                        app_state: self.app_state.clone(),
+                        permissions: Some(vec![PermissionCodes::FlashcardTypeCreate
+                            .as_str()
+                            .to_string()]),
+                    },
+                ),
             )
             .route(
                 "/flashcard-types/{id}",
-                patch(FlashcardTypeHandler::update_flashcard_type::<RegularAppState>),
+                patch(FlashcardTypeHandler::update_flashcard_type::<RegularAppState>).layer(
+                    AuthorizeLayer {
+                        app_state: self.app_state.clone(),
+                        permissions: Some(vec![PermissionCodes::FlashcardTypeUpdate
+                            .as_str()
+                            .to_string()]),
+                    },
+                ),
             )
             .route(
                 "/flashcard-types/{id}",
-                delete(FlashcardTypeHandler::delete_flashcard_type::<RegularAppState>),
+                delete(FlashcardTypeHandler::delete_flashcard_type::<RegularAppState>).layer(
+                    AuthorizeLayer {
+                        app_state: self.app_state.clone(),
+                        permissions: Some(vec![PermissionCodes::FlashcardTypeDelete
+                            .as_str()
+                            .to_string()]),
+                    },
+                ),
             )
             .route(
                 "/user-permissions",
-                get(PermissionHandler::get_user_permissions::<RegularAppState>),
+                get(PermissionHandler::get_user_permissions::<RegularAppState>).layer(
+                    AuthorizeLayer {
+                        app_state: self.app_state.clone(),
+                        permissions: Some(vec![PermissionCodes::UserPermissionRead
+                            .as_str()
+                            .to_string()]),
+                    },
+                ),
             )
             .route(
                 "/role-permissions",
-                get(PermissionHandler::get_role_permissions::<RegularAppState>),
+                get(PermissionHandler::get_role_permissions::<RegularAppState>).layer(
+                    AuthorizeLayer {
+                        app_state: self.app_state.clone(),
+                        permissions: Some(vec![PermissionCodes::RolePermissionRead
+                            .as_str()
+                            .to_string()]),
+                    },
+                ),
             )
             .route(
                 "/user-roles",
-                get(RoleHandler::get_user_roles::<RegularAppState>),
+                get(RoleHandler::get_user_roles::<RegularAppState>).layer(AuthorizeLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: Some(vec![PermissionCodes::UserRoleRead.as_str().to_string()]),
+                }),
             )
             .layer(ServiceBuilder::new().layer(AuthenticateLayer {
                 app_state: self.app_state.clone(),
-                roles: Some(HashSet::from([ROLE_ROOT_ADMIN.to_string()])),
+                roles: Some(vec![ROLE_ROOT_ADMIN.to_string()]),
             }))
     }
 }
