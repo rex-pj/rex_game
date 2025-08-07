@@ -1,15 +1,14 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-
 use crate::view_models::users::assign_permission_request::AssignPermissionRequest;
 use crate::view_models::users::assign_role_request::AssignRoleRequest;
 use crate::view_models::users::current_user::CurrentUser;
 use crate::{app_state::AppStateTrait, view_models::users::signup_request::SignupRequest};
 use axum::extract::{Path, Query};
-use axum::http::HeaderMap;
 use axum::Extension;
 use axum::{extract::State, Json};
 use hyper::StatusCode;
+use rex_game_application::identities::{
+    identity_user_usecase_trait::IdentityUserUseCaseTrait, user_creation_dto::UserCreationDto,
+};
 use rex_game_application::page_list_dto::PageListDto;
 use rex_game_application::permissions::permission_usecase_trait::PermissionUseCaseTrait;
 use rex_game_application::roles::role_usecase_trait::RoleUseCaseTrait;
@@ -22,14 +21,10 @@ use rex_game_application::users::user_role_creation_dto::UserRoleCreationDto;
 use rex_game_application::users::user_role_dto::UserRoleDto;
 use rex_game_application::users::user_updation_dto::UserUpdationDto;
 use rex_game_application::users::user_usecase_trait::UserUseCaseTrait;
-use rex_game_application::{
-    identities::{
-        identity_user_usecase_trait::IdentityUserUseCaseTrait, user_creation_dto::UserCreationDto,
-    },
-    users::loggedin_user_dto::LoggedInUserDto,
-};
 use rex_game_domain::models::user_statuses::UserStatuses;
 use serde::Deserialize;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 #[derive(Deserialize)]
 pub struct UserQuery {
@@ -111,29 +106,10 @@ impl UserHandler {
     }
 
     pub async fn get_current_user<T: AppStateTrait>(
-        headers: HeaderMap,
+        Extension(current_user): Extension<Arc<CurrentUser>>,
         State(_state): State<T>,
-    ) -> Result<Json<LoggedInUserDto>, StatusCode> {
-        let access_token_header = match headers.get("authorization") {
-            Some(authorization) => authorization,
-            None => return Err(StatusCode::BAD_REQUEST),
-        };
-
-        let access_token = match access_token_header.to_str() {
-            Ok(authorization) => authorization,
-            Err(_) => return Err(StatusCode::BAD_REQUEST),
-        };
-
-        let access_token = access_token.strip_prefix("Bearer ").unwrap();
-        let logged_in_user_result = _state
-            .identity_user_usecase()
-            .get_logged_in_user(access_token)
-            .await;
-
-        match logged_in_user_result {
-            Ok(user) => Ok(Json(user)),
-            Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-        }
+    ) -> Result<Json<CurrentUser>, StatusCode> {
+        Ok(Json((*current_user).clone()))
     }
 
     pub async fn update_user<T: AppStateTrait>(

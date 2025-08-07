@@ -17,7 +17,7 @@ use sea_orm::{
     ColumnTrait, Condition, DatabaseConnection, EntityTrait, JoinType, PaginatorTrait, QueryFilter,
     QueryOrder, QuerySelect, RelationTrait, Set, TransactionTrait,
 };
-use std::sync::Arc;
+use std::{future::Future, pin::Pin, sync::Arc};
 
 #[derive(Clone)]
 pub struct UserRepository {
@@ -214,36 +214,41 @@ impl UserRepositoryTrait for UserRepository {
         }
     }
 
-    async fn get_by_email(&self, email: String) -> Result<UserModel, DomainError> {
-        let db = self._db_connection.as_ref();
-        let existing = User::find()
-            .filter(Condition::all().add(user::Column::Email.eq(email)))
-            .one(db)
-            .await
-            .map_err(|err| {
-                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-            })?;
+    fn get_by_email(
+        &self,
+        email: String,
+    ) -> Pin<Box<dyn Future<Output = Result<UserModel, DomainError>> + Send>> {
+        let db = self._db_connection.clone();
+        Box::pin(async move {
+            let existing = User::find()
+                .filter(Condition::all().add(user::Column::Email.eq(email)))
+                .one(db.as_ref())
+                .await
+                .map_err(|err| {
+                    DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
+                })?;
 
-        match existing {
-            Some(f) => Ok(UserModel {
-                id: f.id,
-                name: f.name,
-                display_name: f.display_name,
-                email: f.email,
-                password_hash: f.password_hash,
-                security_stamp: f.security_stamp,
-                status_id: f.status_id,
-                created_date: f.created_date.with_timezone(&Utc),
-                updated_date: f.updated_date.with_timezone(&Utc),
-                created_by_id: f.created_by_id,
-                updated_by_id: f.updated_by_id,
-            }),
-            None => Err(DomainError::new(
-                ErrorType::NotFound,
-                "User not found",
-                None,
-            )),
-        }
+            match existing {
+                Some(f) => Ok(UserModel {
+                    id: f.id,
+                    name: f.name,
+                    display_name: f.display_name,
+                    email: f.email,
+                    password_hash: f.password_hash,
+                    security_stamp: f.security_stamp,
+                    status_id: f.status_id,
+                    created_date: f.created_date.with_timezone(&Utc),
+                    updated_date: f.updated_date.with_timezone(&Utc),
+                    created_by_id: f.created_by_id,
+                    updated_by_id: f.updated_by_id,
+                }),
+                None => Err(DomainError::new(
+                    ErrorType::NotFound,
+                    "User not found",
+                    None,
+                )),
+            }
+        })
     }
 
     async fn get_by_id(&self, id: i32) -> Result<UserModel, DomainError> {

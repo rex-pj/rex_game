@@ -20,7 +20,7 @@ pub trait UserUseCaseTrait {
     fn get_user_by_email(
         &self,
         email: String,
-    ) -> impl Future<Output = Result<UserDetailsDto, ApplicationError>>;
+    ) -> Pin<Box<dyn Future<Output = Result<UserDetailsDto, ApplicationError>> + Send>>;
 
     fn get_user_by_id(&self, id: i32) -> impl Future<Output = Result<UserDto, ApplicationError>>;
 

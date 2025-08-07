@@ -1,3 +1,6 @@
+use super::{
+    identity_user_trait::IdentityUserTrait, identity_user_usecase_trait::IdentityUserUseCaseTrait,
+};
 use crate::{
     errors::application_error::{ApplicationError, ApplicationErrorKind},
     roles::role_usecase_trait::RoleUseCaseTrait,
@@ -7,16 +10,13 @@ use crate::{
         user_usecase_trait::UserUseCaseTrait,
     },
 };
-
-use super::{
-    identity_user_trait::IdentityUserTrait, identity_user_usecase_trait::IdentityUserUseCaseTrait,
-};
 use rex_game_domain::{
     identities::{
         password_hasher_trait::PasswordHasherTrait, token_helper_trait::TokenHelperTrait,
     },
     transaction_manager_trait::TransactionWrapperTrait,
 };
+use rex_game_shared::utils::types::BoxFuture;
 
 #[derive(Clone)]
 pub struct IdentityUserUseCase<PH, US, RS, TH>
@@ -52,9 +52,9 @@ where
 impl<PH, US, RS, TH> IdentityUserUseCaseTrait for IdentityUserUseCase<PH, US, RS, TH>
 where
     PH: PasswordHasherTrait,
-    US: UserUseCaseTrait,
-    RS: RoleUseCaseTrait,
-    TH: TokenHelperTrait,
+    US: UserUseCaseTrait + Send + Sync + Clone + 'static,
+    RS: RoleUseCaseTrait + Send + Sync + Clone + 'static,
+    TH: TokenHelperTrait + Send + Sync + Clone + 'static,
 {
     async fn create_user_with_transaction<UT: IdentityUserTrait<K>, K>(
         &self,
@@ -130,92 +130,92 @@ where
         Ok(user)
     }
 
-    async fn get_logged_in_user(
-        &self,
-        access_token: &str,
-    ) -> Result<LoggedInUserDto, ApplicationError> {
-        let claims = self
-            ._token_helper
-            .get_access_token_info(access_token)
-            .ok_or_else(|| {
-                ApplicationError::new(
-                    ApplicationErrorKind::InvalidInput,
-                    "Failed to get token info",
-                    None,
-                )
-            })?;
+    fn get_logged_in_user<'a>(
+        &'a self,
+        access_token: &'a str,
+    ) -> BoxFuture<'a, Result<LoggedInUserDto, ApplicationError>> {
+        let token_helper = self._token_helper.clone();
+        let user_usecase = self._user_usecase.clone();
+        let role_usecase = self._role_usecase.clone();
+        Box::pin(async move {
+            let claims = token_helper
+                .get_access_token_info(access_token)
+                .ok_or_else(|| {
+                    ApplicationError::new(
+                        ApplicationErrorKind::InvalidInput,
+                        "Failed to get token info",
+                        None,
+                    )
+                })?;
 
-        let user = self
-            ._user_usecase
-            .get_user_by_email(claims.email)
-            .await
-            .map_err(|_| {
-                ApplicationError::new(
-                    ApplicationErrorKind::InvalidInput,
-                    "Failed to get the user by email",
-                    None,
-                )
-            })?;
+            let user = match user_usecase.get_user_by_email(claims.email).await {
+                Err(_) => {
+                    return Err(ApplicationError::new(
+                        ApplicationErrorKind::InvalidInput,
+                        "Failed to get the user by email",
+                        None,
+                    ));
+                }
+                Ok(user) => user,
+            };
 
-        let roles = self
-            ._user_usecase
-            .get_user_roles_by_user_id(user.id)
-            .await
-            .map_err(|_| {
-                ApplicationError::new(
-                    ApplicationErrorKind::InvalidInput,
-                    "Failed to get the assigned roles",
-                    None,
-                )
-            })?
-            .into_iter()
-            .map(|r| LoggedInUserRoleDto {
-                role_name: r.role_name,
-                role_id: r.role_id,
-            })
-            .collect::<Vec<_>>();
-
-        let mut permissions = self
-            ._user_usecase
-            .get_user_permissions_by_user_id(user.id)
-            .await
-            .map_err(|_| {
-                ApplicationError::new(
-                    ApplicationErrorKind::InvalidInput,
-                    "Failed to get the assigned permissions",
-                    None,
-                )
-            })?
-            .into_iter()
-            .map(|p| LoggedInUserPermissonDto {
-                permisson_code: p.permission_code,
-                permisson_id: p.permission_id,
-                permisson_name: p.permission_name,
-            })
-            .collect::<Vec<_>>();
-
-        if !roles.is_empty() {
-            if let Ok(role_perms) = self
-                ._role_usecase
-                .get_roles_permissions_by_role_ids(roles.iter().map(|r| r.role_id).collect())
+            let roles = user_usecase
+                .get_user_roles_by_user_id(user.id)
                 .await
-            {
-                permissions.extend(role_perms.into_iter().map(|p| LoggedInUserPermissonDto {
+                .map_err(|_| {
+                    ApplicationError::new(
+                        ApplicationErrorKind::InvalidInput,
+                        "Failed to get the assigned roles",
+                        None,
+                    )
+                })?
+                .into_iter()
+                .map(|r| LoggedInUserRoleDto {
+                    role_name: r.role_name,
+                    role_id: r.role_id,
+                })
+                .collect::<Vec<_>>();
+
+            let mut permissions = user_usecase
+                .get_user_permissions_by_user_id(user.id)
+                .await
+                .map_err(|_| {
+                    ApplicationError::new(
+                        ApplicationErrorKind::InvalidInput,
+                        "Failed to get the assigned permissions",
+                        None,
+                    )
+                })?
+                .into_iter()
+                .map(|p| LoggedInUserPermissonDto {
                     permisson_code: p.permission_code,
                     permisson_id: p.permission_id,
                     permisson_name: p.permission_name,
-                }));
-            }
-        }
+                })
+                .collect::<Vec<_>>();
 
-        Ok(LoggedInUserDto {
-            email: user.email,
-            name: user.name,
-            display_name: user.display_name,
-            id: user.id,
-            roles,
-            permissions,
-            ..Default::default()
+            if !roles.is_empty() {
+                if let Ok(role_perms) = role_usecase
+                    .get_roles_permissions_by_role_ids(roles.iter().map(|r| r.role_id).collect())
+                    .await
+                {
+                    permissions.extend(role_perms.into_iter().map(|p| LoggedInUserPermissonDto {
+                        permisson_code: p.permission_code,
+                        permisson_id: p.permission_id,
+                        permisson_name: p.permission_name,
+                    }));
+                }
+            }
+
+            Ok(LoggedInUserDto {
+                email: user.email,
+                name: user.name,
+                display_name: user.display_name,
+                id: user.id,
+                roles,
+                permissions,
+                ..Default::default()
+            })
         })
     }
 }

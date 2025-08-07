@@ -1,4 +1,5 @@
 use rex_game_domain::transaction_manager_trait::TransactionWrapperTrait;
+use rex_game_shared::utils::types::BoxFuture;
 
 use super::identity_user_trait::IdentityUserTrait;
 use crate::{
@@ -24,10 +25,10 @@ pub trait IdentityUserUseCaseTrait {
     where
         UT: IdentityUserTrait<K>;
 
-    fn get_logged_in_user(
-        &self,
-        access_token: &str,
-    ) -> impl Future<Output = Result<LoggedInUserDto, ApplicationError>>;
+    fn get_logged_in_user<'a>(
+        &'a self,
+        access_token: &'a str,
+    ) -> BoxFuture<'a, Result<LoggedInUserDto, ApplicationError>>;
 
     // Pin<Box<dyn Future<Output = Result<LoggedInUserDto, ApplicationError>> + Send>>
 }

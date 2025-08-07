@@ -4,13 +4,10 @@ use crate::{
 };
 use axum::{body::Body, extract::Request, response::Response};
 use hyper::StatusCode;
-use rex_game_application::{
-    identities::{
-        identity_authenticate_usecase_trait::IdentityAuthenticateUseCaseTrait,
-        identity_authorize_usecase_trait::IdentityAuthorizeUseCaseTrait,
-    },
-    roles::role_usecase_trait::RoleUseCaseTrait,
-    users::{user_role_dto::UserRoleDto, user_usecase_trait::UserUseCaseTrait},
+use rex_game_application::identities::{
+    identity_authenticate_usecase_trait::IdentityAuthenticateUseCaseTrait,
+    identity_authorize_usecase_trait::IdentityAuthorizeUseCaseTrait,
+    identity_user_usecase_trait::IdentityUserUseCaseTrait,
 };
 use std::{
     future::Future,
@@ -84,6 +81,7 @@ where
         let app_state = self._app_state.clone();
         let mut inner = self.inner.clone();
         let required_roles_option = self._roles.clone();
+        let access_token = auth_token.to_string();
 
         Box::pin(async move {
             // If there are required roles, check if the user has any of them
@@ -98,39 +96,25 @@ where
                 }
             }
 
-            // Fetch permissions from user
-            let mut user_permission_codes: Vec<String> = app_state
-                .user_usecase()
-                .get_user_permissions_by_user_id(uer_id)
+            let current_user = match app_state
+                .identity_user_usecase()
+                .get_logged_in_user(access_token.as_str())
                 .await
-                .unwrap_or_default()
+            {
+                Ok(user) => user,
+                Err(_) => return Self::unauthorized_response(),
+            };
+
+            let role_names: Vec<String> = current_user
+                .roles
                 .into_iter()
-                .map(|f| f.permission_code)
+                .map(|role| role.role_name)
                 .collect();
-
-            // Fetch roles from user
-            let user_roles: Vec<UserRoleDto> = app_state
-                .user_usecase()
-                .get_user_roles_by_user_id(uer_id)
-                .await
-                .unwrap_or_default();
-
-            // If the user has roles, fetch permissions for those roles
-            if !user_roles.is_empty() {
-                let role_ids: Vec<i32> = user_roles.iter().map(|f| f.role_id).collect();
-                let role_permissions = app_state
-                    .role_usecase()
-                    .get_roles_permissions_by_role_ids(role_ids)
-                    .await;
-
-                if let Ok(permissions) = role_permissions {
-                    permissions.into_iter().for_each(|f| {
-                        user_permission_codes.push(f.permission_code);
-                    });
-                }
-            }
-
-            let role_names = user_roles.into_iter().map(|f| f.role_name).collect();
+            let user_permission_codes: Vec<String> = current_user
+                .permissions
+                .into_iter()
+                .map(|perm| perm.permisson_code)
+                .collect();
             let user = Arc::new(CurrentUser {
                 id: uer_id,
                 email: user_claims.email,

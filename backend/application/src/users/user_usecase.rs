@@ -74,34 +74,40 @@ where
 
 impl<UT, RT, URT, PT, UP> UserUseCaseTrait for UserUseCase<UT, RT, URT, PT, UP>
 where
-    UT: UserRepositoryTrait,
+    UT: UserRepositoryTrait + Send + Sync + Clone + 'static,
     RT: RoleRepositoryTrait,
     PT: PermissionRepositoryTrait,
     URT: UserRoleRepositoryTrait + Send + Sync + Clone + 'static,
     UP: UserPermissionRepositoryTrait + Send + Sync + Clone + 'static,
 {
-    async fn get_user_by_email(&self, email: String) -> Result<UserDetailsDto, ApplicationError> {
-        let existing = self._user_repository.get_by_email(email).await;
-        match existing {
-            Ok(f) => Ok(UserDetailsDto {
-                id: f.id,
-                email: f.email,
-                name: f.name,
-                display_name: f.display_name,
-                password_hash: f.password_hash,
-                security_stamp: f.security_stamp,
-                created_by_id: f.created_by_id,
-                created_date: f.created_date.with_timezone(&Utc),
-                updated_date: f.updated_date.with_timezone(&Utc),
-                updated_by_id: f.updated_by_id,
-                status_id: f.status_id,
-            }),
-            Err(_) => Err(ApplicationError::new(
-                ApplicationErrorKind::DatabaseError,
-                "Database error",
-                None,
-            )),
-        }
+    fn get_user_by_email(
+        &self,
+        email: String,
+    ) -> Pin<Box<dyn Future<Output = Result<UserDetailsDto, ApplicationError>> + Send>> {
+        let user_repository = self._user_repository.clone();
+        Box::pin(async move {
+            let existing = user_repository.get_by_email(email).await;
+            match existing {
+                Ok(f) => Ok(UserDetailsDto {
+                    id: f.id,
+                    email: f.email,
+                    name: f.name,
+                    display_name: f.display_name,
+                    password_hash: f.password_hash,
+                    security_stamp: f.security_stamp,
+                    created_by_id: f.created_by_id,
+                    created_date: f.created_date.with_timezone(&Utc),
+                    updated_date: f.updated_date.with_timezone(&Utc),
+                    updated_by_id: f.updated_by_id,
+                    status_id: f.status_id,
+                }),
+                Err(_) => Err(ApplicationError::new(
+                    ApplicationErrorKind::DatabaseError,
+                    "Database error",
+                    None,
+                )),
+            }
+        })
     }
 
     async fn get_user_by_id(&self, id: i32) -> Result<UserDto, ApplicationError> {

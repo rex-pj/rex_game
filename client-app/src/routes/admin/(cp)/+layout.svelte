@@ -25,7 +25,7 @@
   onMount(() => {
     if (
       !currentUser ||
-      !currentUser.roles?.some((r) => r.role_name === ROLE_NAMES.ADMIN || ROLE_NAMES.ROOT_ADMIN)
+      !currentUser.roles?.some((r) => r === ROLE_NAMES.ADMIN || ROLE_NAMES.ROOT_ADMIN)
     ) {
       goto(ADMIN_URLS.LOGIN_URL);
     }
@@ -35,7 +35,7 @@
 </script>
 
 <div class="layout">
-  {#if currentUser && currentUser.roles?.some((r) => r.role_name === ROLE_NAMES.ADMIN || ROLE_NAMES.ROOT_ADMIN)}
+  {#if currentUser && currentUser.roles?.some((r) => r === ROLE_NAMES.ADMIN || ROLE_NAMES.ROOT_ADMIN)}
     <div class="header">
       <div class="logo">Admin Panel</div>
       <button class="logout" onclick={logout}>Logout</button>

@@ -1,4 +1,4 @@
-use std::future::Future;
+use std::{future::Future, pin::Pin};
 
 use crate::{
     errors::domain_error::DomainError,
@@ -24,7 +24,10 @@ pub trait UserRepositoryTrait {
         transaction: Box<&dyn TransactionWrapperTrait>,
     ) -> impl Future<Output = Result<i32, DomainError>>;
 
-    fn get_by_email(&self, email: String) -> impl Future<Output = Result<UserModel, DomainError>>;
+    fn get_by_email(
+        &self,
+        email: String,
+    ) -> Pin<Box<dyn Future<Output = Result<UserModel, DomainError>> + Send>>;
     fn get_by_id(&self, id: i32) -> impl Future<Output = Result<UserModel, DomainError>>;
     fn update(&self, user_req: UserModel) -> impl Future<Output = Result<bool, DomainError>>;
 }
