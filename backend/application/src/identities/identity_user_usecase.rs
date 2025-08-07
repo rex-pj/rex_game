@@ -134,90 +134,88 @@ where
         &self,
         access_token: &str,
     ) -> Result<LoggedInUserDto, ApplicationError> {
-        let access_token_info = match self._token_helper.get_access_token_info(access_token) {
-            Some(claims) => claims,
-            None => {
-                return Err(ApplicationError {
-                    kind: ApplicationErrorKind::InvalidInput,
-                    message: String::from("Failed to get token info"),
-                    details: None,
-                })
-            }
-        };
+        let claims = self
+            ._token_helper
+            .get_access_token_info(access_token)
+            .ok_or_else(|| {
+                ApplicationError::new(
+                    ApplicationErrorKind::InvalidInput,
+                    "Failed to get token info",
+                    None,
+                )
+            })?;
 
         let user = self
             ._user_usecase
-            .get_user_by_email(access_token_info.email)
+            .get_user_by_email(claims.email)
             .await
-            .map_err(|_| ApplicationError {
-                kind: ApplicationErrorKind::InvalidInput,
-                message: String::from("Failed to get the user by email"),
-                details: None,
+            .map_err(|_| {
+                ApplicationError::new(
+                    ApplicationErrorKind::InvalidInput,
+                    "Failed to get the user by email",
+                    None,
+                )
             })?;
 
-        let assigned_roles: Vec<LoggedInUserRoleDto> = self
+        let roles = self
             ._user_usecase
             .get_user_roles_by_user_id(user.id)
             .await
-            .map_err(|_| ApplicationError {
-                kind: ApplicationErrorKind::InvalidInput,
-                message: String::from("Failed to get the assigned roles"),
-                details: None,
+            .map_err(|_| {
+                ApplicationError::new(
+                    ApplicationErrorKind::InvalidInput,
+                    "Failed to get the assigned roles",
+                    None,
+                )
             })?
-            .iter()
-            .map(|f| LoggedInUserRoleDto {
-                role_name: f.role_name.to_owned(),
-                role_id: f.role_id,
+            .into_iter()
+            .map(|r| LoggedInUserRoleDto {
+                role_name: r.role_name,
+                role_id: r.role_id,
             })
-            .collect();
+            .collect::<Vec<_>>();
 
-        // Fetch permissions from user
-        let mut assigned_permissions: Vec<LoggedInUserPermissonDto> = self
+        let mut permissions = self
             ._user_usecase
             .get_user_permissions_by_user_id(user.id)
             .await
-            .map_err(|_| ApplicationError {
-                kind: ApplicationErrorKind::InvalidInput,
-                message: String::from("Failed to get the assigned roles"),
-                details: None,
+            .map_err(|_| {
+                ApplicationError::new(
+                    ApplicationErrorKind::InvalidInput,
+                    "Failed to get the assigned permissions",
+                    None,
+                )
             })?
-            .iter()
-            .map(|f| LoggedInUserPermissonDto {
-                permisson_code: f.permission_code.to_owned(),
-                permisson_id: f.permission_id,
-                permisson_name: f.permission_name.to_owned(),
+            .into_iter()
+            .map(|p| LoggedInUserPermissonDto {
+                permisson_code: p.permission_code,
+                permisson_id: p.permission_id,
+                permisson_name: p.permission_name,
             })
-            .collect();
+            .collect::<Vec<_>>();
 
-        // If the user has roles, fetch permissions for those roles
-        if !assigned_roles.is_empty() {
-            let role_ids: Vec<i32> = assigned_roles.iter().map(|f| f.role_id).collect();
-            let role_permissions = self
+        if !roles.is_empty() {
+            if let Ok(role_perms) = self
                 ._role_usecase
-                .get_roles_permissions_by_role_ids(role_ids)
-                .await;
-
-            if let Ok(permissions) = role_permissions {
-                permissions.into_iter().for_each(|f| {
-                    assigned_permissions.push(LoggedInUserPermissonDto {
-                        permisson_code: f.permission_code,
-                        permisson_id: f.permission_id,
-                        permisson_name: f.permission_name,
-                    });
-                });
+                .get_roles_permissions_by_role_ids(roles.iter().map(|r| r.role_id).collect())
+                .await
+            {
+                permissions.extend(role_perms.into_iter().map(|p| LoggedInUserPermissonDto {
+                    permisson_code: p.permission_code,
+                    permisson_id: p.permission_id,
+                    permisson_name: p.permission_name,
+                }));
             }
         }
 
-        let logged_in_result = LoggedInUserDto {
+        Ok(LoggedInUserDto {
             email: user.email,
             name: user.name,
             display_name: user.display_name,
             id: user.id,
-            roles: assigned_roles,
-            permissions: assigned_permissions,
+            roles,
+            permissions,
             ..Default::default()
-        };
-
-        return Ok(logged_in_result);
+        })
     }
 }

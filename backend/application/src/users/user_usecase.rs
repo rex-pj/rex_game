@@ -272,40 +272,33 @@ where
         user_role_req: UserRoleCreationDto,
         transaction: Box<&dyn TransactionWrapperTrait>,
     ) -> Result<i32, ApplicationError> {
-        let role = match self._role_repository.get_by_id(user_role_req.role_id).await {
-            Ok(role_model) => role_model,
-            Err(_) => {
-                return Err(ApplicationError::new(
-                    ApplicationErrorKind::DatabaseError,
-                    "Database error",
-                    None,
-                ))
-            }
+        let role_id = user_role_req.role_id;
+        // Check if role exists
+        self._role_repository
+            .get_by_id(role_id)
+            .await
+            .map_err(|_| {
+                ApplicationError::new(ApplicationErrorKind::DatabaseError, "Database error", None)
+            })?;
+
+        let user_role = UserRoleModel {
+            user_id,
+            role_id,
+            created_by_id: user_role_req.created_by_id,
+            updated_by_id: user_role_req.updated_by_id,
+            ..Default::default()
         };
 
-        match self
-            ._user_role_repository
-            .create_without_commit(
-                UserRoleModel {
-                    user_id: user_id,
-                    role_id: role.id,
-                    created_by_id: user_role_req.created_by_id,
-                    updated_by_id: user_role_req.updated_by_id,
-                    ..Default::default()
-                },
-                transaction,
-            )
+        self._user_role_repository
+            .create_without_commit(user_role, transaction)
             .await
-        {
-            Ok(inserted) => Ok(inserted),
-            Err(_) => {
-                return Err(ApplicationError::new(
+            .map_err(|_| {
+                ApplicationError::new(
                     ApplicationErrorKind::DatabaseError,
                     "Assign role failed",
                     None,
-                ))
-            }
-        }
+                )
+            })
     }
 
     async fn assign_roles(
