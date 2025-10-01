@@ -232,15 +232,15 @@ impl RoleRepositoryTrait for RoleRepository {
     }
 }
 
-fn map_entity_to_model(permission: role::Model) -> RoleModel {
+fn map_entity_to_model(role: role::Model) -> RoleModel {
     RoleModel {
-        id: permission.id,
-        name: permission.name,
-        description: permission.description,
-        created_date: permission.created_date.with_timezone(&Utc),
-        updated_date: permission.updated_date.with_timezone(&Utc),
-        created_by_id: permission.created_by_id,
-        updated_by_id: permission.updated_by_id,
-        is_actived: permission.is_actived,
+        id: role.id,
+        name: role.name,
+        description: role.description,
+        created_date: role.created_date.with_timezone(&Utc),
+        updated_date: role.updated_date.with_timezone(&Utc),
+        created_by_id: role.created_by_id,
+        updated_by_id: role.updated_by_id,
+        is_actived: role.is_actived,
     }
 }

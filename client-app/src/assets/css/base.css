@@ -13,6 +13,11 @@ body {
   --box-shadow-color: rgb(26 26 26 / 15%);
   --nav-bg-color: #fbf1e3;
   --border-color: #ebe2d8;
+  --purple-light: #f3e8ff;
+  --black: #1a1a1a;
+  --white: #ffffff;
+  --gray-2: #e1e1e1;
+  --gray-3: #cfcfcf;
 }
 
 .btn-primary {
@@ -28,4 +33,94 @@ body {
 .btn-secondary {
   background-color: var(--secondary-color);
   border-color: var(--secondary-color);
+}
+
+.text-editor [contenteditable="true"] {
+  padding: 0.5rem;
+  border-radius: 0;
+  min-height: 150px;
+  border: 1px solid var(--border-color);
+}
+
+.text-editor [contenteditable="true"]:focus-visible {
+  outline-color: var(--border-color);
+}
+
+/* List styles */
+.text-editor ul,
+.text-editor ol {
+  padding: 0 1rem;
+  margin: 1.25rem 1rem 1.25rem 0.4rem;
+}
+
+.text-editor ul li p,
+.text-editor ol li p {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+/* Heading styles */
+.text-editor h1,
+.text-editor h2,
+.text-editor h3,
+.text-editor h4,
+.text-editor h5,
+.text-editor h6 {
+  line-height: 1.1;
+  text-wrap: pretty;
+}
+
+.text-editor h1 {
+  font-size: 1.4rem;
+}
+
+.text-editor h2 {
+  font-size: 1.2rem;
+}
+
+.text-editor h3 {
+  font-size: 1.1rem;
+}
+
+.text-editor h4,
+.text-editor h5,
+.text-editor h6 {
+  font-size: 1rem;
+}
+
+/* Code and preformatted text styles */
+.text-editor code {
+  background-color: var(--purple-light);
+  border-radius: 0.4rem;
+  color: var(--black);
+  font-size: 0.85rem;
+  padding: 0.25em 0.3em;
+}
+
+.text-editor pre {
+  background: var(--black);
+  border-radius: 0.5rem;
+  color: var(--white);
+  font-family: "JetBrainsMono", monospace;
+  margin: 1.5rem 0;
+  padding: 0.75rem 1rem;
+}
+
+.text-editor pre code {
+  background: none;
+  color: inherit;
+  font-size: 0.8rem;
+  padding: 0;
+}
+
+.text-editor blockquote {
+  border-left: 3px solid var(--gray-3);
+  margin: 1.5rem 0;
+  padding-left: 1rem;
+}
+
+.text-editor hr {
+  border: none;
+  border-top: 1px solid var(--gray-2);
+  margin: 2rem 0;
 }

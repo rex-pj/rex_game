@@ -1,12 +1,8 @@
 pub mod loggedin_user_dto;
-pub mod role_permission_creation_dto;
-pub mod role_permission_dto;
-pub mod roles;
 pub mod user_creation_dto;
 pub mod user_deletion_dto;
 pub mod user_details_dto;
 pub mod user_dto;
-pub mod user_login_parameter;
 pub mod user_permission_creation_dto;
 pub mod user_permission_dto;
 pub mod user_role_creation_dto;

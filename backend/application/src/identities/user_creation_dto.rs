@@ -1,5 +1,3 @@
-use chrono::{DateTime, Utc};
-
 use crate::identities::identity_user_trait::IdentityUserTrait;
 
 impl IdentityUserTrait<i32> for UserCreationDto {
@@ -25,6 +23,10 @@ impl IdentityUserTrait<i32> for UserCreationDto {
 
     fn security_stamp(&self) -> &str {
         &self.security_stamp
+    }
+
+    fn status_id(&self) -> i32 {
+        self.status_id
     }
 
     fn set_id(&mut self, value: i32) {
@@ -60,9 +62,5 @@ pub struct UserCreationDto {
     pub display_name: Option<String>,
     pub password_hash: String,
     pub security_stamp: String,
-    pub created_by_id: Option<i32>,
-    pub created_date: DateTime<Utc>,
-    pub updated_date: DateTime<Utc>,
-    pub updated_by_id: Option<i32>,
     pub status_id: i32,
 }

@@ -26,8 +26,9 @@ pub trait UserRepositoryTrait {
 
     fn get_by_email(
         &self,
-        email: String,
+        email: &str,
     ) -> Pin<Box<dyn Future<Output = Result<UserModel, DomainError>> + Send>>;
     fn get_by_id(&self, id: i32) -> impl Future<Output = Result<UserModel, DomainError>>;
+    fn get_by_name(&self, name: &String) -> impl Future<Output = Result<UserModel, DomainError>>;
     fn update(&self, user_req: UserModel) -> impl Future<Output = Result<bool, DomainError>>;
 }

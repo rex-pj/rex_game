@@ -1,5 +1,5 @@
-import { PermissionService } from "$lib/services/permissionService";
-import { RoleService } from "$lib/services/roleService";
+import { PermissionApi } from "$lib/api/permissionApi";
+import { RoleApi } from "$lib/api/roleApi";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ params, cookies }) => {
@@ -12,8 +12,8 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
     return { rolePermissions: [], permissions: [] };
   }
 
-  const roleService: RoleService = new RoleService(cookies);
-  const permissionService: PermissionService = new PermissionService(cookies);
+  const roleService: RoleApi = new RoleApi(cookies);
+  const permissionService: PermissionApi = new PermissionApi(cookies);
 
   const rolePermissions = await roleService.getPermissionList(fetch, roleId);
   const { items: permissions } = await permissionService.getList(fetch);
@@ -49,7 +49,7 @@ export const actions = {
       return { success: false, error: "No permissions selected" };
     }
 
-    const roleService = new RoleService(cookies);
+    const roleService = new RoleApi(cookies);
     try {
       // Assign each permission to the user
       await roleService.assignPermissions(fetch, roleId, {

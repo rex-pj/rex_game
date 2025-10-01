@@ -1,14 +1,17 @@
 import { get, writable, type Writable } from "svelte/store";
-import { FlashcardService } from "$lib/services/flashcardService";
-import { FlashcardTypeService } from "$lib/services/flashcardTypeService";
+import { FlashcardApi } from "$lib/api/flashcardApi";
+import { FlashcardTypeApi } from "$lib/api/flashcardTypeApi";
 import Cookies from "js-cookie";
 import type { Pager } from "../../../../components/molecules/pagination/pager";
 import type { Flashcard, FlashcardDetail, FlashcardRequest } from "$lib/models/flashcard";
 import type { FlashcardType } from "$lib/models/flashcard-type";
 import { getImageBase64Url } from "$lib/helpers/imageHelper";
+import * as accessService from "$lib/services/accessService";
+import type { CurrentUser } from "$lib/models/current-user";
+import { PermissionCodes } from "$lib/common/permissions";
 
-const flashcardService: FlashcardService = new FlashcardService(Cookies);
-const flashcardTypeService: FlashcardTypeService = new FlashcardTypeService(Cookies);
+const flashcardService: FlashcardApi = new FlashcardApi(Cookies);
+const flashcardTypeService: FlashcardTypeApi = new FlashcardTypeApi(Cookies);
 export const items: Writable<Flashcard[]> = writable([]);
 export const pager: Writable<Pager> = writable({ currentPage: 1, totalPages: 0 });
 const itemsPerPage = 10;
@@ -214,4 +217,25 @@ export const deleteById = async (id: number) => {
     .finally(() => {
       isDeletionSubmitting.set(false);
     });
+};
+
+export const canUpdate = (currentUser: CurrentUser | undefined) => {
+  return (
+    (currentUser && accessService.isRootAdmin(currentUser)) ||
+    accessService.isInPermissions(currentUser, [PermissionCodes.FlashcardUpdate])
+  );
+};
+
+export const canCreate = (currentUser: CurrentUser | undefined) => {
+  return (
+    (currentUser && accessService.isRootAdmin(currentUser)) ||
+    accessService.isInPermissions(currentUser, [PermissionCodes.FlashcardCreate])
+  );
+};
+
+export const canDelete = (currentUser: CurrentUser | undefined) => {
+  return (
+    (currentUser && accessService.isRootAdmin(currentUser)) ||
+    accessService.isInPermissions(currentUser, [PermissionCodes.FlashcardDelete])
+  );
 };

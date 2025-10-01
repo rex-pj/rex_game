@@ -1,8 +1,10 @@
 use crate::{
     app_state::AppStateTrait,
+    validators::validation_helper::ValidationHelper,
     view_models::{
         roles::role_create_request::RoleCreateRequest,
         users::{assign_permission_request::AssignPermissionRequest, current_user::CurrentUser},
+        HandlerError, HandlerResult,
     },
 };
 use axum::{
@@ -15,15 +17,15 @@ use rex_game_application::{
     permissions::permission_usecase_trait::PermissionUseCaseTrait,
     roles::{
         role_creation_dto::RoleCreationDto, role_deletion_dto::RoleDeletionDto, role_dto::RoleDto,
-        role_updation_dto::RoleUpdationDto, role_usecase_trait::RoleUseCaseTrait,
-    },
-    users::{
         role_permission_creation_dto::RolePermissionCreationDto,
-        role_permission_dto::RolePermissionDto, roles::ROLE_ROOT_ADMIN, user_role_dto::UserRoleDto,
+        role_permission_dto::RolePermissionDto, role_updation_dto::RoleUpdationDto,
+        role_usecase_trait::RoleUseCaseTrait, roles::ROLE_ROOT_ADMIN,
     },
+    users::user_role_dto::UserRoleDto,
 };
 use serde::Deserialize;
 use std::{collections::HashMap, sync::Arc};
+use validator::{Validate, ValidationErrors};
 
 #[derive(Deserialize)]
 pub struct RoleQuery {
@@ -38,13 +40,17 @@ impl RoleHandler {
         Extension(current_user): Extension<Arc<CurrentUser>>,
         State(_state): State<T>,
         Query(params): Query<RoleQuery>,
-    ) -> Result<Json<PageListDto<RoleDto>>, StatusCode> {
+    ) -> HandlerResult<Json<PageListDto<RoleDto>>> {
         if !current_user
             .roles
             .iter()
             .any(|role| role == ROLE_ROOT_ADMIN)
         {
-            return Err(StatusCode::FORBIDDEN);
+            return Err(HandlerError {
+                status: StatusCode::FORBIDDEN,
+                message: "You do not have permission to view roles".to_string(),
+                ..Default::default()
+            });
         }
         let page = params.page.unwrap_or(1);
         let roles = _state
@@ -53,19 +59,29 @@ impl RoleHandler {
             .await;
         return match roles {
             Ok(data) => Ok(Json(data)),
-            Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+            Err(_) => {
+                return Err(HandlerError {
+                    status: StatusCode::INTERNAL_SERVER_ERROR,
+                    message: "Failed to fetch roles".to_string(),
+                    ..Default::default()
+                })
+            }
         };
     }
 
     pub async fn get_role_by_id<T: AppStateTrait>(
         Path(id): Path<i32>,
         State(_state): State<T>,
-    ) -> Result<Json<RoleDto>, StatusCode> {
+    ) -> HandlerResult<Json<RoleDto>> {
         let role = _state
             .role_usecase()
             .get_role_by_id(id)
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            .map_err(|err| HandlerError {
+                status: StatusCode::NOT_FOUND,
+                message: format!("Role not found: {}", err.message),
+                ..Default::default()
+            })?;
         Ok(Json(role))
     }
 
@@ -73,18 +89,37 @@ impl RoleHandler {
         Extension(current_user): Extension<Arc<CurrentUser>>,
         State(_state): State<T>,
         Json(payload): Json<Option<RoleCreateRequest>>,
-    ) -> Result<Json<i32>, StatusCode> {
+    ) -> HandlerResult<Json<i32>> {
         let req = match payload {
             Some(req) => req,
-            None => return Err(StatusCode::BAD_REQUEST),
+            None => {
+                return Err(HandlerError {
+                    status: StatusCode::BAD_REQUEST,
+                    message: "Invalid request payload".to_string(),
+                    ..Default::default()
+                })
+            }
         };
+
+        req.validate().map_err(|e: ValidationErrors| {
+            let errors = ValidationHelper::new().flatten_errors(e);
+            return HandlerError {
+                status: StatusCode::BAD_REQUEST,
+                message: "Validation error".to_string(),
+                field_errors: Some(errors),
+            };
+        })?;
 
         if !current_user
             .roles
             .iter()
             .any(|role| role == ROLE_ROOT_ADMIN)
         {
-            return Err(StatusCode::FORBIDDEN);
+            return Err(HandlerError {
+                status: StatusCode::FORBIDDEN,
+                message: "You do not have permission to create roles".to_string(),
+                ..Default::default()
+            });
         }
 
         let existing_role = _state
@@ -93,7 +128,11 @@ impl RoleHandler {
             .await;
 
         if let Some(_) = existing_role {
-            return Err(StatusCode::CONFLICT);
+            return Err(HandlerError {
+                status: StatusCode::CONFLICT,
+                message: "Role with the same name already exists".to_string(),
+                ..Default::default()
+            });
         }
 
         let new_role = RoleCreationDto {
@@ -106,7 +145,11 @@ impl RoleHandler {
         let created_result = _state.role_usecase().create_role(new_role).await;
         match created_result {
             Ok(created_id) => Ok(Json(created_id)),
-            Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+            Err(_) => Err(HandlerError {
+                status: StatusCode::INTERNAL_SERVER_ERROR,
+                message: "Failed to create role".to_string(),
+                ..Default::default()
+            }),
         }
     }
 
@@ -115,17 +158,31 @@ impl RoleHandler {
         State(_state): State<T>,
         Path(id): Path<i32>,
         Json(payload): Json<Option<HashMap<String, String>>>,
-    ) -> Result<Json<bool>, StatusCode> {
+    ) -> HandlerResult<Json<bool>> {
         let requests = match payload {
             Some(req) => req,
-            None => return Err(StatusCode::BAD_REQUEST),
+            None => {
+                return Err(HandlerError {
+                    status: StatusCode::BAD_REQUEST,
+                    message: "Invalid request payload".to_string(),
+                    ..Default::default()
+                })
+            }
         };
         if requests.is_empty() {
-            return Err(StatusCode::BAD_REQUEST);
+            return Err(HandlerError {
+                status: StatusCode::BAD_REQUEST,
+                message: "Request payload cannot be empty".to_string(),
+                ..Default::default()
+            });
         }
 
         if requests.get("name").is_none() && requests.get("description").is_none() {
-            return Err(StatusCode::BAD_REQUEST);
+            return Err(HandlerError {
+                status: StatusCode::BAD_REQUEST,
+                message: "At least one of 'name' or 'description' must be provided".to_string(),
+                ..Default::default()
+            });
         }
 
         if !current_user
@@ -133,17 +190,29 @@ impl RoleHandler {
             .iter()
             .any(|role| role == ROLE_ROOT_ADMIN)
         {
-            return Err(StatusCode::FORBIDDEN);
+            return Err(HandlerError {
+                status: StatusCode::FORBIDDEN,
+                message: "You do not have permission to update roles".to_string(),
+                ..Default::default()
+            });
         }
 
         let existing = _state
             .role_usecase()
             .get_role_by_id(id)
             .await
-            .map_err(|_| StatusCode::NOT_FOUND)?;
+            .map_err(|err| HandlerError {
+                status: StatusCode::NOT_FOUND,
+                message: format!("Role not found: {}", err.message),
+                ..Default::default()
+            })?;
 
         if existing.name == ROLE_ROOT_ADMIN {
-            return Err(StatusCode::FORBIDDEN);
+            return Err(HandlerError {
+                status: StatusCode::FORBIDDEN,
+                message: "The ROOT_ADMIN role cannot be modified".to_string(),
+                ..Default::default()
+            });
         }
 
         let mut updating = RoleUpdationDto {
@@ -153,9 +222,24 @@ impl RoleHandler {
 
         for (key, value) in &requests {
             if key.to_lowercase() == "name" {
-                if existing.name == ROLE_ROOT_ADMIN {
-                    return Err(StatusCode::FORBIDDEN);
+                let name = value.to_string();
+                if name.len() < 1 || name.len() > 255 {
+                    return Err(HandlerError {
+                        status: StatusCode::BAD_REQUEST,
+                        message: "Title must be between 1 and 255 characters".to_string(),
+                        ..Default::default()
+                    });
                 }
+
+                if let Some(_) = _state.role_usecase().get_role_by_name(&name).await {
+                    return Err(HandlerError {
+                        status: StatusCode::BAD_REQUEST,
+                        message: "This name already exists. Please choose a different one."
+                            .to_string(),
+                        ..Default::default()
+                    });
+                };
+
                 updating.name = Some(value.to_string());
             } else if key.to_lowercase() == "description" {
                 updating.description = Some(value.to_string())
@@ -164,7 +248,11 @@ impl RoleHandler {
 
         let result = _state.role_usecase().update_role(id, updating).await;
         return match result {
-            None => Err(StatusCode::INTERNAL_SERVER_ERROR),
+            None => Err(HandlerError {
+                status: StatusCode::INTERNAL_SERVER_ERROR,
+                message: "Failed to update role".to_string(),
+                ..Default::default()
+            }),
             Some(_) => Ok(Json(true)),
         };
     }
@@ -173,7 +261,7 @@ impl RoleHandler {
         Extension(current_user): Extension<Arc<CurrentUser>>,
         State(_state): State<T>,
         Path(id): Path<i32>,
-    ) -> Result<Json<bool>, StatusCode> {
+    ) -> HandlerResult<Json<bool>> {
         let deletion_req = RoleDeletionDto {
             updated_by_id: current_user.id,
         };
@@ -182,10 +270,18 @@ impl RoleHandler {
             .role_usecase()
             .get_role_by_id(id)
             .await
-            .map_err(|_| StatusCode::NOT_FOUND)?;
+            .map_err(|err| HandlerError {
+                status: StatusCode::NOT_FOUND,
+                message: format!("Role not found: {}", err.message),
+                ..Default::default()
+            })?;
 
         if existing.name == ROLE_ROOT_ADMIN {
-            return Err(StatusCode::FORBIDDEN);
+            return Err(HandlerError {
+                status: StatusCode::FORBIDDEN,
+                message: "The ROOT_ADMIN role cannot be deleted".to_string(),
+                ..Default::default()
+            });
         }
 
         if !current_user
@@ -193,7 +289,11 @@ impl RoleHandler {
             .iter()
             .any(|role| role == ROLE_ROOT_ADMIN)
         {
-            return Err(StatusCode::FORBIDDEN);
+            return Err(HandlerError {
+                status: StatusCode::FORBIDDEN,
+                message: "You do not have permission to delete roles".to_string(),
+                ..Default::default()
+            });
         }
 
         let is_succeed = _state
@@ -203,7 +303,13 @@ impl RoleHandler {
 
         match is_succeed {
             Some(u) => Ok(Json(u)),
-            None => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+            None => {
+                return Err(HandlerError {
+                    status: StatusCode::INTERNAL_SERVER_ERROR,
+                    message: "Failed to delete role".to_string(),
+                    ..Default::default()
+                })
+            }
         }
     }
 
@@ -212,19 +318,35 @@ impl RoleHandler {
         State(_state): State<T>,
         Path(role_id): Path<i32>,
         Json(payload): Json<Option<AssignPermissionRequest>>,
-    ) -> Result<Json<i32>, StatusCode> {
+    ) -> HandlerResult<Json<i32>> {
         let requests = match payload {
             Some(req) => req,
-            None => return Err(StatusCode::BAD_REQUEST),
+            None => {
+                return Err(HandlerError {
+                    status: StatusCode::BAD_REQUEST,
+                    message: "Invalid request payload".to_string(),
+                    ..Default::default()
+                })
+            }
         };
 
         let permission_codes = match requests.permission_codes {
             Some(code) => code,
-            None => return Err(StatusCode::BAD_REQUEST),
+            None => {
+                return Err(HandlerError {
+                    status: StatusCode::BAD_REQUEST,
+                    message: "Permission codes cannot be empty".to_string(),
+                    ..Default::default()
+                })
+            }
         };
 
         if permission_codes.len() == 0 {
-            return Err(StatusCode::BAD_REQUEST);
+            return Err(HandlerError {
+                status: StatusCode::BAD_REQUEST,
+                message: "Permission codes cannot be empty".to_string(),
+                ..Default::default()
+            });
         }
 
         if !current_user
@@ -232,26 +354,42 @@ impl RoleHandler {
             .iter()
             .any(|role| role == ROLE_ROOT_ADMIN)
         {
-            return Err(StatusCode::FORBIDDEN);
+            return Err(HandlerError {
+                status: StatusCode::FORBIDDEN,
+                message: "You do not have permission to assign permissions".to_string(),
+                ..Default::default()
+            });
         }
 
         _state
             .role_usecase()
             .get_role_by_id(role_id)
             .await
-            .map_err(|_| StatusCode::NOT_FOUND)?;
+            .map_err(|err| HandlerError {
+                status: StatusCode::NOT_FOUND,
+                message: format!("Role not found: {}", err.message),
+                ..Default::default()
+            })?;
 
         let incomming_permissions = _state
             .permission_usecase()
             .get_permission_by_codes(permission_codes)
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            .map_err(|err| HandlerError {
+                status: StatusCode::BAD_REQUEST,
+                message: format!("Failed to fetch permissions: {}", err.message),
+                ..Default::default()
+            })?;
 
         let existing_assignments = _state
             .role_usecase()
             .get_role_permissions_by_role_id(role_id)
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            .map_err(|err| HandlerError {
+                status: StatusCode::INTERNAL_SERVER_ERROR,
+                message: format!("Failed to fetch existing role permissions: {}", err.message),
+                ..Default::default()
+            })?;
 
         // Assign permissons that are not already assigned
         let to_be_assigned_permissons: Vec<RolePermissionCreationDto> = incomming_permissions
@@ -298,19 +436,27 @@ impl RoleHandler {
         Extension(current_user): Extension<Arc<CurrentUser>>,
         State(_state): State<T>,
         Path(role_id): Path<i32>,
-    ) -> Result<Json<Vec<RolePermissionDto>>, StatusCode> {
+    ) -> HandlerResult<Json<Vec<RolePermissionDto>>> {
         _state
             .role_usecase()
             .get_role_by_id(role_id)
             .await
-            .map_err(|_| StatusCode::NOT_FOUND)?;
+            .map_err(|err| HandlerError {
+                status: StatusCode::NOT_FOUND,
+                message: format!("Role not found: {}", err.message),
+                ..Default::default()
+            })?;
 
         if !current_user
             .roles
             .iter()
             .any(|role| role == ROLE_ROOT_ADMIN)
         {
-            return Err(StatusCode::FORBIDDEN);
+            return Err(HandlerError {
+                status: StatusCode::FORBIDDEN,
+                message: "You do not have permission to view role permissions".to_string(),
+                ..Default::default()
+            });
         }
 
         let role_permissions = _state
@@ -320,27 +466,42 @@ impl RoleHandler {
 
         match role_permissions {
             Ok(u) => Ok(Json(u)),
-            Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+            Err(_) => {
+                return Err(HandlerError {
+                    status: StatusCode::INTERNAL_SERVER_ERROR,
+                    message: "Failed to fetch role permissions".to_string(),
+                    ..Default::default()
+                })
+            }
         }
     }
 
     pub async fn get_user_roles<T: AppStateTrait>(
         Extension(current_user): Extension<Arc<CurrentUser>>,
         State(_state): State<T>,
-    ) -> Result<Json<Vec<UserRoleDto>>, StatusCode> {
+    ) -> HandlerResult<Json<Vec<UserRoleDto>>> {
         if !current_user
             .roles
             .iter()
             .any(|role| role == ROLE_ROOT_ADMIN)
         {
-            return Err(StatusCode::FORBIDDEN);
+            return Err(HandlerError {
+                status: StatusCode::FORBIDDEN,
+                message: "You do not have permission to view user roles".to_string(),
+                ..Default::default()
+            });
         }
 
         let user_roles = _state.role_usecase().get_user_roles().await;
-
         match user_roles {
             Ok(u) => Ok(Json(u)),
-            Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+            Err(_) => {
+                return Err(HandlerError {
+                    status: StatusCode::INTERNAL_SERVER_ERROR,
+                    message: "Failed to fetch user roles".to_string(),
+                    ..Default::default()
+                })
+            }
         }
     }
 }

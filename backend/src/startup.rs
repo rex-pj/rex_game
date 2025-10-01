@@ -7,7 +7,9 @@ use axum::Router;
 use hyper::{header, Method};
 use rex_game_application::identities::identity_authenticate_usecase::IdentityAuthenticateUseCase;
 use rex_game_application::identities::identity_authorize_usecase::IdentityAuthorizeUseCase;
+use rex_game_application::identities::identity_user_token_usecase::IdentityUserTokenUseCase;
 use rex_game_application::identities::identity_user_usecase::IdentityUserUseCase;
+use rex_game_application::mail_templates::mail_template_usecase::MailTemplateUseCase;
 use rex_game_application::permissions::permission_usecase::PermissionUseCase;
 use rex_game_application::roles::role_usecase::RoleUseCase;
 use rex_game_application::{
@@ -16,14 +18,18 @@ use rex_game_application::{
 };
 use rex_game_infrastructure::helpers::configuration_helper::ConfigurationHelper;
 use rex_game_infrastructure::helpers::datetime_helper::DateTimeHelper;
+use rex_game_infrastructure::helpers::email_helper::EmailHelper;
 use rex_game_infrastructure::helpers::file_helper::FileHelper;
+use rex_game_infrastructure::helpers::html_helper;
 use rex_game_infrastructure::identities::identity_password_hasher::IdentityPasswordHasher;
 use rex_game_infrastructure::identities::identity_token_helper::IdentityTokenHelper;
+use rex_game_infrastructure::repositories::mail_template_repository::MailTemplateRepository;
 use rex_game_infrastructure::repositories::permission_repository::PermissionRepository;
 use rex_game_infrastructure::repositories::role_permission_repository::RolePermissionRepository;
 use rex_game_infrastructure::repositories::role_repository::RoleRepository;
 use rex_game_infrastructure::repositories::user_permission_repository::UserPermissionRepository;
 use rex_game_infrastructure::repositories::user_role_repository::UserRoleRepository;
+use rex_game_infrastructure::repositories::user_token_repository::UserTokenRepository;
 use rex_game_infrastructure::transaction_manager::TransactionManager;
 use rex_game_infrastructure::{
     repositories::{
@@ -41,7 +47,7 @@ use tower_http::cors::{AllowOrigin, CorsLayer};
 #[tokio::main]
 pub async fn start() {
     let configuration_helper = Arc::new(ConfigurationHelper::new());
-    let connection_str = configuration_helper.clone().get_value("database.url");
+    let connection_str = configuration_helper.get_value("database.url");
     let db_connection = match SeaOrmConnection::new(&connection_str).await {
         Ok(connection) => {
             println!("Successfully connected to the database.");
@@ -77,6 +83,7 @@ pub async fn start() {
         user_role_repository.clone(),
         permission_repository.clone(),
         user_permission_repository.clone(),
+        identity_password_hasher.clone(),
     );
     let role_usecase = RoleUseCase::new(
         role_repository,
@@ -85,6 +92,7 @@ pub async fn start() {
         user_role_repository.clone(),
     );
     let permission_usecase = PermissionUseCase::new(permission_repository);
+    let user_token_repository = UserTokenRepository::new(Arc::clone(&db_connection.pool));
     let identity_user_usecase = IdentityUserUseCase::new(
         identity_password_hasher.clone(),
         user_usecase.clone(),
@@ -92,9 +100,10 @@ pub async fn start() {
         identity_token_helper.clone(),
     );
     let identity_authenticate_usecase = IdentityAuthenticateUseCase::new(
+        configuration_helper.clone(),
         identity_password_hasher,
         user_usecase.clone(),
-        identity_token_helper,
+        identity_token_helper.clone(),
     );
     let identity_authorize_usecase = IdentityAuthorizeUseCase::new(
         user_role_repository,
@@ -104,6 +113,11 @@ pub async fn start() {
     let file_helper = FileHelper::new();
     let date_time_helper = DateTimeHelper::new();
     let transaction_manager = TransactionManager::new(Arc::clone(&db_connection.pool));
+    let email_helper = EmailHelper::new();
+    let identity_user_token_usecase = IdentityUserTokenUseCase::new(user_token_repository);
+    let mail_template_repository = MailTemplateRepository::new(Arc::clone(&db_connection.pool));
+    let mail_template_usecase = MailTemplateUseCase::new(mail_template_repository);
+    let html_helper = html_helper::HtmlHelper::new();
     let app_state = RegularAppState {
         transaction_manager,
         flashcard_usecase,
@@ -112,11 +126,17 @@ pub async fn start() {
         identity_user_usecase,
         identity_authenticate_usecase,
         file_helper,
+        email_helper,
         date_time_helper,
+        html_helper,
         db_connection: Arc::clone(&db_connection.pool),
         role_usecase: role_usecase,
         identity_authorize_usecase: identity_authorize_usecase,
         permission_usecase: permission_usecase,
+        identity_user_token_usecase: identity_user_token_usecase,
+        itentity_token_helper: identity_token_helper,
+        mail_template_usecase: mail_template_usecase,
+        configuration_helper: configuration_helper.clone(),
     };
 
     let authenticated_routes = AppRouting {

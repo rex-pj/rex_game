@@ -15,32 +15,37 @@ pub enum IdentityErrorKind {
     Unauthorized,
 }
 
-pub struct IdentityClaims {
+pub struct TokenValidationResult {
     pub sub: i32,
-    pub email: String,
+    pub email: Option<String>,
     pub exp: u64,
     pub iss: String,
     pub token_type: String,
+    pub iat: Option<i64>,
+    pub jti: String,
 }
 
-pub struct UserAccessClaims {
+pub struct TokenGenerationResult {
     pub sub: i32,
-    pub access_token: String,
-    pub email: String,
-    pub expiration: u64,
+    pub token: String,
+    pub email: Option<String>,
+    pub exp: u64,
+    pub token_type: String,
 }
 
-pub struct UserRefreshTokenClaims {
-    pub refresh_token: String,
-    pub expiration: u64,
-}
-
-pub struct AccessTokenInfo {
+pub struct AccessTokenResult {
     pub sub: i32,
     pub aud: String,
-    pub email: String,
-    pub company: String,
+    pub email: Option<String>,
     pub iss: String,
     pub exp: u64,
     pub token_type: String,
+}
+
+pub struct TokenGenerationOptions {
+    pub user_id: i32,
+    pub email: Option<String>,
+    pub exp_secs: i64,
+    pub purpose: String,
+    pub iat: Option<i64>,
 }

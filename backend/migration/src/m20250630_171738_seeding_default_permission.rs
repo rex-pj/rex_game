@@ -1,8 +1,7 @@
+use crate::enums::permission::Permission;
 use chrono::Utc;
 use rex_game_shared::enums::permission_codes::PermissionCodes;
 use sea_orm_migration::prelude::*;
-
-use crate::enums::permission::Permission;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -705,6 +704,82 @@ impl MigrationTrait for Migration {
             .to_owned();
         manager.exec_stmt(flashcard_file_insert).await?;
 
+        let mail_template_insert = Query::insert()
+            .into_table(Permission::Table)
+            .columns([
+                Permission::Name,
+                Permission::Description,
+                Permission::Module,
+                Permission::Code,
+                Permission::CreatedDate,
+                Permission::UpdatedDate,
+                Permission::IsActived,
+            ])
+            .values_panic([
+                "Read mail template".into(),
+                "Can read the mail template".into(),
+                "Mail template".into(),
+                PermissionCodes::MailTemplateRead.as_str().into(),
+                now_utc.into(),
+                now_utc.into(),
+                true.into(),
+            ])
+            .columns([
+                Permission::Name,
+                Permission::Description,
+                Permission::Module,
+                Permission::Code,
+                Permission::CreatedDate,
+                Permission::UpdatedDate,
+                Permission::IsActived,
+            ])
+            .values_panic([
+                "Create mail template".into(),
+                "Can create the mail template".into(),
+                "Mail template".into(),
+                PermissionCodes::MailTemplateCreate.as_str().into(),
+                now_utc.into(),
+                now_utc.into(),
+                true.into(),
+            ])
+            .columns([
+                Permission::Name,
+                Permission::Description,
+                Permission::Module,
+                Permission::Code,
+                Permission::CreatedDate,
+                Permission::UpdatedDate,
+                Permission::IsActived,
+            ])
+            .values_panic([
+                "Delete mail template".into(),
+                "Can delete the mail template".into(),
+                "Mail template".into(),
+                PermissionCodes::MailTemplateDelete.as_str().into(),
+                now_utc.into(),
+                now_utc.into(),
+                true.into(),
+            ])
+            .columns([
+                Permission::Name,
+                Permission::Description,
+                Permission::Module,
+                Permission::Code,
+                Permission::CreatedDate,
+                Permission::UpdatedDate,
+                Permission::IsActived,
+            ])
+            .values_panic([
+                "Update mail template".into(),
+                "Can update the mail template".into(),
+                "Mail template".into(),
+                PermissionCodes::MailTemplateUpdate.as_str().into(),
+                now_utc.into(),
+                now_utc.into(),
+                true.into(),
+            ])
+            .to_owned();
+        manager.exec_stmt(mail_template_insert).await?;
         Ok(())
     }
 

@@ -1,6 +1,7 @@
 pub mod authentication_handler;
 pub mod flashcard_handler;
 pub mod flashcard_type_handler;
+pub mod mail_template_handler;
 pub mod permission_handler;
 pub mod role_handler;
 pub mod setup_handler;

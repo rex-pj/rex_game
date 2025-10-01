@@ -1,6 +1,6 @@
-import { PermissionService } from "$lib/services/permissionService";
-import { RoleService } from "$lib/services/roleService";
-import { UserService } from "$lib/services/userService";
+import { PermissionApi } from "$lib/api/permissionApi";
+import { RoleApi } from "$lib/api/roleApi";
+import { UserApi } from "$lib/api/userApi";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ params, cookies }) => {
@@ -13,12 +13,12 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
     return { userPermissions: [], userRoles: [], roles: [], permissions: [] };
   }
 
-  const userService: UserService = new UserService(cookies);
-  const roleService: RoleService = new RoleService(cookies);
-  const permissionService: PermissionService = new PermissionService(cookies);
+  const userApi: UserApi = new UserApi(cookies);
+  const roleService: RoleApi = new RoleApi(cookies);
+  const permissionService: PermissionApi = new PermissionApi(cookies);
 
-  const userPermissions = await userService.getPermissionList(fetch, userId);
-  const userRoles = await userService.getRoleList(fetch, userId);
+  const userPermissions = await userApi.getPermissionList(fetch, userId);
+  const userRoles = await userApi.getRoleList(fetch, userId);
   const { items: roles } = await roleService.getList(fetch);
   const { items: permissions } = await permissionService.getList(fetch);
 
@@ -55,10 +55,10 @@ export const actions = {
       return { success: false, error: "No roles selected" };
     }
 
-    const userService = new UserService(cookies);
+    const userApi = new UserApi(cookies);
     try {
       // Assign each role to the user
-      await userService.assignRoles(fetch, userId, {
+      await userApi.assignRoles(fetch, userId, {
         role_ids: roleIds.map(Number),
       });
     } catch (error: any) {
@@ -69,7 +69,7 @@ export const actions = {
     }
 
     // Fetch updated roles after assignment
-    const userRoles = await userService.getRoleList(fetch, userId);
+    const userRoles = await userApi.getRoleList(fetch, userId);
     return { success: true, userRoles: userRoles || [] };
   },
 
@@ -97,10 +97,10 @@ export const actions = {
       return { success: false, error: "No permissions selected" };
     }
 
-    const userService = new UserService(cookies);
+    const userApi = new UserApi(cookies);
     try {
       // Assign each permission to the user
-      await userService.assignPermissions(fetch, userId, {
+      await userApi.assignPermissions(fetch, userId, {
         permission_codes: permissionCodes,
       });
     } catch (error: any) {
@@ -111,7 +111,7 @@ export const actions = {
     }
 
     // Fetch updated permissions after assignment
-    const userPermissions = await userService.getPermissionList(fetch, userId);
+    const userPermissions = await userApi.getPermissionList(fetch, userId);
     return { success: true, userPermissions: userPermissions || [] };
   },
 };

@@ -11,6 +11,7 @@ use crate::{
 };
 use chrono::Utc;
 use rex_game_domain::{
+    identities::password_hasher_trait::PasswordHasherTrait,
     models::{
         user_model::UserModel, user_permission_model::UserPermissionModel,
         user_role_model::UserRoleModel, user_statuses::UserStatuses,
@@ -32,28 +33,31 @@ use super::{
 };
 
 #[derive(Clone)]
-pub struct UserUseCase<UT, RT, URT, PT, UP>
+pub struct UserUseCase<UT, RT, URT, PT, UP, PH>
 where
     UT: UserRepositoryTrait,
     RT: RoleRepositoryTrait,
     URT: UserRoleRepositoryTrait,
     PT: PermissionRepositoryTrait,
     UP: UserPermissionRepositoryTrait,
+    PH: PasswordHasherTrait,
 {
     _user_repository: UT,
     _role_repository: RT,
     _user_role_repository: URT,
     _permission_repository: PT,
     _user_permission_repository: UP,
+    _password_hasher: PH,
 }
 
-impl<UT, RT, URT, PT, UP> UserUseCase<UT, RT, URT, PT, UP>
+impl<UT, RT, URT, PT, UP, PH> UserUseCase<UT, RT, URT, PT, UP, PH>
 where
     UT: UserRepositoryTrait,
     RT: RoleRepositoryTrait,
     URT: UserRoleRepositoryTrait,
     PT: PermissionRepositoryTrait,
     UP: UserPermissionRepositoryTrait,
+    PH: PasswordHasherTrait,
 {
     pub fn new(
         user_repository: UT,
@@ -61,6 +65,7 @@ where
         user_role_repository: URT,
         permission_repository: PT,
         user_permission_repository: UP,
+        password_hasher: PH,
     ) -> Self {
         Self {
             _user_repository: user_repository,
@@ -68,25 +73,28 @@ where
             _user_role_repository: user_role_repository,
             _permission_repository: permission_repository,
             _user_permission_repository: user_permission_repository,
+            _password_hasher: password_hasher,
         }
     }
 }
 
-impl<UT, RT, URT, PT, UP> UserUseCaseTrait for UserUseCase<UT, RT, URT, PT, UP>
+impl<UT, RT, URT, PT, UP, PH> UserUseCaseTrait for UserUseCase<UT, RT, URT, PT, UP, PH>
 where
     UT: UserRepositoryTrait + Send + Sync + Clone + 'static,
     RT: RoleRepositoryTrait,
     PT: PermissionRepositoryTrait,
     URT: UserRoleRepositoryTrait + Send + Sync + Clone + 'static,
     UP: UserPermissionRepositoryTrait + Send + Sync + Clone + 'static,
+    PH: PasswordHasherTrait,
 {
     fn get_user_by_email(
         &self,
-        email: String,
+        email: &str,
     ) -> Pin<Box<dyn Future<Output = Result<UserDetailsDto, ApplicationError>> + Send>> {
         let user_repository = self._user_repository.clone();
+        let email_value = email.to_owned();
         Box::pin(async move {
-            let existing = user_repository.get_by_email(email).await;
+            let existing = user_repository.get_by_email(&email_value).await;
             match existing {
                 Ok(f) => Ok(UserDetailsDto {
                     id: f.id,
@@ -108,6 +116,28 @@ where
                 )),
             }
         })
+    }
+
+    async fn get_user_by_name(&self, name: &String) -> Result<UserDto, ApplicationError> {
+        let existing = self._user_repository.get_by_name(&name).await;
+        match existing {
+            Ok(f) => Ok(UserDto {
+                id: f.id,
+                email: f.email,
+                name: f.name,
+                display_name: f.display_name,
+                created_by_id: f.created_by_id,
+                created_date: f.created_date.with_timezone(&Utc),
+                updated_date: f.updated_date.with_timezone(&Utc),
+                updated_by_id: f.updated_by_id,
+                status_id: f.status_id,
+            }),
+            Err(_) => Err(ApplicationError::new(
+                ApplicationErrorKind::DatabaseError,
+                "Database error",
+                None,
+            )),
+        }
     }
 
     async fn get_user_by_id(&self, id: i32) -> Result<UserDto, ApplicationError> {
@@ -141,7 +171,7 @@ where
             name: user_req.name,
             display_name: user_req.display_name,
             email: user_req.email,
-            status_id: UserStatuses::Actived as i32,
+            status_id: user_req.status_id,
             password_hash: user_req.password,
             security_stamp: user_req.security_stamp,
             ..Default::default()
@@ -212,7 +242,7 @@ where
             name: user_req.name,
             display_name: user_req.display_name,
             email: user_req.email,
-            status_id: UserStatuses::Actived as i32,
+            status_id: user_req.status_id,
             password_hash: user_req.password,
             security_stamp: user_req.security_stamp,
             ..Default::default()
@@ -243,6 +273,15 @@ where
                     Some(email) => exist.email = email,
                     None => {}
                 };
+                match user_req.password {
+                    Some(password) => {
+                        let salt = self._password_hasher.generate_salt();
+                        exist.security_stamp = salt.to_owned();
+                        let password_hash_result = self._password_hasher.hash(&password, salt);
+                        exist.password_hash = password_hash_result;
+                    }
+                    None => {}
+                }
                 match user_req.display_name {
                     Some(display_name) => exist.display_name = Some(display_name),
                     None => {}

@@ -17,3 +17,10 @@ export interface PermissionRequest {
   description: string;
   module: string;
 }
+
+export interface PermissionItem {
+  id: number;
+  name: string;
+  code: string;
+  module: string;
+}

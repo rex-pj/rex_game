@@ -4,6 +4,7 @@ pub mod helpers;
 pub mod middlewares;
 pub mod routings;
 pub mod startup;
+pub mod validators;
 pub mod view_models;
 
 fn main() {

@@ -29,6 +29,4 @@ pub trait IdentityUserUseCaseTrait {
         &'a self,
         access_token: &'a str,
     ) -> BoxFuture<'a, Result<LoggedInUserDto, ApplicationError>>;
-
-    // Pin<Box<dyn Future<Output = Result<LoggedInUserDto, ApplicationError>> + Send>>
 }

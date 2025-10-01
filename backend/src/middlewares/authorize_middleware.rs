@@ -6,7 +6,8 @@ use rex_game_application::{
         identity_authenticate_usecase_trait::IdentityAuthenticateUseCaseTrait,
         identity_authorize_usecase_trait::IdentityAuthorizeUseCaseTrait,
     },
-    users::{roles::ROLE_ADMIN, user_usecase_trait::UserUseCaseTrait},
+    roles::roles::ROLE_ROOT_ADMIN,
+    users::user_usecase_trait::UserUseCaseTrait,
 };
 use std::{
     collections::HashSet,
@@ -68,7 +69,7 @@ where
         let user_claims = match self
             ._app_state
             .identity_authenticate_usecase()
-            .verify_access_token(auth_token)
+            .validate_token(auth_token)
         {
             Ok(claims) => claims,
             Err(_) => {
@@ -91,7 +92,10 @@ where
                     .await
                     .unwrap_or_default();
 
-                if user_roles.iter().any(|role| role.role_name == ROLE_ADMIN) {
+                if user_roles
+                    .iter()
+                    .any(|role| role.role_name == ROLE_ROOT_ADMIN)
+                {
                     // If the user is a root admin, they have all permissions
                     req.extensions_mut().insert(AuthorizedState::HasPermission);
                     return inner.call(req).await;

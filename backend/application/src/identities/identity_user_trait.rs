@@ -8,6 +8,7 @@ pub trait IdentityUserTrait<K> {
 
     fn id(&self) -> K;
     fn password_hash(&self) -> &str;
+    fn status_id(&self) -> i32;
     fn security_stamp(&self) -> &str;
     fn display_name(&self) -> Option<&str>;
     fn email(&self) -> &str;

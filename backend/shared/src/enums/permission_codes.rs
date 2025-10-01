@@ -45,6 +45,11 @@ pub enum PermissionCodes {
     FlashcardFileCreate,
     FlashcardFileDelete,
     FlashcardFileUpdate,
+    // Mail Template
+    MailTemplateRead,
+    MailTemplateCreate,
+    MailTemplateDelete,
+    MailTemplateUpdate,
 }
 
 impl PermissionCodes {
@@ -94,6 +99,11 @@ impl PermissionCodes {
             PermissionCodes::FlashcardFileCreate => "flashcard_file:create",
             PermissionCodes::FlashcardFileDelete => "flashcard_file:delete",
             PermissionCodes::FlashcardFileUpdate => "flashcard_file:update",
+
+            PermissionCodes::MailTemplateRead => "mail_template:read",
+            PermissionCodes::MailTemplateCreate => "mail_template:create",
+            PermissionCodes::MailTemplateDelete => "mail_template:delete",
+            PermissionCodes::MailTemplateUpdate => "mail_template:update",
         }
     }
 }

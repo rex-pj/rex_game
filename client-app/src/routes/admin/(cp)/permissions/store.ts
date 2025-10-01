@@ -1,10 +1,13 @@
 import { get, writable, type Writable } from "svelte/store";
-import { PermissionService } from "$lib/services/permissionService";
+import { PermissionApi } from "$lib/api/permissionApi";
 import Cookies from "js-cookie";
 import type { Pager } from "../../../../components/molecules/pagination/pager";
 import type { Permission, PermissionRequest } from "$lib/models/permission";
+import type { CurrentUser } from "$lib/models/current-user";
+import * as accessService from "$lib/services/accessService";
+import { PermissionCodes } from "$lib/common/permissions";
 
-const permissionService: PermissionService = new PermissionService(Cookies);
+const permissionService: PermissionApi = new PermissionApi(Cookies);
 export const items: Writable<Permission[]> = writable([]);
 export const pager: Writable<Pager> = writable({ currentPage: 1, totalPages: 0 });
 const itemsPerPage = 10;
@@ -144,4 +147,25 @@ export const deleteById = async (id: number) => {
     .finally(() => {
       isDeletionSubmitting.set(false);
     });
+};
+
+export const canUpdate = (currentUser: CurrentUser | undefined) => {
+  return (
+    (currentUser && accessService.isRootAdmin(currentUser)) ||
+    accessService.isInPermissions(currentUser, [PermissionCodes.PermissionUpdate])
+  );
+};
+
+export const canCreate = (currentUser: CurrentUser | undefined) => {
+  return (
+    (currentUser && accessService.isRootAdmin(currentUser)) ||
+    accessService.isInPermissions(currentUser, [PermissionCodes.PermissionCreate])
+  );
+};
+
+export const canDelete = (currentUser: CurrentUser | undefined) => {
+  return (
+    (currentUser && accessService.isRootAdmin(currentUser)) ||
+    accessService.isInPermissions(currentUser, [PermissionCodes.PermissionDelete])
+  );
 };

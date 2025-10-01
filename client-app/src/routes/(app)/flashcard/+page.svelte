@@ -1,7 +1,7 @@
 <script>
-  import Navigation from "../../components/organisms/Navigation.svelte";
-  import FlashcardCategoryTab from "../../components/organisms/flashcards/FlashcardCategoryTab.svelte";
-  import PrimaryHeading from "../../components/atoms/heading/PrimaryHeading.svelte";
+  import Navigation from "../../../components/organisms/Navigation.svelte";
+  import FlashcardCategoryTab from "../../../components/organisms/flashcards/FlashcardCategoryTab.svelte";
+  import PrimaryHeading from "../../../components/atoms/heading/PrimaryHeading.svelte";
 </script>
 
 <Navigation></Navigation>

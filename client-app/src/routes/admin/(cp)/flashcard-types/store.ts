@@ -1,10 +1,13 @@
 import { get, writable, type Writable } from "svelte/store";
-import { FlashcardTypeService } from "$lib/services/flashcardTypeService";
+import { FlashcardTypeApi } from "$lib/api/flashcardTypeApi";
 import Cookies from "js-cookie";
 import type { Pager } from "../../../../components/molecules/pagination/pager";
 import type { FlashcardType, FlashcardTypeRequest } from "$lib/models/flashcard-type";
+import * as accessService from "$lib/services/accessService";
+import type { CurrentUser } from "$lib/models/current-user";
+import { PermissionCodes } from "$lib/common/permissions";
 
-const flashcardTypeService: FlashcardTypeService = new FlashcardTypeService(Cookies);
+const flashcardTypeService: FlashcardTypeApi = new FlashcardTypeApi(Cookies);
 export const items: Writable<FlashcardType[]> = writable([]);
 export const pager: Writable<Pager> = writable({ currentPage: 1, totalPages: 0 });
 const itemsPerPage = 10;
@@ -22,7 +25,7 @@ export const deletionError = writable("");
 export const isDeletionSubmitting = writable(false);
 export const deletingData = writable({ id: 0, name: "" });
 
-// Fetch flashcards data (mocked for now)
+// Fetch flashcard types data (mocked for now)
 export const fetchItems = async (page: number) => {
   // Replace this with your API call
   const response = await flashcardTypeService.getList(fetch, page, itemsPerPage);
@@ -142,4 +145,25 @@ export const deleteById = async (id: number) => {
     .finally(() => {
       isDeletionSubmitting.set(false);
     });
+};
+
+export const canUpdate = (currentUser: CurrentUser | undefined) => {
+  return (
+    (currentUser && accessService.isRootAdmin(currentUser)) ||
+    accessService.isInPermissions(currentUser, [PermissionCodes.FlashcardTypeUpdate])
+  );
+};
+
+export const canCreate = (currentUser: CurrentUser | undefined) => {
+  return (
+    (currentUser && accessService.isRootAdmin(currentUser)) ||
+    accessService.isInPermissions(currentUser, [PermissionCodes.FlashcardTypeCreate])
+  );
+};
+
+export const canDelete = (currentUser: CurrentUser | undefined) => {
+  return (
+    (currentUser && accessService.isRootAdmin(currentUser)) ||
+    accessService.isInPermissions(currentUser, [PermissionCodes.FlashcardTypeDelete])
+  );
 };

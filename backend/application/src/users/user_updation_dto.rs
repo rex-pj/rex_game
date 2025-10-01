@@ -5,4 +5,5 @@ pub struct UserUpdationDto {
     pub display_name: Option<String>,
     pub updated_by_id: Option<i32>,
     pub status_id: Option<i32>,
+    pub password: Option<String>,
 }

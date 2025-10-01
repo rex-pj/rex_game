@@ -216,9 +216,10 @@ impl UserRepositoryTrait for UserRepository {
 
     fn get_by_email(
         &self,
-        email: String,
+        email: &str,
     ) -> Pin<Box<dyn Future<Output = Result<UserModel, DomainError>> + Send>> {
         let db = self._db_connection.clone();
+        let email = email.to_owned();
         Box::pin(async move {
             let existing = User::find()
                 .filter(Condition::all().add(user::Column::Email.eq(email)))
@@ -229,19 +230,7 @@ impl UserRepositoryTrait for UserRepository {
                 })?;
 
             match existing {
-                Some(f) => Ok(UserModel {
-                    id: f.id,
-                    name: f.name,
-                    display_name: f.display_name,
-                    email: f.email,
-                    password_hash: f.password_hash,
-                    security_stamp: f.security_stamp,
-                    status_id: f.status_id,
-                    created_date: f.created_date.with_timezone(&Utc),
-                    updated_date: f.updated_date.with_timezone(&Utc),
-                    created_by_id: f.created_by_id,
-                    updated_by_id: f.updated_by_id,
-                }),
+                Some(f) => Ok(self::map_entity_to_model(f)),
                 None => Err(DomainError::new(
                     ErrorType::NotFound,
                     "User not found",
@@ -251,6 +240,26 @@ impl UserRepositoryTrait for UserRepository {
         })
     }
 
+    async fn get_by_name(&self, name: &String) -> Result<UserModel, DomainError> {
+        let db = self._db_connection.clone();
+        let existing = User::find()
+            .filter(Condition::all().add(user::Column::Name.eq(name)))
+            .one(db.as_ref())
+            .await
+            .map_err(|err| {
+                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
+            })?;
+
+        match existing {
+            Some(f) => Ok(self::map_entity_to_model(f)),
+            None => Err(DomainError::new(
+                ErrorType::NotFound,
+                "User not found",
+                None,
+            )),
+        }
+    }
+
     async fn get_by_id(&self, id: i32) -> Result<UserModel, DomainError> {
         let db = self._db_connection.as_ref();
         let existing = User::find_by_id(id).one(db).await.map_err(|err| {
@@ -258,19 +267,7 @@ impl UserRepositoryTrait for UserRepository {
         })?;
 
         match existing {
-            Some(f) => Ok(UserModel {
-                id: f.id,
-                name: f.name,
-                display_name: f.display_name,
-                email: f.email,
-                password_hash: f.password_hash,
-                security_stamp: f.security_stamp,
-                status_id: f.status_id,
-                created_date: f.created_date.with_timezone(&Utc),
-                updated_date: f.updated_date.with_timezone(&Utc),
-                created_by_id: f.created_by_id,
-                updated_by_id: f.updated_by_id,
-            }),
+            Some(f) => Ok(self::map_entity_to_model(f)),
             None => Err(DomainError::new(
                 ErrorType::NotFound,
                 "User not found",
@@ -292,7 +289,7 @@ impl UserRepositoryTrait for UserRepository {
             None => {
                 return Err(DomainError::new(
                     ErrorType::NotFound,
-                    "Flashcard file not found",
+                    "User Token not found",
                     None,
                 ))
             }
@@ -304,6 +301,7 @@ impl UserRepositoryTrait for UserRepository {
         existing_user.email = Set(user_req.email);
         existing_user.name = Set(user_req.name);
         existing_user.status_id = Set(user_req.status_id);
+        existing_user.password_hash = Set(user_req.password_hash);
 
         match User::update(existing_user).exec(db).await {
             Ok(_) => Ok(true),
@@ -313,5 +311,21 @@ impl UserRepositoryTrait for UserRepository {
                 None,
             )),
         }
+    }
+}
+
+fn map_entity_to_model(f: user::Model) -> UserModel {
+    UserModel {
+        id: f.id,
+        name: f.name,
+        display_name: f.display_name,
+        email: f.email,
+        password_hash: f.password_hash,
+        security_stamp: f.security_stamp,
+        status_id: f.status_id,
+        created_date: f.created_date.with_timezone(&Utc),
+        updated_date: f.updated_date.with_timezone(&Utc),
+        created_by_id: f.created_by_id,
+        updated_by_id: f.updated_by_id,
     }
 }

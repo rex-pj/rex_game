@@ -19,4 +19,5 @@ pub enum ApplicationErrorKind {
     InvalidInput,
     DatabaseError,
     Unauthorized,
+    InternalServerError,
 }

@@ -5,12 +5,10 @@ use crate::{
     page_list_dto::PageListDto,
     roles::{
         role_creation_dto::RoleCreationDto, role_deletion_dto::RoleDeletionDto,
-        role_updation_dto::RoleUpdationDto,
-    },
-    users::{
         role_permission_creation_dto::RolePermissionCreationDto,
-        role_permission_dto::RolePermissionDto, user_role_dto::UserRoleDto,
+        role_permission_dto::RolePermissionDto, role_updation_dto::RoleUpdationDto,
     },
+    users::user_role_dto::UserRoleDto,
 };
 
 use super::{role_dto::RoleDto, role_usecase_trait::RoleUseCaseTrait};

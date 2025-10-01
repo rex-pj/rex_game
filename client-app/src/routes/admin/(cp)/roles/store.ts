@@ -1,11 +1,14 @@
 import { get, writable, type Writable } from "svelte/store";
-import { RoleService } from "$lib/services/roleService";
+import { RoleApi } from "$lib/api/roleApi";
 import Cookies from "js-cookie";
 import type { Pager } from "../../../../components/molecules/pagination/pager";
 import type { Role, RoleRequest } from "$lib/models/role";
 import { goto } from "$app/navigation";
+import type { CurrentUser } from "$lib/models/current-user";
+import * as accessService from "$lib/services/accessService";
+import { PermissionCodes } from "$lib/common/permissions";
 
-const roleService: RoleService = new RoleService(Cookies);
+const roleService: RoleApi = new RoleApi(Cookies);
 export const items: Writable<Role[]> = writable([]);
 export const pager: Writable<Pager> = writable({ currentPage: 1, totalPages: 0 });
 const itemsPerPage = 10;
@@ -147,4 +150,25 @@ export const deleteById = async (id: number) => {
     .finally(() => {
       isDeletionSubmitting.set(false);
     });
+};
+
+export const canUpdate = (currentUser: CurrentUser | undefined) => {
+  return (
+    (currentUser && accessService.isRootAdmin(currentUser)) ||
+    accessService.isInPermissions(currentUser, [PermissionCodes.RoleUpdate])
+  );
+};
+
+export const canCreate = (currentUser: CurrentUser | undefined) => {
+  return (
+    (currentUser && accessService.isRootAdmin(currentUser)) ||
+    accessService.isInPermissions(currentUser, [PermissionCodes.RoleCreate])
+  );
+};
+
+export const canDelete = (currentUser: CurrentUser | undefined) => {
+  return (
+    (currentUser && accessService.isRootAdmin(currentUser)) ||
+    accessService.isInPermissions(currentUser, [PermissionCodes.RoleDelete])
+  );
 };

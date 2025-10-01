@@ -12,3 +12,8 @@ export interface RoleRequest {
   name: string;
   description: string;
 }
+
+export interface RoleItem {
+  id: number;
+  name: string;
+}

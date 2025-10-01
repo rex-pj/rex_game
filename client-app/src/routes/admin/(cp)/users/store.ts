@@ -1,11 +1,14 @@
 import { get, writable, type Writable } from "svelte/store";
-import { UserService } from "$lib/services/userService";
+import { UserApi } from "$lib/api/userApi";
 import Cookies from "js-cookie";
 import type { Pager } from "../../../../components/molecules/pagination/pager";
 import type { UserDto, UserRequest } from "$lib/models/user";
 import { goto } from "$app/navigation";
+import type { CurrentUser } from "$lib/models/current-user";
+import { PermissionCodes } from "$lib/common/permissions";
+import * as accessService from "$lib/services/accessService";
 
-const userService: UserService = new UserService(Cookies);
+const userApi: UserApi = new UserApi(Cookies);
 export const items: Writable<UserDto[]> = writable([]);
 export const pager: Writable<Pager> = writable({ currentPage: 1, totalPages: 0 });
 const itemsPerPage = 10;
@@ -28,7 +31,7 @@ export const deletingData = writable({ id: 0, name: "" });
 // Fetch users data (mocked for now)
 export const getList = async (page: number) => {
   // Replace this with your API call
-  const response = await userService.getList(fetch, page, itemsPerPage);
+  const response = await userApi.getList(fetch, page, itemsPerPage);
 
   items.set(response.items);
   const totalPages = Math.ceil(response.total_count / itemsPerPage);
@@ -45,7 +48,7 @@ export const submit = async (data: UserRequest) => {
 export const update = async (id: number, data: UserRequest) => {
   isSubmitting.set(true);
 
-  await userService
+  await userApi
     .update(fetch, id, data)
     .then(async () => {
       await getList(1);
@@ -80,7 +83,7 @@ export const changePage = (page: number) => {
 
 export const getById = async (id: number) => {
   isSubmitting.set(true);
-  return await userService
+  return await userApi
     .getById(fetch, id)
     .then((response) => {
       return response;
@@ -126,7 +129,7 @@ export const toggleDeletionModal = (isShown: boolean = false) => {
 
 export const deleteById = async (id: number) => {
   isDeletionSubmitting.set(true);
-  await userService
+  await userApi
     .deleteById(fetch, id)
     .then(async () => {
       await getList(1);
@@ -142,4 +145,18 @@ export const deleteById = async (id: number) => {
 
 export const redirectToAccesses = (id: number) => {
   goto(`/admin/users/${id}/accesses`);
+};
+
+export const canUpdate = (currentUser: CurrentUser | undefined) => {
+  return (
+    (currentUser && accessService.isRootAdmin(currentUser)) ||
+    accessService.isInPermissions(currentUser, [PermissionCodes.UserUpdate])
+  );
+};
+
+export const canDelete = (currentUser: CurrentUser | undefined) => {
+  return (
+    (currentUser && accessService.isRootAdmin(currentUser)) ||
+    accessService.isInPermissions(currentUser, [PermissionCodes.UserDelete])
+  );
 };

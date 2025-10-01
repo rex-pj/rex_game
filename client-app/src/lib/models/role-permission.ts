@@ -1,6 +1,5 @@
 export interface RolePermission {
   id: number;
-  user_id: number;
   role_id: number;
   role_name: string;
   permission_id: number;

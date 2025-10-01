@@ -14,7 +14,12 @@ jsonwebtoken = "9.3.1"
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 config = "0.15.4"
+mail-send = "0.5.1"
+ammonia = "4.1.1"
+html2text = "0.15.3"
+
 rex-game-domain = { path = "../domain" }
+rex-game-shared = { path = "../shared" }
 
 [dependencies.sea-orm]
 version = "1.1.0"
@@ -24,3 +29,8 @@ features = [
     "macros",
     "debug-print",
 ]
+
+[dependencies.uuid]
+version = "1.18.1"
+# Lets you generate random UUIDs
+features = ["v4"]

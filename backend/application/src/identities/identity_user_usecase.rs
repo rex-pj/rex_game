@@ -76,6 +76,7 @@ where
                     name: String::from(user.name()),
                     password: String::from(user.password_hash()),
                     security_stamp: String::from(user.security_stamp()),
+                    status_id: user.status_id(),
                 },
                 transaction,
             )
@@ -105,7 +106,7 @@ where
         let password_hash_result = self._password_hasher.hash(password, salt);
         user.set_password_hash(&password_hash_result);
 
-        let created_id = match self
+        let created_id = self
             ._user_usecase
             .create_user(UserCreationDto {
                 display_name: user.display_name().map(|f| String::from(f)),
@@ -113,18 +114,16 @@ where
                 name: String::from(user.name()),
                 password: String::from(user.password_hash()),
                 security_stamp: String::from(user.security_stamp()),
+                status_id: user.status_id(),
             })
             .await
-        {
-            Ok(id) => id,
-            Err(_) => {
-                return Err(ApplicationError::new(
+            .map_err(|_| {
+                ApplicationError::new(
                     ApplicationErrorKind::InvalidInput,
                     "Create user failed",
                     None,
-                ))
-            }
-        };
+                )
+            })?;
 
         user.set_id(created_id);
         Ok(user)
@@ -138,17 +137,15 @@ where
         let user_usecase = self._user_usecase.clone();
         let role_usecase = self._role_usecase.clone();
         Box::pin(async move {
-            let claims = token_helper
-                .get_access_token_info(access_token)
-                .ok_or_else(|| {
-                    ApplicationError::new(
-                        ApplicationErrorKind::InvalidInput,
-                        "Failed to get token info",
-                        None,
-                    )
-                })?;
+            let claims = token_helper.validate_token(access_token).map_err(|err| {
+                ApplicationError::new(ApplicationErrorKind::InvalidInput, &err.message, None)
+            })?;
 
-            let user = match user_usecase.get_user_by_email(claims.email).await {
+            let email = claims.email.ok_or_else(|| {
+                ApplicationError::new(ApplicationErrorKind::NotFound, "No email found", None)
+            })?;
+
+            let user = match user_usecase.get_user_by_email(&email).await {
                 Err(_) => {
                     return Err(ApplicationError::new(
                         ApplicationErrorKind::InvalidInput,

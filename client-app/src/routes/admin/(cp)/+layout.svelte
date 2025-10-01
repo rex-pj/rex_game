@@ -1,44 +1,87 @@
 <script lang="ts">
-  import * as authenticationClient from "$lib/helpers/authenticationClient";
+  import { page } from "$app/state";
+  import * as accessService from "$lib/services/accessService";
   import { getContext, onMount } from "svelte";
   import { SHARED_CONTEXT, ADMIN_URLS, ROLE_NAMES } from "$lib/common/contants";
   import { type CurrentUser } from "$lib/models/current-user";
   import { goto } from "$app/navigation";
-  import { page } from "$app/stores";
+  import type { LayoutProps } from "./$types";
+  const { data, children }: LayoutProps = $props();
   let menus = [
-    { name: "Dashboard", link: "/admin/dashboard" },
-    { name: "Falshcards", link: "/admin/flashcards" },
-    { name: "Falshcard Types", link: "/admin/flashcard-types" },
-    { name: "Users", link: "/admin/users" },
-    { name: "Security" },
-    { name: "Roles", link: "/admin/roles" },
-    { name: "Permissions", link: "/admin/permissions" },
-    { name: "User Accesses", link: "/admin/user-accesses" },
+    { name: "Dashboard", link: "/admin/dashboard", icon: "fa-solid fa-gauge", canRead: true },
+    {
+      name: "Falshcards",
+      link: "/admin/flashcards",
+      icon: "fa-solid fa-clone",
+      canRead: accessService.canReadFlashcards(data.currentUser),
+    },
+    {
+      name: "Falshcard Types",
+      link: "/admin/flashcard-types",
+      icon: "fa-solid fa-layer-group",
+      canRead: accessService.canReadFlashcardTypes(data.currentUser),
+    },
+    {
+      name: "Users",
+      link: "/admin/users",
+      icon: "fa-solid fa-users",
+      canRead: accessService.canReadUsers(data.currentUser),
+    },
+    {
+      name: "Roles",
+      link: "/admin/roles",
+      icon: "fa-solid fa-user-shield",
+      canRead: accessService.canReadRoles(data.currentUser),
+    },
+    {
+      name: "Permissions",
+      link: "/admin/permissions",
+      icon: "fa-solid fa-key",
+      canRead: accessService.canReadPermissions(data.currentUser),
+    },
+    {
+      name: "Accesses",
+      link: "/admin/accesses",
+      icon: "fa-solid fa-user-lock",
+      canRead: accessService.canReadAccesses(data.currentUser),
+    },
+    {
+      name: "Mail Templates",
+      link: "/admin/mail-templates",
+      icon: "fa-solid fa-envelope-open-text",
+      canRead: accessService.canReadAccesses(data.currentUser),
+    },
   ];
 
+  let currentPath = $derived(page.url.pathname);
   async function logout() {
-    await authenticationClient.logout();
-    goto(ADMIN_URLS.LOGIN_URL);
+    await accessService.logout().then(() => {
+      goto(ADMIN_URLS.LOGOUT_SUCCESS_URL);
+    });
   }
 
-  const currentUser = getContext<CurrentUser | null>(SHARED_CONTEXT.CURRENT_USER);
-  onMount(() => {
-    if (
-      !currentUser ||
-      !currentUser.roles?.some((r) => r === ROLE_NAMES.ADMIN || ROLE_NAMES.ROOT_ADMIN)
-    ) {
-      goto(ADMIN_URLS.LOGIN_URL);
-    }
-  });
-
-  $: currentPath = $page.url.pathname;
+  const currentUser = data.currentUser;
 </script>
 
 <div class="layout">
-  {#if currentUser && currentUser.roles?.some((r) => r === ROLE_NAMES.ADMIN || ROLE_NAMES.ROOT_ADMIN)}
+  {#if currentUser}
     <div class="header">
-      <div class="logo">Admin Panel</div>
-      <button class="logout" onclick={logout}>Logout</button>
+      <div class="d-flex align-items-center w-100 justify-content-between">
+        <div class="d-flex align-items-center">
+          <span class="logo me-4">Admin Panel</span>
+        </div>
+        <div class="d-flex align-items-center">
+          <span class="me-3 text-white">Welcome, {currentUser.name}</span>
+        </div>
+        <nav class="d-flex align-items-center">
+          <a href="/" class="btn btn-outline-light btn-sm me-1">
+            <i class="fa fa-home me-1"></i> Home
+          </a>
+          <button class="btn btn-outline-danger btn-sm logout" onclick={logout}>
+            <i class="fa fa-sign-out-alt me-1"></i> Logout
+          </button>
+        </nav>
+      </div>
     </div>
     <div class="sidebar">
       {#each menus as menu}
@@ -47,23 +90,25 @@
             <span class="text-muted"
               ><i class="fa-solid fa-minus fa-2xs"></i>
               {menu.name}
+              <i class="fa-solid fa-minus fa-2xs"></i>
             </span>
           {:else}
             <a
               class:actived={currentPath.includes(menu.link)}
               class="py-1 ps-2 pe-1"
-              href={menu.link}>{menu.name}</a
+              href={menu.link}
             >
+              {#if menu.icon}
+                <i class={menu.icon} style="margin-right: 8px;"></i>
+              {/if}
+              {menu.name}
+            </a>
           {/if}
         </div>
       {/each}
     </div>
     <div class="content">
-      <slot />
-    </div>
-  {:else}
-    <div class="content">
-      <p>(^_^)</p>
+      {@render children()}
     </div>
   {/if}
 </div>
@@ -93,9 +138,6 @@
 
   .logout {
     cursor: pointer;
-    background: none;
-    border: none;
-    color: white;
     font-size: 1rem;
   }
 
@@ -113,6 +155,8 @@
     text-decoration: none;
     color: #333;
     font-weight: bold;
+    display: flex;
+    align-items: center;
   }
 
   .menu-item a.actived {

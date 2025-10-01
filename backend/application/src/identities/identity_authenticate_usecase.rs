@@ -1,7 +1,4 @@
-use rex_game_domain::identities::{
-    password_hasher_trait::PasswordHasherTrait, token_helper_trait::TokenHelperTrait,
-    IdentityClaims,
-};
+use std::sync::Arc;
 
 use super::{
     identity_authenticate_usecase_trait::IdentityAuthenticateUseCaseTrait,
@@ -11,10 +8,20 @@ use crate::{
     errors::application_error::{ApplicationError, ApplicationErrorKind},
     users::user_usecase_trait::UserUseCaseTrait,
 };
+use chrono::{Duration, Utc};
+use rex_game_domain::{
+    helpers::configuration_helper_trait::ConfigurationHelperTrait,
+    identities::{
+        password_hasher_trait::PasswordHasherTrait, token_helper_trait::TokenHelperTrait,
+        TokenGenerationOptions, TokenValidationResult,
+    },
+};
+use rex_game_shared::enums::user_token_porposes::UserTokenPurposes;
 
 #[derive(Clone)]
-pub struct IdentityAuthenticateUseCase<PH, US, TH>
+pub struct IdentityAuthenticateUseCase<CF, PH, US, TH>
 where
+    CF: ConfigurationHelperTrait,
     PH: PasswordHasherTrait,
     US: UserUseCaseTrait,
     TH: TokenHelperTrait,
@@ -22,13 +29,24 @@ where
     _password_hasher: PH,
     _user_usecase: US,
     _token_helper: TH,
+    _configuration_helper: Arc<CF>,
 }
 
-impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
-    IdentityAuthenticateUseCase<PH, US, TH>
+impl<CF, PH, US, TH> IdentityAuthenticateUseCase<CF, PH, US, TH>
+where
+    CF: ConfigurationHelperTrait,
+    PH: PasswordHasherTrait,
+    US: UserUseCaseTrait,
+    TH: TokenHelperTrait,
 {
-    pub fn new(password_hasher: PH, user_usecase: US, token_helper: TH) -> Self {
+    pub fn new(
+        configuration_helper: Arc<CF>,
+        password_hasher: PH,
+        user_usecase: US,
+        token_helper: TH,
+    ) -> Self {
         Self {
+            _configuration_helper: configuration_helper,
             _password_hasher: password_hasher,
             _user_usecase: user_usecase,
             _token_helper: token_helper,
@@ -36,19 +54,20 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
     }
 }
 
-impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
-    IdentityAuthenticateUseCaseTrait for IdentityAuthenticateUseCase<PH, US, TH>
+impl<CF, PH, US, TH> IdentityAuthenticateUseCaseTrait
+    for IdentityAuthenticateUseCase<CF, PH, US, TH>
+where
+    CF: ConfigurationHelperTrait,
+    PH: PasswordHasherTrait,
+    US: UserUseCaseTrait,
+    TH: TokenHelperTrait,
 {
     async fn password_login(
         &self,
         email: &str,
         password: &str,
     ) -> Result<LoginClaims, ApplicationError> {
-        let existing_user = match self
-            ._user_usecase
-            .get_user_by_email(String::from(email))
-            .await
-        {
+        let existing_user = match self._user_usecase.get_user_by_email(email).await {
             Ok(existing_user) => existing_user,
             Err(err) => return Err(err),
         };
@@ -67,9 +86,20 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
             }
         };
 
-        let access_token_claims = match self
+        let expiration = self
+            ._configuration_helper
+            .get_value::<i64>("identity.expiration");
+        let generated_access_token_options = TokenGenerationOptions {
+            email: Some(email.to_string()),
+            user_id: existing_user.id,
+            exp_secs: Duration::milliseconds(expiration).num_seconds(),
+            purpose: UserTokenPurposes::Login.to_string(),
+            iat: Some(Utc::now().timestamp()),
+        };
+
+        let generated_access_token = match self
             ._token_helper
-            .generate_access_token(existing_user.id, email)
+            .generate_token(generated_access_token_options)
         {
             Some(claims) => claims,
             None => {
@@ -81,9 +111,19 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
             }
         };
 
-        let refresh_token_claims = match self
+        let refresh_expiration = self
+            ._configuration_helper
+            .get_value::<i64>("identity.refresh_expiration");
+        let generated_refresh_token_options = TokenGenerationOptions {
+            email: None,
+            user_id: existing_user.id,
+            exp_secs: Duration::milliseconds(refresh_expiration).num_seconds(),
+            purpose: UserTokenPurposes::RefreshToken.to_string(),
+            iat: Some(Utc::now().timestamp()),
+        };
+        let generated_refresh_token = match self
             ._token_helper
-            .generate_refresh_token(existing_user.id, email)
+            .generate_token(generated_refresh_token_options)
         {
             Some(refresh_token) => refresh_token,
             None => {
@@ -96,12 +136,12 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
         };
 
         Ok(LoginClaims {
-            access_token: access_token_claims.access_token,
-            refresh_token: refresh_token_claims.refresh_token,
-            refresh_token_expiration: refresh_token_claims.expiration,
+            access_token: generated_access_token.token,
+            refresh_token: generated_refresh_token.token,
+            refresh_token_expiration: generated_refresh_token.exp,
             email: email.to_string(),
-            sub: access_token_claims.sub,
-            expiration: access_token_claims.expiration,
+            sub: generated_access_token.sub,
+            expiration: generated_access_token.exp,
         })
     }
 
@@ -110,10 +150,14 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
         access_token: &str,
         refresh_token: &str,
     ) -> Result<LoginClaims, ApplicationError> {
-        let access_token_claims = match self
-            ._token_helper
-            .refresh_access_token(access_token, refresh_token)
-        {
+        let refresh_expiration = self
+            ._configuration_helper
+            .get_value::<i64>("identity.refresh_expiration");
+        let access_token_claims = match self._token_helper.refresh_access_token(
+            access_token,
+            refresh_token,
+            refresh_expiration,
+        ) {
             Some(claims) => claims,
             None => {
                 return Err(ApplicationError {
@@ -124,10 +168,21 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
             }
         };
 
-        let user_refresh_token_claims = match self
-            ._token_helper
-            .generate_refresh_token(access_token_claims.sub, &access_token_claims.email)
-        {
+        let email = access_token_claims.email.ok_or_else(|| {
+            ApplicationError::new(ApplicationErrorKind::NotFound, "No email found", None)
+        })?;
+
+        let refresh_expiration = self
+            ._configuration_helper
+            .get_value::<i64>("identity.refresh_expiration");
+        let generated_token_options = TokenGenerationOptions {
+            email: Some(email.to_owned()),
+            user_id: access_token_claims.sub,
+            exp_secs: Duration::milliseconds(refresh_expiration).num_seconds(),
+            purpose: UserTokenPurposes::RefreshToken.to_string(),
+            iat: Some(Utc::now().timestamp()),
+        };
+        let generated_token = match self._token_helper.generate_token(generated_token_options) {
             Some(refresh_token) => refresh_token,
             None => {
                 return Err(ApplicationError {
@@ -139,17 +194,20 @@ impl<PH: PasswordHasherTrait, US: UserUseCaseTrait, TH: TokenHelperTrait>
         };
 
         Ok(LoginClaims {
-            access_token: access_token_claims.access_token,
-            refresh_token: user_refresh_token_claims.refresh_token,
-            refresh_token_expiration: user_refresh_token_claims.expiration,
-            email: access_token_claims.email,
+            access_token: access_token_claims.token,
+            refresh_token: generated_token.token,
+            refresh_token_expiration: generated_token.exp,
+            email: email,
             sub: access_token_claims.sub,
-            expiration: access_token_claims.expiration,
+            expiration: access_token_claims.exp,
         })
     }
 
-    fn verify_access_token(&self, access_token: &str) -> Result<IdentityClaims, ApplicationError> {
-        let verify_result = self._token_helper.validate_access_token(access_token);
+    fn validate_token(
+        &self,
+        access_token: &str,
+    ) -> Result<TokenValidationResult, ApplicationError> {
+        let verify_result = self._token_helper.validate_token(access_token);
 
         match verify_result {
             Ok(claims) => Ok(claims),

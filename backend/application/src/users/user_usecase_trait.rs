@@ -19,9 +19,12 @@ use super::{
 pub trait UserUseCaseTrait {
     fn get_user_by_email(
         &self,
-        email: String,
+        email: &str,
     ) -> Pin<Box<dyn Future<Output = Result<UserDetailsDto, ApplicationError>> + Send>>;
-
+    fn get_user_by_name(
+        &self,
+        name: &String,
+    ) -> impl Future<Output = Result<UserDto, ApplicationError>>;
     fn get_user_by_id(&self, id: i32) -> impl Future<Output = Result<UserDto, ApplicationError>>;
 
     fn get_users<'a>(

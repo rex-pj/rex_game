@@ -1,11 +1,18 @@
-use std::env;
-
 use config::{Config, File};
-use rex_game_domain::helpers::configuration_helper_trait::ConfigurationHelperTrait;
+use rex_game_domain::helpers::configuration_helper_trait::{ConfigurationHelperTrait, FromConfig};
+use std::env;
 
 #[derive(Clone)]
 pub struct ConfigurationHelper {
     _config: Config,
+}
+
+impl ConfigurationHelper {
+    pub fn new() -> Self {
+        Self {
+            _config: Self::get_config(),
+        }
+    }
 }
 
 impl ConfigurationHelper {
@@ -38,12 +45,6 @@ impl ConfigurationHelper {
         settings
     }
 
-    pub fn new() -> Self {
-        Self {
-            _config: Self::get_config(),
-        }
-    }
-
     pub fn get_value(&self, key: &str) -> String {
         ConfigurationHelperTrait::get_value(self, key)
     }
@@ -54,8 +55,14 @@ impl ConfigurationHelper {
 }
 
 impl ConfigurationHelperTrait for ConfigurationHelper {
-    fn get_value(&self, key: &str) -> String {
-        let error_message = key.to_owned() + "'s value is missing";
+    fn get_value<T: FromConfig>(&self, key: &str) -> T {
+        let error_message = format!("{}'s value is missing", key);
+        let value = self._config.get_string(key).expect(&error_message);
+        T::from_config(value).unwrap()
+    }
+
+    fn get_raw_value(&self, key: &str) -> String {
+        let error_message = format!("{}'s value is missing", key);
         self._config.get_string(key).expect(error_message.as_str())
     }
 

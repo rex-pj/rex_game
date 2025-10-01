@@ -69,7 +69,7 @@ where
         let user_claims = match self
             ._app_state
             .identity_authenticate_usecase()
-            .verify_access_token(auth_token)
+            .validate_token(auth_token)
         {
             Ok(claims) => claims,
             Err(_) => {
@@ -115,9 +115,16 @@ where
                 .into_iter()
                 .map(|perm| perm.permisson_code)
                 .collect();
+
+            let email = match user_claims.email {
+                Some(mail_address) => mail_address,
+                None => return Self::unauthorized_response(),
+            };
             let user = Arc::new(CurrentUser {
                 id: uer_id,
-                email: user_claims.email,
+                email: email,
+                name: current_user.name,
+                display_name: current_user.display_name,
                 roles: role_names,
                 permissions: user_permission_codes,
             });

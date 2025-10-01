@@ -1,4 +1,4 @@
-use rex_game_domain::identities::IdentityClaims;
+use rex_game_domain::identities::TokenValidationResult;
 
 use super::login_claims::LoginClaims;
 use crate::errors::application_error::ApplicationError;
@@ -16,5 +16,6 @@ pub trait IdentityAuthenticateUseCaseTrait {
         refresh_token: &str,
     ) -> impl Future<Output = Result<LoginClaims, ApplicationError>>;
 
-    fn verify_access_token(&self, access_token: &str) -> Result<IdentityClaims, ApplicationError>;
+    fn validate_token(&self, access_token: &str)
+        -> Result<TokenValidationResult, ApplicationError>;
 }

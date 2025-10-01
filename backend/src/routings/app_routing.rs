@@ -4,7 +4,7 @@ use axum::{
     routing::{delete, get, patch, post},
     Router,
 };
-use rex_game_application::users::roles::ROLE_ROOT_ADMIN;
+use rex_game_application::roles::roles::ROLE_ROOT_ADMIN;
 use rex_game_shared::enums::permission_codes::PermissionCodes;
 use tower::ServiceBuilder;
 
@@ -12,8 +12,9 @@ use crate::{
     app_state::RegularAppState,
     handlers::{
         authentication_handler::AuthenticationHandler, flashcard_handler::FlashcardHandler,
-        flashcard_type_handler::FlashcardTypeHandler, permission_handler::PermissionHandler,
-        role_handler::RoleHandler, setup_handler::SetupHandler, user_handler::UserHandler,
+        flashcard_type_handler::FlashcardTypeHandler, mail_template_handler::MailTemplateHandler,
+        permission_handler::PermissionHandler, role_handler::RoleHandler,
+        setup_handler::SetupHandler, user_handler::UserHandler,
     },
     middlewares::{
         authenticate_middleware::AuthenticateLayer, authorize_middleware::AuthorizeLayer,
@@ -80,6 +81,18 @@ impl AppRouting {
                 post(AuthenticationHandler::login::<RegularAppState>),
             )
             .route("/users", post(UserHandler::create_user::<RegularAppState>))
+            .route(
+                "/users/password",
+                post(UserHandler::forgot_password::<RegularAppState>),
+            )
+            .route(
+                "/users/password",
+                patch(UserHandler::reset_password::<RegularAppState>),
+            )
+            .route(
+                "/users/confirmations",
+                post(UserHandler::confirm_user::<RegularAppState>),
+            )
             .route(
                 "/users/{id}",
                 get(UserHandler::get_user_by_id::<RegularAppState>),
@@ -322,6 +335,61 @@ impl AppRouting {
                     app_state: self.app_state.clone(),
                     permissions: Some(vec![PermissionCodes::UserRoleRead.as_str().to_string()]),
                 }),
+            )
+            .route(
+                "/mail-templates",
+                get(MailTemplateHandler::get_mail_templates::<RegularAppState>).layer(
+                    AuthorizeLayer {
+                        app_state: self.app_state.clone(),
+                        permissions: Some(vec![PermissionCodes::MailTemplateRead
+                            .as_str()
+                            .to_string()]),
+                    },
+                ),
+            )
+            .route(
+                "/mail-templates/{id}",
+                get(MailTemplateHandler::get_mail_template_by_id::<RegularAppState>).layer(
+                    AuthorizeLayer {
+                        app_state: self.app_state.clone(),
+                        permissions: Some(vec![PermissionCodes::MailTemplateRead
+                            .as_str()
+                            .to_string()]),
+                    },
+                ),
+            )
+            .route(
+                "/mail-templates/{id}",
+                delete(MailTemplateHandler::delete_mail_template::<RegularAppState>).layer(
+                    AuthorizeLayer {
+                        app_state: self.app_state.clone(),
+                        permissions: Some(vec![PermissionCodes::MailTemplateDelete
+                            .as_str()
+                            .to_string()]),
+                    },
+                ),
+            )
+            .route(
+                "/mail-templates",
+                post(MailTemplateHandler::create_mail_template::<RegularAppState>).layer(
+                    AuthorizeLayer {
+                        app_state: self.app_state.clone(),
+                        permissions: Some(vec![PermissionCodes::MailTemplateCreate
+                            .as_str()
+                            .to_string()]),
+                    },
+                ),
+            )
+            .route(
+                "/mail-templates/{id}",
+                patch(MailTemplateHandler::update_mail_template::<RegularAppState>).layer(
+                    AuthorizeLayer {
+                        app_state: self.app_state.clone(),
+                        permissions: Some(vec![PermissionCodes::MailTemplateUpdate
+                            .as_str()
+                            .to_string()]),
+                    },
+                ),
             )
             .layer(ServiceBuilder::new().layer(AuthenticateLayer {
                 app_state: self.app_state.clone(),

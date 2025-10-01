@@ -17,4 +17,5 @@ impl DomainError {
 pub enum ErrorType {
     DatabaseError,
     NotFound,
+    EmailError,
 }

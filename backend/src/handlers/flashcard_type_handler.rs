@@ -13,15 +13,17 @@ use rex_game_application::{
         flashcard_type_usecase_trait::FlashcardTypeUseCaseTrait,
     },
     page_list_dto::PageListDto,
-    users::roles::ROLE_ROOT_ADMIN,
+    roles::roles::ROLE_ROOT_ADMIN,
 };
 use serde::Deserialize;
+use validator::{Validate, ValidationErrors};
 
 use crate::{
     app_state::AppStateTrait,
+    validators::validation_helper::ValidationHelper,
     view_models::{
         flashcard_types::flashcard_type_create_request::FlashcardTypeCreateRequest,
-        users::current_user::CurrentUser,
+        users::current_user::CurrentUser, HandlerError, HandlerResult,
     },
 };
 
@@ -36,7 +38,7 @@ impl FlashcardTypeHandler {
     pub async fn get_flashcard_types<T: AppStateTrait>(
         State(_state): State<T>,
         Query(params): Query<FlashcardQuery>,
-    ) -> Result<Json<PageListDto<FlashcardTypeDto>>, StatusCode> {
+    ) -> HandlerResult<Json<PageListDto<FlashcardTypeDto>>> {
         let page = params.page.unwrap_or(1);
         let page_size = params.page_size.unwrap_or(10);
         let flashcard_types = _state
@@ -45,21 +47,31 @@ impl FlashcardTypeHandler {
             .await;
         return match flashcard_types {
             Ok(data) => Ok(Json(data)),
-            Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+            Err(_) => {
+                return Err(HandlerError {
+                    status: StatusCode::INTERNAL_SERVER_ERROR,
+                    message: "Failed to fetch flashcard types".to_string(),
+                    ..Default::default()
+                })
+            }
         };
     }
 
     pub async fn get_flashcard_type_by_id<T: AppStateTrait>(
         Path(id): Path<i32>,
         State(_state): State<T>,
-    ) -> Json<Option<FlashcardTypeDto>> {
+    ) -> HandlerResult<Json<FlashcardTypeDto>> {
         let flashcard = _state
             .flashcard_type_usecase()
             .get_flashcard_type_by_id(id)
             .await;
         return match flashcard {
-            None => Json(None),
-            Some(i) => Json(Some(i)),
+            None => Err(HandlerError {
+                status: StatusCode::NOT_FOUND,
+                message: "Flashcard type not found".to_string(),
+                ..Default::default()
+            }),
+            Some(i) => Ok(Json(i)),
         };
     }
 
@@ -67,14 +79,33 @@ impl FlashcardTypeHandler {
         Extension(current_user): Extension<Arc<CurrentUser>>,
         State(_state): State<T>,
         Json(payload): Json<Option<FlashcardTypeCreateRequest>>,
-    ) -> Result<Json<i32>, StatusCode> {
+    ) -> HandlerResult<Json<i32>> {
         let req = match payload {
             Some(req) => req,
-            None => return Err(StatusCode::BAD_REQUEST),
+            None => {
+                return Err(HandlerError {
+                    status: StatusCode::BAD_REQUEST,
+                    message: "Invalid request payload".to_string(),
+                    ..Default::default()
+                })
+            }
         };
 
+        req.validate().map_err(|e: ValidationErrors| {
+            let errors = ValidationHelper::new().flatten_errors(e);
+            return HandlerError {
+                status: StatusCode::BAD_REQUEST,
+                message: "Validation error".to_string(),
+                field_errors: Some(errors),
+            };
+        })?;
+
         if req.name.is_empty() {
-            return Err(StatusCode::BAD_REQUEST);
+            return Err(HandlerError {
+                status: StatusCode::BAD_REQUEST,
+                message: "Name cannot be empty".to_string(),
+                ..Default::default()
+            });
         }
 
         if !current_user
@@ -82,12 +113,20 @@ impl FlashcardTypeHandler {
             .iter()
             .any(|role| role == ROLE_ROOT_ADMIN)
         {
-            return Err(StatusCode::FORBIDDEN);
+            return Err(HandlerError {
+                status: StatusCode::FORBIDDEN,
+                message: "You do not have permission to create flashcard types".to_string(),
+                ..Default::default()
+            });
         }
 
         match req.description {
             Some(description) if description.is_empty() => {
-                return Err(StatusCode::BAD_REQUEST);
+                return Err(HandlerError {
+                    status: StatusCode::BAD_REQUEST,
+                    message: "Description cannot be empty".to_string(),
+                    ..Default::default()
+                });
             }
             _ => {}
         }
@@ -105,7 +144,13 @@ impl FlashcardTypeHandler {
 
         match inserted_id {
             Some(id) => Ok(Json(id)),
-            None => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+            None => {
+                return Err(HandlerError {
+                    status: StatusCode::INTERNAL_SERVER_ERROR,
+                    message: "Failed to create flashcard type".to_string(),
+                    ..Default::default()
+                })
+            }
         }
     }
 
@@ -114,18 +159,32 @@ impl FlashcardTypeHandler {
         State(_state): State<T>,
         Path(id): Path<i32>,
         Json(payload): Json<Option<HashMap<String, String>>>,
-    ) -> Result<Json<bool>, StatusCode> {
+    ) -> HandlerResult<Json<bool>> {
         let requests = match payload {
             Some(req) => req,
-            None => return Err(StatusCode::BAD_REQUEST),
+            None => {
+                return Err(HandlerError {
+                    status: StatusCode::BAD_REQUEST,
+                    message: "Invalid request payload".to_string(),
+                    ..Default::default()
+                })
+            }
         };
 
         if requests.is_empty() {
-            return Err(StatusCode::BAD_REQUEST);
+            return Err(HandlerError {
+                status: StatusCode::BAD_REQUEST,
+                message: "Request payload cannot be empty".to_string(),
+                ..Default::default()
+            });
         }
 
         if requests.get("name").is_none() && requests.get("description").is_none() {
-            return Err(StatusCode::BAD_REQUEST);
+            return Err(HandlerError {
+                status: StatusCode::BAD_REQUEST,
+                message: "At least one of 'name' or 'description' must be provided".to_string(),
+                ..Default::default()
+            });
         }
 
         let mut updating = FlashcardTypeUpdationDto {
@@ -138,11 +197,22 @@ impl FlashcardTypeHandler {
             .iter()
             .any(|role| role == ROLE_ROOT_ADMIN)
         {
-            return Err(StatusCode::FORBIDDEN);
+            return Err(HandlerError {
+                status: StatusCode::FORBIDDEN,
+                message: "You do not have permission to update flashcard types".to_string(),
+                ..Default::default()
+            });
         }
 
         for (key, value) in &requests {
             if key.to_lowercase() == "name" {
+                if value.len() < 1 || value.len() > 255 {
+                    return Err(HandlerError {
+                        status: StatusCode::BAD_REQUEST,
+                        message: "Title must be between 1 and 255 characters".to_string(),
+                        ..Default::default()
+                    });
+                }
                 updating.name = value.to_string();
             } else if key.to_lowercase() == "description" {
                 updating.description = Some(value.to_string())
@@ -156,7 +226,13 @@ impl FlashcardTypeHandler {
 
         match updated {
             Some(u) => Ok(Json(u)),
-            None => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+            None => {
+                return Err(HandlerError {
+                    status: StatusCode::INTERNAL_SERVER_ERROR,
+                    message: "Failed to update flashcard type".to_string(),
+                    ..Default::default()
+                })
+            }
         }
     }
 
@@ -164,13 +240,17 @@ impl FlashcardTypeHandler {
         Extension(current_user): Extension<Arc<CurrentUser>>,
         State(_state): State<T>,
         Path(id): Path<i32>,
-    ) -> Result<Json<u64>, StatusCode> {
+    ) -> HandlerResult<Json<u64>> {
         if !current_user
             .roles
             .iter()
             .any(|role| role == ROLE_ROOT_ADMIN)
         {
-            return Err(StatusCode::FORBIDDEN);
+            return Err(HandlerError {
+                status: StatusCode::FORBIDDEN,
+                message: "You do not have permission to delete flashcard types".to_string(),
+                ..Default::default()
+            });
         }
         let deleted_numbers = _state
             .flashcard_type_usecase()
@@ -179,7 +259,13 @@ impl FlashcardTypeHandler {
 
         match deleted_numbers {
             Some(u) => Ok(Json(u)),
-            None => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+            None => {
+                return Err(HandlerError {
+                    status: StatusCode::NOT_FOUND,
+                    message: "Flashcard type not found".to_string(),
+                    ..Default::default()
+                })
+            }
         }
     }
 }

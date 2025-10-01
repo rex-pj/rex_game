@@ -352,10 +352,16 @@ impl<
         })
     }
 
-    async fn delete_flashcard_by_id(&self, id: i32) -> Option<u64> {
+    async fn delete_flashcard_by_id(&self, id: i32) -> Result<u64, ApplicationError> {
         let flashcard = match self._flashcard_repository.get_by_id(id).await {
             Some(f) => f,
-            None => return None,
+            None => {
+                return Err(ApplicationError::new(
+                    ApplicationErrorKind::NotFound,
+                    "Flashcard not found",
+                    None,
+                ))
+            }
         };
 
         match self
@@ -364,12 +370,24 @@ impl<
             .await
         {
             Ok(i) => i,
-            Err(_) => return None,
+            Err(_) => {
+                return Err(ApplicationError::new(
+                    ApplicationErrorKind::DatabaseError,
+                    "Failed to delete flashcard type relations",
+                    None,
+                ))
+            }
         };
 
         match self._flashcard_repository.delete_by_id(id).await {
             Ok(i) => i,
-            Err(_) => return None,
+            Err(_) => {
+                return Err(ApplicationError::new(
+                    ApplicationErrorKind::DatabaseError,
+                    "Failed to delete flashcard",
+                    None,
+                ))
+            }
         };
 
         match self
@@ -377,8 +395,14 @@ impl<
             .delete_by_id(flashcard.file_id)
             .await
         {
-            Ok(i) => Some(i),
-            Err(_) => None,
+            Ok(i) => Ok(i),
+            Err(_) => {
+                return Err(ApplicationError::new(
+                    ApplicationErrorKind::DatabaseError,
+                    "Failed to delete flashcard file",
+                    None,
+                ))
+            }
         }
     }
 }
