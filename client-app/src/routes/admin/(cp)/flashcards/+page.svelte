@@ -48,7 +48,7 @@
   });
 </script>
 
-{#if canReadFlashcards(data.currentUser)}
+{#if canReadFlashcards(data.adminUser)}
   <div class="container mt-4">
     <div class="row">
       <div class="col col-auto">
@@ -56,7 +56,7 @@
       </div>
       <div class="col">
         <!-- Add button -->
-        {#if canCreate(data.currentUser)}
+        {#if canCreate(data.adminUser)}
           <button class="btn btn-primary mb-3" onclick={() => toggleCreationModal(true)}>Add</button
           >
         {/if}
@@ -112,7 +112,7 @@
                   class="dropdown-menu dropdown-menu-end"
                   aria-labelledby="dropdownMenuButton-{item.id}"
                 >
-                  {#if canUpdate(data.currentUser)}
+                  {#if canUpdate(data.adminUser)}
                     <li>
                       <button
                         class="dropdown-item"
@@ -123,7 +123,7 @@
                       >
                     </li>
                   {/if}
-                  {#if canDelete(data.currentUser)}
+                  {#if canDelete(data.adminUser)}
                     <li>
                       <button
                         class="dropdown-item text-danger"
@@ -145,7 +145,7 @@
     <div class="d-flex justify-content-center">
       <Pagination pager={$pager} {changePage} />
     </div>
-    {#if canUpdate(data.currentUser) || canCreate(data.currentUser)}
+    {#if canUpdate(data.adminUser) || canCreate(data.adminUser)}
       <FlashcardUpdateModal
         initialData={edittingData}
         showModal={showCreationModal}
@@ -156,7 +156,7 @@
         {flashcardTypeOptions}
       ></FlashcardUpdateModal>
     {/if}
-    {#if canDelete(data.currentUser)}
+    {#if canDelete(data.adminUser)}
       <FlashcardDeleteModal
         showModal={showDeletionModal}
         closeModal={() => toggleDeletionModal(false)}

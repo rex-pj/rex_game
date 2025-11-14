@@ -1,10 +1,7 @@
 use crate::{
     app_state::AppStateTrait,
     helpers::http_helper::HttpHelper,
-    validators::{
-        validate_content_type, validate_file_content, validate_file_size,
-        validation_helper::ValidationHelper,
-    },
+    validators::{validate_content_type, validate_file_size, validation_helper::ValidationHelper},
     view_models::{
         flashcards::flashcard_request::FlashcardRequest, users::current_user::CurrentUser,
         HandlerError, HandlerResult,
@@ -168,8 +165,14 @@ impl FlashcardHandler {
                     flashcard_req.sub_description = Some(field.text().await.unwrap());
                 }
                 Some("image_data") => {
-                    flashcard_req.content_type =
-                        field.content_type().unwrap_or_default().to_string();
+                    let content_type = field.content_type().unwrap_or_default().to_string();
+                    validate_content_type(&content_type).map_err(|_| HandlerError {
+                        status: StatusCode::BAD_REQUEST,
+                        message: "Title must be between 1 and 255 characters".to_string(),
+                        ..Default::default()
+                    })?;
+
+                    flashcard_req.content_type = content_type;
                     flashcard_req.file_name = field.file_name().unwrap_or_default().to_string();
                     let bytes_data = field.bytes().await;
                     match bytes_data {
@@ -302,14 +305,6 @@ impl FlashcardHandler {
                         Ok(bytes) => {
                             if bytes.len() > 0 {
                                 let byte_data = bytes.to_vec();
-                                validate_file_content(&byte_data).map_err(|_| HandlerError {
-                                    status: StatusCode::BAD_REQUEST,
-                                    message:
-                                        "Content-Type must be image/jpeg, image/png, image/gif."
-                                            .to_string(),
-                                    ..Default::default()
-                                })?;
-
                                 validate_file_size(&byte_data).map_err(|_| HandlerError {
                                     status: StatusCode::BAD_REQUEST,
                                     message: "File size must be less than 2MB.".to_string(),

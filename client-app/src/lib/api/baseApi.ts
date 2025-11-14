@@ -1,17 +1,18 @@
 import type { Cookies } from "@sveltejs/kit";
 import type JsCookies from "js-cookie";
 import { PUBLIC_API_URL } from "$env/static/public";
+import type { BaseApiOptions } from "./apiOptions";
 
 export class BaseApi {
   protected readonly _baseUrl: string;
   private readonly _headers: Headers = new Headers();
-  protected readonly Cookies: Cookies | typeof JsCookies | undefined;
-  constructor(cookies?: Cookies | typeof JsCookies) {
+  protected readonly Cookies: Cookies | typeof JsCookies;
+  constructor(options: BaseApiOptions) {
+    const { cookies, tokenKey } = options;
     this.Cookies = cookies;
     this._baseUrl = PUBLIC_API_URL;
     this._headers.set("Content-Type", "application/json");
-
-    const access_token = cookies?.get("access_token");
+    const access_token = cookies?.get(tokenKey);
     if (access_token) {
       this._headers.set("Authorization", `Bearer ${access_token}`);
     }

@@ -2,10 +2,11 @@ import { redirect, type Actions } from "@sveltejs/kit";
 import { UserApi } from "../../../../lib/api/userApi";
 import { fail } from "@sveltejs/kit";
 import type { ResetPasswordRequest } from "$lib/models/user";
+import { UserServerApiOptions } from "$lib/api/apiOptions";
 
 export const actions: Actions = {
   default: async ({ request, cookies }) => {
-    const userApi = new UserApi(cookies);
+    const userApi = new UserApi(new UserServerApiOptions(cookies));
     const formData = await request.formData();
 
     const dataObject: { [key: string]: any } = {};

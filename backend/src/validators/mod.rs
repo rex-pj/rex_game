@@ -1,4 +1,3 @@
-use tree_magic_mini::from_u8;
 use validator::ValidationError;
 pub mod validation_helper;
 
@@ -32,6 +31,23 @@ pub fn validate_file_type(file_name: &str) -> Result<(), ValidationError> {
 }
 
 pub fn validate_file_content(data: &Vec<u8>) -> Result<(), ValidationError> {
-    let mime = from_u8(data);
+    // Use infer to detect actual MIME type from file content (magic bytes)
+    let mime = match infer::get(data) {
+        Some(kind) => kind.mime_type(),
+        None => "application/octet-stream", // Fallback if type cannot be detected
+    };
     validate_content_type(mime)
+}
+
+/// Detects the actual content type from file data and returns it
+/// Returns the detected MIME type if valid, otherwise returns an error
+pub fn detect_content_type(data: &Vec<u8>) -> Result<String, ValidationError> {
+    let mime = match infer::get(data) {
+        Some(kind) => kind.mime_type(),
+        None => {
+            return Err(ValidationError::new("cannot_detect_content_type"));
+        }
+    };
+    validate_content_type(mime)?;
+    Ok(mime.to_string())
 }

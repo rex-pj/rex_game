@@ -6,8 +6,9 @@ import type { Permission, PermissionRequest } from "$lib/models/permission";
 import type { CurrentUser } from "$lib/models/current-user";
 import * as accessService from "$lib/services/accessService";
 import { PermissionCodes } from "$lib/common/permissions";
+import { AdminClientApiOptions } from "$lib/api/apiOptions";
 
-const permissionService: PermissionApi = new PermissionApi(Cookies);
+const permissionService: PermissionApi = new PermissionApi(new AdminClientApiOptions(Cookies));
 export const items: Writable<Permission[]> = writable([]);
 export const pager: Writable<Pager> = writable({ currentPage: 1, totalPages: 0 });
 const itemsPerPage = 10;

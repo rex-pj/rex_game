@@ -1,14 +1,25 @@
-<script>
+<script lang="ts">
+  import { goto } from "$app/navigation";
+  import { APP_URLS } from "$lib/common/contants";
+  import type { CurrentUser } from "$lib/models/current-user";
+  import * as accessService from "$lib/services/accessService";
+
   let navItems = [
     { name: "Flashcard", href: "/flashcard", actived: true },
     { name: "Vật phẩm", href: "/items" },
   ];
+  const { currentUser }: { currentUser: CurrentUser } = $props();
+  async function logout() {
+    await accessService.logout().then(() => {
+      goto(APP_URLS.HOME);
+    });
+  }
 </script>
 
 <nav class="navbar navbar-expand-lg navbar-light topbar">
   <div class="container">
     <a class="navbar-brand" href="/"
-      ><enhanced:img src="../../assets/imgs/logo.png" alt="logo" /> Rex Game</a
+      ><enhanced:img src="../../assets/imgs/logo.png" alt="logo" class="navbar-logo" /> Rex Game</a
     >
     <button
       class="navbar-toggler"
@@ -29,10 +40,33 @@
           </li>
         {/each}
       </ul>
-      <div class="d-flex">
-        <button class="btn btn-primary me-2" type="button">Login</button>
-        <button class="btn btn-secondary" type="button">Register</button>
-      </div>
+      <ul class="navbar-nav mb-2 mb-lg-0 align-items-center">
+        <!-- Profile Dropdown -->
+        {#if currentUser}
+          <li class="nav-item dropdown">
+            <button
+              type="button"
+              class="nav-link dropdown-toggle d-flex align-items-center"
+              id="navbarDropdown"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              <i class="fa-solid fa-user-circle fa-lg me-2"></i>
+              <span>{currentUser.display_name}</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="navbarDropdown">
+              <li><button class="dropdown-item text-danger" onclick={logout}>Đăng xuất</button></li>
+            </ul>
+          </li>
+        {:else}
+          <li class="nav-item dropdown">
+            <a class="btn btn-primary me-2" href={APP_URLS.LOGIN_URL}>Đăng nhập</a>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="btn btn-secondary" href={APP_URLS.SIGNUP_URL}>Ghi danh</a>
+          </li>
+        {/if}
+      </ul>
     </div>
   </div>
 </nav>
@@ -49,7 +83,7 @@
     text-transform: uppercase;
   }
 
-  .navbar-brand img {
+  .navbar-brand .navbar-logo {
     max-width: 40px;
     height: auto;
   }
@@ -57,10 +91,6 @@
   .nav-item.active .nav-link {
     color: var(--primary-color);
     font-weight: 700;
-  }
-
-  .nav-item .nav-link {
-    color: #000;
   }
 
   .nav-item .nav-link {

@@ -1,16 +1,12 @@
+import { ADMIN_URLS, ROLE_NAMES } from "$lib/common/contants";
 import { redirect } from "@sveltejs/kit";
 import type { LayoutServerLoad } from "./$types";
-import { ADMIN_URLS, ROLE_NAMES } from "$lib/common/contants";
 
 export const load: LayoutServerLoad = async ({ parent }) => {
   const parentData = await parent();
   const adminUser = parentData?.adminUser;
-  if (!adminUser) {
-    throw redirect(302, ADMIN_URLS.LOGIN_URL);
-  }
-
-  if (!adminUser?.roles?.some((r) => r === ROLE_NAMES.ADMIN || ROLE_NAMES.ROOT_ADMIN)) {
-    throw redirect(302, ADMIN_URLS.LOGIN_URL);
+  if (adminUser && adminUser?.roles?.some((r) => r === ROLE_NAMES.ADMIN || ROLE_NAMES.ROOT_ADMIN)) {
+    throw redirect(302, ADMIN_URLS.DASHBOARD_URL);
   }
 
   return {

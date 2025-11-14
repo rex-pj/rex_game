@@ -36,7 +36,7 @@
   });
 </script>
 
-{#if canReadUsers(data.currentUser)}
+{#if canReadUsers(data.adminUser)}
   <div class="container mt-4">
     <div class="row">
       <div class="col col-auto">
@@ -82,7 +82,7 @@
                   class="dropdown-menu dropdown-menu-end"
                   aria-labelledby="dropdownMenuButton-{item.id}"
                 >
-                  {#if canUpdate(data.currentUser)}
+                  {#if canUpdate(data.adminUser)}
                     <li>
                       <button
                         class="dropdown-item"
@@ -93,7 +93,7 @@
                       >
                     </li>
                   {/if}
-                  {#if canDelete(data.currentUser)}
+                  {#if canDelete(data.adminUser)}
                     <li>
                       <button
                         class="dropdown-item text-danger"
@@ -104,7 +104,7 @@
                       >
                     </li>
                   {/if}
-                  {#if canReadUserAccesses(data.currentUser)}
+                  {#if canReadUserAccesses(data.adminUser)}
                     <li>
                       <button
                         class="dropdown-item text-success"
@@ -126,7 +126,7 @@
     <div class="d-flex justify-content-center">
       <Pagination pager={$pager} {changePage} />
     </div>
-    {#if canUpdate(data.currentUser)}
+    {#if canUpdate(data.adminUser)}
       <UserUpdateModal
         initialData={edittingData}
         showModal={showCreationModal}
@@ -137,7 +137,7 @@
       ></UserUpdateModal>
     {/if}
 
-    {#if canDelete(data.currentUser)}
+    {#if canDelete(data.adminUser)}
       <UserDeleteModal
         showModal={showDeletionModal}
         closeModal={() => toggleDeletionModal(false)}

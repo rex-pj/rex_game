@@ -1,27 +1,27 @@
 import { redirect, type Actions } from "@sveltejs/kit";
-import { AuthenticateApi } from "../../../../lib/api/authenticateApi";
-import { ACCESS_TOKEN, ADMIN_URLS, ROLE_NAMES } from "$lib/common/contants";
-import { AdminServerApiOptions } from "$lib/api/apiOptions";
+import { ACCESS_TOKEN, APP_URLS } from "$lib/common/contants";
+import { AuthenticateApi } from "$lib/api/authenticateApi";
+import { UserServerApiOptions } from "$lib/api/apiOptions";
 import { container } from "$lib/di";
 
 export const load = async ({ parent }) => {
   const parentData = await parent();
-  const adminUser = parentData?.adminUser;
+  const currentUser = parentData?.currentUser;
 
-  if (!adminUser) {
+  if (!currentUser) {
     return {};
   }
 
-  if (!adminUser?.roles?.some((r) => r === ROLE_NAMES.ADMIN || ROLE_NAMES.ROOT_ADMIN)) {
+  if (!currentUser) {
     return {};
   }
 
-  throw redirect(302, ADMIN_URLS.DASHBOARD_URL);
+  throw redirect(302, APP_URLS.HOME);
 };
 
 export const actions: Actions = {
   login: async ({ request, cookies, fetch }) => {
-    const authenticateApi = new AuthenticateApi(new AdminServerApiOptions(cookies));
+    const authenticateApi = new AuthenticateApi(new UserServerApiOptions(cookies));
     const data = await request.formData();
     const email = data.get("email") as string;
     const password = data.get("password") as string;
@@ -40,7 +40,7 @@ export const actions: Actions = {
         "and message:",
         await response?.text()
       );
-      throw redirect(302, ADMIN_URLS.LOGIN_URL);
+      throw redirect(302, APP_URLS.LOGIN_URL);
     }
 
     const cookieHeaders = response.headers.getSetCookie();
@@ -54,20 +54,20 @@ export const actions: Actions = {
     }
 
     cookies.set(
-      ACCESS_TOKEN.ADMIN_REFRESH_TOKEN,
+      ACCESS_TOKEN.USER_REFRESH_TOKEN,
       refresh_token_data.value,
       refresh_token_data.options
     );
     const loginResponse = await response.json();
     const { access_token, expiration } = loginResponse;
-    cookies.set(ACCESS_TOKEN.ADMIN_ACCESS_TOKEN, access_token, {
+    cookies.set(ACCESS_TOKEN.USER_ACCESS_TOKEN, access_token, {
       path: "/",
       httpOnly: false,
       sameSite: "strict",
       secure: true,
       expires: new Date(expiration),
     });
-    cookies.set(ACCESS_TOKEN.ADMIN_ACCESS_TOKEN_EXP, expiration, {
+    cookies.set(ACCESS_TOKEN.USER_ACCESS_TOKEN_EXP, expiration, {
       path: "/",
       httpOnly: false,
       sameSite: "strict",
@@ -75,6 +75,6 @@ export const actions: Actions = {
       expires: new Date(expiration),
     });
 
-    throw redirect(302, ADMIN_URLS.DASHBOARD_URL);
+    throw redirect(302, APP_URLS.HOME);
   },
 };

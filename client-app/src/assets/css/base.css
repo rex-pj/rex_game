@@ -5,19 +5,19 @@ body {
 }
 
 :root {
-  --background-color: #fcf7ee;
-  --primary-color: #fc800a;
-  --primary-hover-color: #e96b3b;
-  --nav-hover-color: rgb(253, 240, 225);
-  --secondary-color: #376179;
-  --box-shadow-color: rgb(26 26 26 / 15%);
-  --nav-bg-color: #fbf1e3;
-  --border-color: #ebe2d8;
-  --purple-light: #f3e8ff;
-  --black: #1a1a1a;
+  --background-color: #fffaf4;
+  --primary-color: #ffb347;
+  --primary-hover-color: #ff944d;
+  --nav-hover-color: #fff2cc;
+  --secondary-color: #5fb4e5;
+  --box-shadow-color: rgba(0, 0, 0, 0.12);
+  --nav-bg-color: #fff6e6;
+  --border-color: #ffe0b2;
+  --purple-light: #f6d8ff;
+  --black: #333333;
   --white: #ffffff;
-  --gray-2: #e1e1e1;
-  --gray-3: #cfcfcf;
+  --gray-2: #f0f0f0;
+  --gray-3: #dcdcdc;
 }
 
 .btn-primary {

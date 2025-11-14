@@ -18,5 +18,15 @@ export const ROLE_NAMES = {
 export const APP_URLS = {
   HOME: "/",
   LOGIN_URL: "/account/login",
+  LOGOUT_URL: "/account/logout",
   SIGNUP_URL: "/account/signup",
 };
+
+export enum ACCESS_TOKEN {
+  ADMIN_ACCESS_TOKEN = "s_access_token",
+  ADMIN_ACCESS_TOKEN_EXP = "s_access_token_exp",
+  ADMIN_REFRESH_TOKEN = "s_refresh_token",
+  USER_ACCESS_TOKEN = "u_access_token",
+  USER_ACCESS_TOKEN_EXP = "u_access_token_exp",
+  USER_REFRESH_TOKEN = "u_refresh_token",
+}

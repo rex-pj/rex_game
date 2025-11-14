@@ -68,4 +68,8 @@ impl FileHelperTrait for FileHelper {
             Err(_) => false,
         }
     }
+
+    fn get_content_type(&self, data: &[u8]) -> Option<String> {
+        infer::get(data).map(|kind| kind.mime_type().to_string())
+    }
 }

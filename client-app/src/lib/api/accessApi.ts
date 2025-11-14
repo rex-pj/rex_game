@@ -1,16 +1,15 @@
-import type { Cookies } from "@sveltejs/kit";
 import { BaseApi } from "./baseApi";
-import type JsCookies from "js-cookie";
 import type { UserRole } from "$lib/models/user-role";
 import type { UserPermission } from "$lib/models/user-permission";
 import type { RolePermission } from "$lib/models/role-permission";
+import type { BaseApiOptions } from "./apiOptions";
 
 export class AccessApi extends BaseApi {
   private readonly userRoleUrl = "/user-roles";
   private readonly userPermissionUrl = "/user-permissions";
   private readonly rolePermissionUrl = "/role-permissions";
-  constructor(cookies?: Cookies | typeof JsCookies) {
-    super(cookies);
+  constructor(options: BaseApiOptions) {
+    super(options);
   }
 
   async getUserRoleList(

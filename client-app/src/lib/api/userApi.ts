@@ -1,6 +1,4 @@
-import { type Cookies } from "@sveltejs/kit";
 import { BaseApi } from "./baseApi";
-import type JsCookies from "js-cookie";
 import type {
   ConfirmUserRequest,
   ForgotPasswordRequest,
@@ -9,11 +7,12 @@ import type {
 } from "$lib/models/user";
 import type { UserPermission } from "$lib/models/user-permission";
 import type { UserRole } from "$lib/models/user-role";
+import type { BaseApiOptions } from "./apiOptions";
 
 class UserApi extends BaseApi {
   private readonly baseUrl = "/users";
-  constructor(cookies?: Cookies | typeof JsCookies) {
-    super(cookies);
+  constructor(options: BaseApiOptions) {
+    super(options);
   }
 
   async getCurrentUser(fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>) {

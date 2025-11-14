@@ -1,15 +1,17 @@
 import { jwtDecode } from "jwt-decode";
 import Cookies from "js-cookie";
 import type { CurrentUser } from "$lib/models/current-user";
-import { ADMIN_URLS, ROLE_NAMES } from "$lib/common/contants";
+import { ACCESS_TOKEN, ADMIN_URLS, ROLE_NAMES } from "$lib/common/contants";
 import { PermissionCodes } from "$lib/common/permissions";
 
 export const logout = async (): Promise<Response> => {
   return fetch(ADMIN_URLS.LOGOUT_URL, {
     method: "DELETE",
   }).then((rs: Response) => {
-    Cookies.remove("access_token");
-    Cookies.remove("access_token_exp");
+    Cookies.remove(ACCESS_TOKEN.USER_ACCESS_TOKEN);
+    Cookies.remove(ACCESS_TOKEN.USER_ACCESS_TOKEN_EXP);
+    Cookies.remove(ACCESS_TOKEN.ADMIN_ACCESS_TOKEN);
+    Cookies.remove(ACCESS_TOKEN.ADMIN_ACCESS_TOKEN_EXP);
     return rs;
   });
 };
@@ -28,8 +30,8 @@ export const isTokenExpired = (token: string) => {
   }
 };
 
-export const getAccessToken = () => {
-  const access_token = Cookies.get("access_token");
+export const getAccessToken = (tokenKey: ACCESS_TOKEN) => {
+  const access_token = Cookies.get(tokenKey);
   return access_token;
 };
 

@@ -1,10 +1,11 @@
 import { type Cookies } from "@sveltejs/kit";
 import { BaseApi } from "./baseApi";
-import { container } from "$lib/di";
+import type { BaseApiOptions } from "./apiOptions";
+import { ACCESS_TOKEN } from "$lib/common/contants";
 
 class AuthenticateApi extends BaseApi {
-  constructor(cookies?: Cookies) {
-    super(cookies);
+  constructor(options: BaseApiOptions) {
+    super(options);
   }
 
   async login(
@@ -26,40 +27,11 @@ class AuthenticateApi extends BaseApi {
     return response;
   }
 
-  setRefreshToken(response: Response, cookies: Cookies) {
-    const cookieHeaders = response.headers.getSetCookie();
-    const cookie_key = "refresh_token";
-    const refresh_token_data = container.cookieHelper.parseSetCookie(cookieHeaders, cookie_key);
-    if (!refresh_token_data) {
-      console.error("No Set-Cookie header found in the response.");
-      return;
-    }
-
-    cookies.set(cookie_key, refresh_token_data.value, refresh_token_data.options);
-  }
-
   removeRefreshToken(cookies: Cookies) {
     const cookie_key = "refresh_token";
     cookies.delete(cookie_key, { path: "/" });
-  }
-
-  setAccessToken(response: { access_token: string; expiration: number }, cookies: any) {
-    const { access_token, expiration } = response;
-    cookies.set("access_token", access_token, {
-      path: "/",
-      httpOnly: false,
-      sameSite: "strict",
-      secure: true,
-      expires: new Date(expiration),
-    });
-
-    cookies.set("access_token_exp", expiration, {
-      path: "/",
-      httpOnly: false,
-      sameSite: "strict",
-      secure: true,
-      expires: new Date(expiration),
-    });
+    cookies.delete(ACCESS_TOKEN.ADMIN_REFRESH_TOKEN, { path: "/" });
+    cookies.delete(ACCESS_TOKEN.USER_REFRESH_TOKEN, { path: "/" });
   }
 }
 

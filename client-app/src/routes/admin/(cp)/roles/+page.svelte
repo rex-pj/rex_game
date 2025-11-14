@@ -37,7 +37,7 @@
   });
 </script>
 
-{#if canReadRoles(data.currentUser)}
+{#if canReadRoles(data.adminUser)}
   <div class="container mt-4">
     <div class="row">
       <div class="col col-auto">
@@ -45,7 +45,7 @@
       </div>
       <div class="col">
         <!-- Add button -->
-        {#if canCreate(data.currentUser)}
+        {#if canCreate(data.adminUser)}
           <button class="btn btn-primary mb-3" onclick={() => toggleCreationModal(true)}>Add</button
           >
         {/if}
@@ -87,7 +87,7 @@
                   class="dropdown-menu dropdown-menu-end"
                   aria-labelledby="dropdownMenuButton-{item.id}"
                 >
-                  {#if canUpdate(data.currentUser)}
+                  {#if canUpdate(data.adminUser)}
                     <li>
                       <button
                         class="dropdown-item"
@@ -98,7 +98,7 @@
                       >
                     </li>
                   {/if}
-                  {#if canDelete(data.currentUser)}
+                  {#if canDelete(data.adminUser)}
                     <li>
                       <button
                         class="dropdown-item text-danger"
@@ -109,7 +109,7 @@
                       >
                     </li>
                   {/if}
-                  {#if canReadRolePermissions(data.currentUser)}
+                  {#if canReadRolePermissions(data.adminUser)}
                     <li>
                       <button
                         class="dropdown-item text-success"
@@ -131,7 +131,7 @@
     <div class="d-flex justify-content-center">
       <Pagination pager={$pager} {changePage} />
     </div>
-    {#if canUpdate(data.currentUser) || canCreate(data.currentUser)}
+    {#if canUpdate(data.adminUser) || canCreate(data.adminUser)}
       <RoleUpdateModal
         initialData={edittingData}
         showModal={showCreationModal}
@@ -142,7 +142,7 @@
       ></RoleUpdateModal>
     {/if}
 
-    {#if canDelete(data.currentUser)}
+    {#if canDelete(data.adminUser)}
       <RoleDeleteModal
         showModal={showDeletionModal}
         closeModal={() => toggleDeletionModal(false)}

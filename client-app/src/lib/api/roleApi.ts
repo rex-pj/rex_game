@@ -1,13 +1,11 @@
-import type { Cookies } from "@sveltejs/kit";
-import { BaseApi } from "./baseApi";
-import type JsCookies from "js-cookie";
+import { BaseApi, type BaseApiOptions } from "./baseApi";
 import type { Role } from "$lib/models/role";
 import type { RolePermission } from "$lib/models/role-permission";
 
 export class RoleApi extends BaseApi {
   private readonly baseUrl = "/roles";
-  constructor(cookies?: Cookies | typeof JsCookies) {
-    super(cookies);
+  constructor(options: BaseApiOptions) {
+    super(options);
   }
 
   async getList(

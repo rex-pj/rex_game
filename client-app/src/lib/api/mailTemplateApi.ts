@@ -1,11 +1,10 @@
-import type { Cookies } from "@sveltejs/kit";
+import type { BaseApiOptions } from "./apiOptions";
 import { BaseApi } from "./baseApi";
-import type JsCookies from "js-cookie";
 
 export class MailTemplateApi extends BaseApi {
   private readonly baseUrl = "/mail-templates";
-  constructor(cookies?: Cookies | typeof JsCookies) {
-    super(cookies);
+  constructor(options: BaseApiOptions) {
+    super(options);
   }
 
   async getList(

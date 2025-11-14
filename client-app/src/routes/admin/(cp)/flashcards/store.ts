@@ -9,9 +9,12 @@ import { getImageBase64Url } from "$lib/helpers/imageHelper";
 import * as accessService from "$lib/services/accessService";
 import type { CurrentUser } from "$lib/models/current-user";
 import { PermissionCodes } from "$lib/common/permissions";
+import { AdminClientApiOptions } from "$lib/api/apiOptions";
 
-const flashcardService: FlashcardApi = new FlashcardApi(Cookies);
-const flashcardTypeService: FlashcardTypeApi = new FlashcardTypeApi(Cookies);
+const flashcardService: FlashcardApi = new FlashcardApi(new AdminClientApiOptions(Cookies));
+const flashcardTypeService: FlashcardTypeApi = new FlashcardTypeApi(
+  new AdminClientApiOptions(Cookies)
+);
 export const items: Writable<Flashcard[]> = writable([]);
 export const pager: Writable<Pager> = writable({ currentPage: 1, totalPages: 0 });
 const itemsPerPage = 10;

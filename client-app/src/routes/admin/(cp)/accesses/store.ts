@@ -5,8 +5,9 @@ import { goto } from "$app/navigation";
 import type { PermissionItem } from "$lib/models/permission";
 import type { UserItem } from "$lib/models/user";
 import type { RoleItem } from "$lib/models/role";
+import { AdminClientApiOptions } from "$lib/api/apiOptions";
 
-const accessApi: AccessApi = new AccessApi(Cookies);
+const accessApi: AccessApi = new AccessApi(new AdminClientApiOptions(Cookies));
 export const userAccessess: Writable<
   { user: UserItem; roles: RoleItem[]; permissions: PermissionItem[] }[]
 > = writable([]);

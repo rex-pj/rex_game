@@ -1,10 +1,11 @@
 import { type Actions } from "@sveltejs/kit";
 import { UserApi } from "../../../../lib/api/userApi";
 import { fail } from "@sveltejs/kit";
+import { UserServerApiOptions } from "$lib/api/apiOptions";
 
 export const actions: Actions = {
   default: async ({ request, cookies }) => {
-    const userApi = new UserApi(cookies);
+    const userApi = new UserApi(new UserServerApiOptions(cookies));
     const { token } = await request.json();
     if (!token) {
       return fail(400, {

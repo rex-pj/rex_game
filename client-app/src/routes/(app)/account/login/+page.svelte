@@ -1,16 +1,28 @@
 <script lang="ts">
+  import { enhance } from "$app/forms";
   import { goto } from "$app/navigation";
   import { APP_URLS } from "$lib/common/contants.js";
-
+  import type { SubmitFunction } from "@sveltejs/kit";
   let { data } = $props();
+  let isSubmitting = $state(false);
 
   if (data.currentUser) {
     goto(APP_URLS.HOME);
   }
 
-  function handleSubmit(event: any) {
-    event.preventDefault();
-  }
+  const handleEnhance: SubmitFunction = ({ formElement }) => {
+    isSubmitting = true;
+
+    return async ({ result, update }) => {
+      isSubmitting = false;
+
+      if (result.type === "failure") {
+        await update();
+      } else if (result.type === "redirect") {
+        goto(result.location);
+      }
+    };
+  };
 </script>
 
 <div class="container vh-100 d-flex align-items-center justify-content-center">
@@ -25,10 +37,17 @@
     <!-- Khung đăng nhập bên phải -->
     <div class="col-md-6 bg-white p-5">
       <h3 class="mb-4">Đăng nhập</h3>
-      <form onsubmit={handleSubmit}>
+      <form method="POST" action="?/login" use:enhance={handleEnhance}>
         <div class="mb-3">
           <label for="email" class="form-label">Email</label>
-          <input id="email" type="email" class="form-control" required autocomplete="username" />
+          <input
+            id="email"
+            type="email"
+            name="email"
+            class="form-control"
+            required
+            autocomplete="username"
+          />
         </div>
         <div class="mb-3">
           <label for="password" class="form-label">Mật khẩu</label>
@@ -36,6 +55,7 @@
             id="password"
             type="password"
             class="form-control"
+            name="password"
             required
             autocomplete="current-password"
           />
@@ -48,7 +68,13 @@
           </div>
         </div>
 
-        <button type="submit" class="btn btn-primary w-100">Đăng nhập</button>
+        <button type="submit" class="btn btn-primary w-100" disabled={isSubmitting}>
+          {#if isSubmitting}
+            <span class="spinner-border spinner-border-sm me-2"></span> Đang đăng nhập...
+          {:else}
+            Đăng nhập
+          {/if}
+        </button>
         <div class="mt-3">
           <div>
             Chưa có tài khoản?

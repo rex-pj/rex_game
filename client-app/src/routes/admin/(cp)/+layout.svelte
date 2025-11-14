@@ -1,9 +1,7 @@
 <script lang="ts">
   import { page } from "$app/state";
   import * as accessService from "$lib/services/accessService";
-  import { getContext, onMount } from "svelte";
-  import { SHARED_CONTEXT, ADMIN_URLS, ROLE_NAMES } from "$lib/common/contants";
-  import { type CurrentUser } from "$lib/models/current-user";
+  import { ADMIN_URLS } from "$lib/common/contants";
   import { goto } from "$app/navigation";
   import type { LayoutProps } from "./$types";
   const { data, children }: LayoutProps = $props();
@@ -13,43 +11,43 @@
       name: "Falshcards",
       link: "/admin/flashcards",
       icon: "fa-solid fa-clone",
-      canRead: accessService.canReadFlashcards(data.currentUser),
+      canRead: accessService.canReadFlashcards(data.adminUser),
     },
     {
       name: "Falshcard Types",
       link: "/admin/flashcard-types",
       icon: "fa-solid fa-layer-group",
-      canRead: accessService.canReadFlashcardTypes(data.currentUser),
+      canRead: accessService.canReadFlashcardTypes(data.adminUser),
     },
     {
       name: "Users",
       link: "/admin/users",
       icon: "fa-solid fa-users",
-      canRead: accessService.canReadUsers(data.currentUser),
+      canRead: accessService.canReadUsers(data.adminUser),
     },
     {
       name: "Roles",
       link: "/admin/roles",
       icon: "fa-solid fa-user-shield",
-      canRead: accessService.canReadRoles(data.currentUser),
+      canRead: accessService.canReadRoles(data.adminUser),
     },
     {
       name: "Permissions",
       link: "/admin/permissions",
       icon: "fa-solid fa-key",
-      canRead: accessService.canReadPermissions(data.currentUser),
+      canRead: accessService.canReadPermissions(data.adminUser),
     },
     {
       name: "Accesses",
       link: "/admin/accesses",
       icon: "fa-solid fa-user-lock",
-      canRead: accessService.canReadAccesses(data.currentUser),
+      canRead: accessService.canReadAccesses(data.adminUser),
     },
     {
       name: "Mail Templates",
       link: "/admin/mail-templates",
       icon: "fa-solid fa-envelope-open-text",
-      canRead: accessService.canReadAccesses(data.currentUser),
+      canRead: accessService.canReadAccesses(data.adminUser),
     },
   ];
 
@@ -60,7 +58,7 @@
     });
   }
 
-  const currentUser = data.currentUser;
+  const currentUser = data.adminUser;
 </script>
 
 <div class="layout">
@@ -71,7 +69,7 @@
           <span class="logo me-4">Admin Panel</span>
         </div>
         <div class="d-flex align-items-center">
-          <span class="me-3 text-white">Welcome, {currentUser.name}</span>
+          <span class="me-3 text-white">Welcome, {currentUser.display_name}</span>
         </div>
         <nav class="d-flex align-items-center">
           <a href="/" class="btn btn-outline-light btn-sm me-1">

@@ -1,3 +1,4 @@
+import { AdminServerApiOptions } from "$lib/api/apiOptions";
 import { PermissionApi } from "$lib/api/permissionApi";
 import { RoleApi } from "$lib/api/roleApi";
 import { UserApi } from "$lib/api/userApi";
@@ -13,9 +14,9 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
     return { userPermissions: [], userRoles: [], roles: [], permissions: [] };
   }
 
-  const userApi: UserApi = new UserApi(cookies);
-  const roleService: RoleApi = new RoleApi(cookies);
-  const permissionService: PermissionApi = new PermissionApi(cookies);
+  const userApi: UserApi = new UserApi(new AdminServerApiOptions(cookies));
+  const roleService: RoleApi = new RoleApi(new AdminServerApiOptions(cookies));
+  const permissionService: PermissionApi = new PermissionApi(new AdminServerApiOptions(cookies));
 
   const userPermissions = await userApi.getPermissionList(fetch, userId);
   const userRoles = await userApi.getRoleList(fetch, userId);
@@ -55,7 +56,7 @@ export const actions = {
       return { success: false, error: "No roles selected" };
     }
 
-    const userApi = new UserApi(cookies);
+    const userApi = new UserApi(new AdminServerApiOptions(cookies));
     try {
       // Assign each role to the user
       await userApi.assignRoles(fetch, userId, {
@@ -97,7 +98,7 @@ export const actions = {
       return { success: false, error: "No permissions selected" };
     }
 
-    const userApi = new UserApi(cookies);
+    const userApi = new UserApi(new AdminServerApiOptions(cookies));
     try {
       // Assign each permission to the user
       await userApi.assignPermissions(fetch, userId, {

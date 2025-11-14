@@ -6,8 +6,11 @@ import type { MailTemplate, MailTemplateRequest } from "$lib/models/mail-templat
 import * as accessService from "$lib/services/accessService";
 import type { CurrentUser } from "$lib/models/current-user";
 import { PermissionCodes } from "$lib/common/permissions";
+import { AdminClientApiOptions } from "$lib/api/apiOptions";
 
-const mailTemplateService: MailTemplateApi = new MailTemplateApi(Cookies);
+const mailTemplateService: MailTemplateApi = new MailTemplateApi(
+  new AdminClientApiOptions(Cookies)
+);
 export const items: Writable<MailTemplate[]> = writable([]);
 export const pager: Writable<Pager> = writable({ currentPage: 1, totalPages: 0 });
 const itemsPerPage = 10;

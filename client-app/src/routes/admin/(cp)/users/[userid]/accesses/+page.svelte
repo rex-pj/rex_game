@@ -13,7 +13,7 @@
   import * as accessService from "$lib/services/accessService";
   const { data }: PageProps = $props();
   onMount(() => {
-    if (!data.currentUser || !data.currentUser.id) {
+    if (!data.adminUser || !data.adminUser.id) {
       return;
     }
 
@@ -22,11 +22,11 @@
   });
 </script>
 
-{#if accessService.canReadUserAccesses(data.currentUser)}
+{#if accessService.canReadUserAccesses(data.adminUser)}
   <div class="container mt-4">
     <div class="row">
       <div class="col col-auto">
-        {#if accessService.canEditUserAccesses(data.currentUser)}
+        {#if accessService.canEditUserAccesses(data.adminUser)}
           <h3 class="mb-4">Edit User Accesses</h3>
         {:else}
           <h3 class="mb-4">User Accesses</h3>
@@ -79,7 +79,7 @@
                           <td>
                             {#if role.name === ROLE_NAMES.ROOT_ADMIN}
                               <input type="checkbox" disabled checked={role.assigned} />
-                            {:else if accessService.canEditUserRoles(data.currentUser)}
+                            {:else if accessService.canEditUserRoles(data.adminUser)}
                               <input
                                 type="checkbox"
                                 checked={role.assigned}
@@ -101,7 +101,7 @@
               </div>
             </div>
             <div class="card-footer">
-              {#if accessService.canEditUserRoles(data.currentUser)}
+              {#if accessService.canEditUserRoles(data.adminUser)}
                 <button
                   type="button"
                   class="btn btn-secondary"
@@ -166,7 +166,7 @@
                             </figure></td
                           >
                           <td>
-                            {#if accessService.canEditUserPermissions(data.currentUser)}
+                            {#if accessService.canEditUserPermissions(data.adminUser)}
                               <input
                                 type="checkbox"
                                 checked={permission.assigned}
@@ -190,7 +190,7 @@
               </div>
             </div>
             <div class="card-footer">
-              {#if accessService.canEditUserPermissions(data.currentUser)}
+              {#if accessService.canEditUserPermissions(data.adminUser)}
                 <button
                   type="button"
                   class="btn btn-secondary"

@@ -1,11 +1,10 @@
-import type { Cookies } from "@sveltejs/kit";
+import type { BaseApiOptions } from "./apiOptions";
 import { BaseApi } from "./baseApi";
-import type JsCookies from "js-cookie";
 
 export class FlashcardApi extends BaseApi {
   private readonly baseUrl = "/flashcards";
-  constructor(cookies?: Cookies | typeof JsCookies) {
-    super(cookies);
+  constructor(options: BaseApiOptions) {
+    super(options);
   }
 
   async getList(

@@ -5,7 +5,7 @@
   import { canEditRolePermissions, canReadRolePermissions } from "$lib/services/accessService";
   const { data }: PageProps = $props();
   onMount(() => {
-    if (!data.currentUser || !data.currentUser.id) {
+    if (!data.adminUser || !data.adminUser.id) {
       return;
     }
 
@@ -13,11 +13,11 @@
   });
 </script>
 
-{#if canReadRolePermissions(data.currentUser)}
+{#if canReadRolePermissions(data.adminUser)}
   <div class="container mt-4">
     <div class="row">
       <div class="col col-auto">
-        {#if canEditRolePermissions(data.currentUser)}
+        {#if canEditRolePermissions(data.adminUser)}
           <h3 class="mb-4">Edit Role Accesses</h3>
         {:else}
           <h3 class="mb-4">Role Accesses</h3>
@@ -75,7 +75,7 @@
                             </figure></td
                           >
                           <td>
-                            {#if canEditRolePermissions(data.currentUser)}
+                            {#if canEditRolePermissions(data.adminUser)}
                               <input
                                 type="checkbox"
                                 checked={permission.assigned}
@@ -99,7 +99,7 @@
               </div>
             </div>
             <div class="card-footer">
-              {#if canEditRolePermissions(data.currentUser)}
+              {#if canEditRolePermissions(data.adminUser)}
                 <button
                   type="button"
                   class="btn btn-secondary"

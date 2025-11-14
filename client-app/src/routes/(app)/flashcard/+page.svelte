@@ -4,8 +4,6 @@
   import PrimaryHeading from "../../../components/atoms/heading/PrimaryHeading.svelte";
 </script>
 
-<Navigation></Navigation>
-
 <div class="container mb-3 mt-3">
   <PrimaryHeading title="Chọn kiểu flashcard bạn thích"></PrimaryHeading>
 </div>

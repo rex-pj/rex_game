@@ -7,8 +7,9 @@ import { goto } from "$app/navigation";
 import type { CurrentUser } from "$lib/models/current-user";
 import * as accessService from "$lib/services/accessService";
 import { PermissionCodes } from "$lib/common/permissions";
+import { AdminClientApiOptions } from "$lib/api/apiOptions";
 
-const roleService: RoleApi = new RoleApi(Cookies);
+const roleService: RoleApi = new RoleApi(new AdminClientApiOptions(Cookies));
 export const items: Writable<Role[]> = writable([]);
 export const pager: Writable<Pager> = writable({ currentPage: 1, totalPages: 0 });
 const itemsPerPage = 10;

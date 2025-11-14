@@ -19,11 +19,11 @@
   import type { LayoutProps } from "../$types";
   const { data }: LayoutProps = $props();
   onMount(() => {
-    if (!data.currentUser || !data.currentUser.id) {
+    if (!data.adminUser || !data.adminUser.id) {
       return;
     }
 
-    if (!canReadUserAccesses(data.currentUser) && !canReadRolePermissions(data.currentUser)) {
+    if (!canReadUserAccesses(data.adminUser) && !canReadRolePermissions(data.adminUser)) {
       return;
     }
     fetchUserAccessItems();
@@ -39,17 +39,17 @@
   </div>
 
   <div class="row">
-    {#if canReadUserAccesses(data.currentUser)}
+    {#if canReadUserAccesses(data.adminUser)}
       <div class="col-12">
         <h5>User Accesses</h5>
         <table class="table table-bordered">
           <thead>
             <tr>
               <th>User</th>
-              {#if canReadUserRoles(data.currentUser)}
+              {#if canReadUserRoles(data.adminUser)}
                 <th>Assigned roles</th>
               {/if}
-              {#if canReadUserPermissions(data.currentUser)}
+              {#if canReadUserPermissions(data.adminUser)}
                 <th>Assigned permissions</th>
               {/if}
               <th>Actions</th>
@@ -59,7 +59,7 @@
             {#each $userAccessess as userAccess}
               <tr>
                 <td>{userAccess.user.name}</td>
-                {#if canReadUserRoles(data.currentUser)}
+                {#if canReadUserRoles(data.adminUser)}
                   <td
                     ><div>
                       {#each userAccess.roles as role}
@@ -68,7 +68,7 @@
                     </div>
                   </td>
                 {/if}
-                {#if canReadUserPermissions(data.currentUser)}
+                {#if canReadUserPermissions(data.adminUser)}
                   <td>
                     <div>
                       {#each userAccess.permissions as permission}
@@ -92,7 +92,7 @@
                     class="dropdown-menu dropdown-menu-end"
                     aria-labelledby="dropdownUserRole-{userAccess.user.id}"
                   >
-                    {#if canEditUserAccesses(data.currentUser)}
+                    {#if canEditUserAccesses(data.adminUser)}
                       <li>
                         <button
                           class="dropdown-item text-success"
@@ -112,14 +112,14 @@
       </div>
     {/if}
 
-    {#if canReadRolePermissions(data.currentUser)}
+    {#if canReadRolePermissions(data.adminUser)}
       <div class="col-12">
         <h5>Role Permissions</h5>
         <table class="table table-bordered">
           <thead>
             <tr>
               <th>Role</th>
-              {#if canReadRolePermissions(data.currentUser)}
+              {#if canReadRolePermissions(data.adminUser)}
                 <th>Assigned permissions</th>
               {/if}
               <th>Actions</th>
@@ -130,7 +130,7 @@
               <tr>
                 <td>{rolePermission.role.name}</td>
                 <td>
-                  {#if canReadRolePermissions(data.currentUser)}
+                  {#if canReadRolePermissions(data.adminUser)}
                     <div>
                       {#each rolePermission.permissions as permission}
                         <span class="badge bg-secondary me-1">{permission.name}</span>
@@ -153,7 +153,7 @@
                     class="dropdown-menu dropdown-menu-end"
                     aria-labelledby="dropdownRolePermission-{rolePermission.role.id}"
                   >
-                    {#if canEditRolePermissions(data.currentUser)}
+                    {#if canEditRolePermissions(data.adminUser)}
                       <li>
                         <button
                           class="dropdown-item text-success"

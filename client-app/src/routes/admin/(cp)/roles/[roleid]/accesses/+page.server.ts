@@ -1,3 +1,4 @@
+import { AdminServerApiOptions } from "$lib/api/apiOptions";
 import { PermissionApi } from "$lib/api/permissionApi";
 import { RoleApi } from "$lib/api/roleApi";
 import type { PageServerLoad } from "./$types";
@@ -13,7 +14,7 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
   }
 
   const roleService: RoleApi = new RoleApi(cookies);
-  const permissionService: PermissionApi = new PermissionApi(cookies);
+  const permissionService: PermissionApi = new PermissionApi(new AdminServerApiOptions(cookies));
 
   const rolePermissions = await roleService.getPermissionList(fetch, roleId);
   const { items: permissions } = await permissionService.getList(fetch);

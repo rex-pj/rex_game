@@ -5,7 +5,7 @@
 <ul class="nav nav-pills nav-fill" id="pills-tab" role="tablist">
   <li class="nav-item" role="presentation">
     <span
-      class="nav-link active"
+      class="nav-link cloud-button active"
       id="pills-matching-tab"
       data-bs-toggle="pill"
       data-bs-target="#pills-matching"
@@ -16,7 +16,7 @@
   </li>
   <li class="nav-item" role="presentation">
     <span
-      class="nav-link"
+      class="nav-link cloud-button"
       id="pills-animals-tab"
       data-bs-toggle="pill"
       data-bs-target="#pills-animals"
@@ -27,7 +27,7 @@
   </li>
   <li class="nav-item" role="presentation">
     <span
-      class="nav-link"
+      class="nav-link cloud-button"
       id="pills-numbers-tab"
       data-bs-toggle="pill"
       data-bs-target="#pills-numbers"
@@ -38,7 +38,7 @@
   </li>
   <li class="nav-item" role="presentation">
     <span
-      class="nav-link"
+      class="nav-link cloud-button"
       id="pills-alphabet-tab"
       data-bs-toggle="pill"
       data-bs-target="#pills-alphabet"
@@ -89,63 +89,19 @@
 
 <style>
   .nav-pills {
-    margin: 30px 0 10px 0;
+    margin: 54px 0 10px 0;
   }
 
   .nav-pills .nav-item {
-    margin: 0;
+    margin: 0 15px;
     position: relative;
   }
 
   .nav-pills .nav-item .nav-link span {
     position: relative;
     z-index: 2;
-  }
-
-  .nav-pills .nav-item .nav-link {
-    padding: 1rem 0.5rem;
-    color: var(--primary-color);
-    background: var(--nav-hover-color);
-    border-radius: 80px 80px 80px 80px;
-    font-weight: 600;
-    font-size: 1rem;
-    letter-spacing: 1px;
-    max-width: 200px;
-    position: relative;
-    margin: auto;
-  }
-
-  .nav-pills .nav-item .nav-link:before,
-  .nav-pills .nav-item .nav-link::after {
-    content: "";
-    width: 70px;
-    height: 70px;
-    border-radius: 50px;
-    background: var(--nav-hover-color);
-    position: absolute;
-    z-index: 0;
-    left: 30%;
-  }
-
-  .nav-pills .nav-item .nav-link:before {
-    bottom: 7px;
-    width: 60px;
-    height: 60px;
-  }
-
-  .nav-pills .nav-item .nav-link::after {
-    left: 47%;
-    bottom: 10px;
-  }
-
-  .nav-pills .nav-item .nav-link.active {
-    color: var(--background-color);
-    background: var(--primary-color);
-  }
-
-  .nav-pills .nav-item .nav-link.active::before,
-  .nav-pills .nav-item .nav-link.active::after {
-    background: var(--primary-color);
+    font-weight: bold;
+    font-size: 1.5rem;
   }
 
   .tab-content {
@@ -159,5 +115,93 @@
     padding: 5px 0px;
     border-radius: 3px;
     background-color: var(--background-color);
+  }
+
+  .cloud-button {
+    position: relative;
+    background: var(--primary-color);
+    border: none;
+    padding: 20px 50px;
+    font-size: 1.2rem;
+    border-radius: 50px;
+    height: 80px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    color: var(--white);
+    cursor: pointer;
+    transition: background 0.8s ease;
+  }
+
+  .nav-pills .nav-link.active {
+    background: var(--primary-color);
+  }
+
+  .cloud-button::before,
+  .cloud-button::after {
+    content: "";
+    position: absolute;
+    background: var(--primary-color);
+    border-radius: 50%;
+    z-index: 2;
+    transition:
+      background 0.8s ease,
+      transform 0.8s ease;
+  }
+
+  /* Các cục mây nhỏ */
+  .cloud-button::before {
+    width: 80px;
+    height: 80px;
+    top: -20px;
+    left: 50px;
+    box-shadow: 49px -30px 0 0 var(--primary-color);
+  }
+
+  .cloud-button::after {
+    width: 70px;
+    height: 70px;
+    top: -24px;
+    left: 158px;
+    z-index: -1;
+  }
+
+  .nav-item:hover .cloud-button,
+  .nav-item .nav-link.active.cloud-button {
+    background: var(--secondary-color);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+  }
+
+  .nav-item:hover .cloud-button::before,
+  .nav-item .nav-link.active.cloud-button::before {
+    background: var(--secondary-color);
+  }
+
+  .nav-item:hover .cloud-button::after,
+  .nav-item .nav-link.active.cloud-button::after {
+    background: var(--secondary-color);
+  }
+
+  .nav-pills .nav-item:hover .nav-link span {
+    color: var(--white);
+  }
+
+  .cloud-button:active {
+    transform: translateY(2px);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Hiệu ứng rung rinh nhẹ */
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-4px);
+    }
+  }
+
+  .cloud-button {
+    animation: float 3s ease-in-out infinite;
   }
 </style>
