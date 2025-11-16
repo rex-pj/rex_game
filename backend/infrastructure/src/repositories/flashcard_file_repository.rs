@@ -4,7 +4,7 @@ use rex_game_domain::{
     models::flashcard_file_model::FlashcardFileModel,
     repositories::flashcard_file_repository_trait::FlashcardFileRepositoryTrait,
 };
-use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
+use sea_orm::{DatabaseConnection, EntityTrait, Set};
 use std::sync::Arc;
 
 use crate::entities::{flashcard_file, prelude::FlashcardFile};
@@ -25,11 +25,10 @@ impl FlashcardFileRepository {
 impl FlashcardFileRepositoryTrait for FlashcardFileRepository {
     async fn get_by_id(&self, id: i32) -> Result<FlashcardFileModel, DomainError> {
         let db = self._db_connection.as_ref();
-        let existing = FlashcardFile::find_by_id(id).one(db).await;
-        let flashcard = match existing {
-            Ok(f) => f,
-            Err(_) => None,
-        };
+
+        let flashcard = FlashcardFile::find_by_id(id).one(db).await.map_err(|err| {
+            DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
+        })?;
 
         match flashcard {
             Some(f) => Ok(FlashcardFileModel {
@@ -79,13 +78,14 @@ impl FlashcardFileRepositoryTrait for FlashcardFileRepository {
 
     async fn update(&self, flashcard_file_req: FlashcardFileModel) -> Result<bool, DomainError> {
         let db = self._db_connection.as_ref();
-        let existing = FlashcardFile::find_by_id(flashcard_file_req.id)
+
+        // Find existing flashcard file
+        let flashcard_file_option = FlashcardFile::find_by_id(flashcard_file_req.id)
             .one(db)
-            .await;
-        let flashcard_file_option = match existing {
-            Ok(f) => f,
-            Err(_) => None,
-        };
+            .await
+            .map_err(|err| {
+                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
+            })?;
 
         let mut flashcard_file: flashcard_file::ActiveModel = match flashcard_file_option {
             Some(f) => f.into(),
@@ -105,13 +105,18 @@ impl FlashcardFileRepositoryTrait for FlashcardFileRepository {
         flashcard_file.data = Set(flashcard_file_req.data);
         flashcard_file.name = Set(flashcard_file_req.name);
 
-        match flashcard_file.update(db).await {
+        match FlashcardFile::update(flashcard_file).exec(db).await {
             Ok(_) => Ok(true),
-            Err(err) => Err(DomainError::new(
-                ErrorType::DatabaseError,
-                err.to_string().as_str(),
-                None,
-            )),
+            Err(err) => {
+                eprintln!("Database Error Details:");
+                eprintln!("  Error: {:?}", err);
+                eprintln!("  Error String: {}", err.to_string());
+                return Err(DomainError::new(
+                    ErrorType::DatabaseError,
+                    err.to_string().as_str(),
+                    None,
+                ));
+            }
         }
     }
 

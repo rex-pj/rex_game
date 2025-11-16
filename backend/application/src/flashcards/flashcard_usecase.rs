@@ -223,11 +223,12 @@ impl<
                 })?;
 
             let updating_file = FlashcardFileModel {
+                data: req_file,
                 id: existing_file.id,
                 name: existing_file.name,
                 file_name: existing_file.file_name,
                 content_type: existing_file.content_type,
-                data: req_file,
+                updated_by_id: flashcard_req.updated_by_id,
                 ..Default::default()
             };
 

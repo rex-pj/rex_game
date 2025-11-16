@@ -120,6 +120,10 @@ impl FlashcardHandler {
         State(_state): State<T>,
         mut multipart: Multipart,
     ) -> HandlerResult<Json<i32>> {
+        // Debug: Check current user ID
+        eprintln!("DEBUG: Current user ID = {}", current_user.id);
+        eprintln!("DEBUG: Current user roles = {:?}", current_user.roles);
+
         if !current_user
             .roles
             .iter()

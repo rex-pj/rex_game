@@ -119,27 +119,28 @@
 
   .cloud-button {
     position: relative;
-    background: var(--primary-color);
+    background: var(--primary-light);
     border: none;
     padding: 20px 50px;
     font-size: 1.2rem;
     border-radius: 50px;
     height: 80px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-    color: var(--white);
+    color: var(--text-primary);
     cursor: pointer;
     transition: background 0.8s ease;
   }
 
   .nav-pills .nav-link.active {
-    background: var(--primary-color);
+    background: var(--secondary-color);
+    color: var(--white);
   }
 
   .cloud-button::before,
   .cloud-button::after {
     content: "";
     position: absolute;
-    background: var(--primary-color);
+    background: var(--primary-light);
     border-radius: 50%;
     z-index: 2;
     transition:
@@ -147,13 +148,13 @@
       transform 0.8s ease;
   }
 
-  /* Các cục mây nhỏ */
+  /* Small cloud parts */
   .cloud-button::before {
     width: 80px;
     height: 80px;
     top: -20px;
     left: 50px;
-    box-shadow: 49px -30px 0 0 var(--primary-color);
+    box-shadow: 49px -30px 0 0 var(--primary-light);
   }
 
   .cloud-button::after {
@@ -166,19 +167,21 @@
 
   .nav-item:hover .cloud-button,
   .nav-item .nav-link.active.cloud-button {
-    background: var(--secondary-color);
+    background: var(--primary-hover-color);
+    color: var(--white);
     transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 10px 20px var(--primary-light);
   }
 
   .nav-item:hover .cloud-button::before,
   .nav-item .nav-link.active.cloud-button::before {
-    background: var(--secondary-color);
+    background: var(--primary-hover-color);
+    box-shadow: 49px -30px 0 0 var(--secondary-color);
   }
 
   .nav-item:hover .cloud-button::after,
   .nav-item .nav-link.active.cloud-button::after {
-    background: var(--secondary-color);
+    background: var(--primary-hover-color);
   }
 
   .nav-pills .nav-item:hover .nav-link span {
@@ -190,7 +193,7 @@
     box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
   }
 
-  /* Hiệu ứng rung rinh nhẹ */
+  /* Gentle floating animation */
   @keyframes float {
     0%,
     100% {

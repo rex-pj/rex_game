@@ -1,38 +1,146 @@
 html,
 body {
-  font-family: "Alegreya Sans", Verdana, Geneva, Tahoma, sans-serif;
+  font-family: "Quicksand", "Nunito", "Comic Sans MS", Verdana, sans-serif;
   background-color: var(--background-color);
+  font-size: 16px;
+  line-height: 1.8;
 }
 
 :root {
-  --background-color: #fffaf4;
-  --primary-color: #ffb347;
-  --primary-hover-color: #ff944d;
-  --nav-hover-color: #fff2cc;
-  --secondary-color: #5fb4e5;
-  --box-shadow-color: rgba(0, 0, 0, 0.12);
-  --nav-bg-color: #fff6e6;
-  --border-color: #ffe0b2;
+  /* Ocean Adventure Theme - Fresh & Engaging */
+  --primary-color: #3b82f6; /* Bright blue - vibrant, trustworthy */
+  --primary-hover-color: #2563eb; /* Deep blue on hover */
+  --primary-light: #93c5fd; /* Sky blue */
+
+  --secondary-color: #f59e0b; /* Sunny amber - warm, energetic */
+  --secondary-hover-color: #d97706; /* Deep amber */
+  --secondary-light: #fbbf24; /* Light amber */
+
+  --accent-color: #10b981; /* Fresh emerald - lively, positive */
+  --accent-hover-color: #059669; /* Deep emerald */
+
+  --success-color: #22c55e; /* Vibrant green - success */
+  --warning-color: #f59e0b; /* Amber - warning */
+  --error-color: #ef4444; /* Bright red - error */
+
+  --background-color: #f0f9ff; /* Fresh sky tint */
+  --background-secondary: #dbeafe; /* Light blue wash */
+  --nav-bg-color: #e0f2fe; /* Soft blue */
+  --card-bg-color: #ffffff; /* Pure white */
+
+  --text-primary: #1e293b; /* Deep slate - crisp, readable */
+  --text-secondary: #475569; /* Slate gray */
+  --text-muted: #94a3b8; /* Light slate */
+
+  --border-color: #bfdbfe; /* Soft blue border */
+  --box-shadow-color: rgba(59, 130, 246, 0.15); /* Blue shadow */
+  --box-shadow-hover: rgba(59, 130, 246, 0.3); /* Deeper blue shadow */
+
+  /* Spacing System */
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 20px;
+  --spacing-lg: 32px;
+  --spacing-xl: 48px;
+
+  /* Border Radius - Soft and rounded */
+  --border-radius-sm: 12px;
+  --border-radius-md: 16px;
+  --border-radius-lg: 24px;
+  --border-radius-xl: 32px;
+  --border-radius-full: 9999px;
+
+  /* Typography */
+  --font-family-primary: "Quicksand", "Comic Sans MS", sans-serif;
+  --font-family-secondary: "Nunito", Verdana, sans-serif;
+
+  /* Transitions */
+  --transition-fast: 0.2s ease-in-out;
+  --transition-normal: 0.3s ease-in-out;
+  --transition-slow: 0.5s ease-in-out;
+
+  /* Legacy variables for compatibility */
   --purple-light: #f6d8ff;
-  --black: #333333;
+  --black: #2c3e50;
   --white: #ffffff;
   --gray-2: #f0f0f0;
   --gray-3: #dcdcdc;
+  --nav-hover-color: #d6f1ff;
+}
+
+/* ========================================
+   BUTTONS - Kid-Friendly Interactive Styles
+   ======================================== */
+
+.btn {
+  font-family: var(--font-family-primary);
+  font-weight: 600;
+  border-radius: var(--border-radius-lg);
+  padding: 12px 28px;
+  transition: all var(--transition-normal);
+  box-shadow: 0 4px 12px var(--box-shadow-color);
+  border: none;
+  text-transform: none;
+  letter-spacing: 0.3px;
 }
 
 .btn-primary {
-  background-color: var(--primary-color);
-  border-color: var(--primary-color);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover-color) 100%);
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.btn-primary:hover::before {
+  width: 300px;
+  height: 300px;
 }
 
 .btn-primary:hover {
-  background-color: var(--primary-hover-color);
-  border-color: var(--primary-hover-color);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 20px var(--box-shadow-hover);
+  background: linear-gradient(135deg, var(--primary-hover-color) 0%, var(--primary-color) 100%);
+}
+
+.btn-primary:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 8px var(--box-shadow-color);
 }
 
 .btn-secondary {
-  background-color: var(--secondary-color);
-  border-color: var(--secondary-color);
+  background: linear-gradient(135deg, var(--secondary-color) 0%, var(--secondary-hover-color) 100%);
+  color: white;
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 20px rgba(78, 205, 196, 0.3);
+  background: linear-gradient(135deg, var(--secondary-hover-color) 0%, var(--secondary-color) 100%);
+}
+
+.btn-outline-secondary {
+  border: 2px solid var(--secondary-color);
+  color: var(--secondary-color);
+  background: transparent;
+}
+
+.btn-outline-secondary:hover {
+  background: var(--secondary-color);
+  color: white;
+  transform: translateY(-2px);
 }
 
 .text-editor [contenteditable="true"] {
@@ -123,4 +231,280 @@ body {
   border: none;
   border-top: 1px solid var(--gray-2);
   margin: 2rem 0;
+}
+
+/* ========================================
+   FORM CONTROLS - Kid-Friendly Inputs
+   ======================================== */
+
+.form-control {
+  border-radius: var(--border-radius-md);
+  border: 2px solid var(--border-color);
+  padding: 12px 16px;
+  font-family: var(--font-family-primary);
+  font-size: 16px;
+  transition: all var(--transition-normal);
+  background-color: var(--card-bg-color);
+}
+
+.form-control:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.15);
+  outline: none;
+  transform: scale(1.01);
+}
+
+.form-control::placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.form-label {
+  font-family: var(--font-family-primary);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  font-size: 15px;
+}
+
+.form-check-input {
+  border-radius: 6px;
+  border: 2px solid var(--border-color);
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.form-check-input:checked {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.form-check-input:focus {
+  box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.2);
+}
+
+.form-check-label {
+  font-family: var(--font-family-primary);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* ========================================
+   CARDS - Playful & Welcoming
+   ======================================== */
+
+.card {
+  border-radius: var(--border-radius-lg);
+  border: none;
+  background: var(--card-bg-color);
+  box-shadow: 0 4px 16px var(--box-shadow-color);
+  transition: all var(--transition-normal);
+  overflow: hidden;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px var(--box-shadow-hover);
+}
+
+.card-body {
+  padding: var(--spacing-lg);
+}
+
+/* ========================================
+   ALERTS - Friendly Notifications
+   ======================================== */
+
+.alert {
+  border-radius: var(--border-radius-md);
+  border: none;
+  padding: 16px 20px;
+  font-family: var(--font-family-primary);
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.alert-danger {
+  background: linear-gradient(135deg, #fee 0%, #fdd 100%);
+  color: #c0392b;
+  border-left: 4px solid var(--error-color);
+}
+
+.alert-success {
+  background: linear-gradient(135deg, #d5f4e6 0%, #aedcc7 100%);
+  color: #27ae60;
+  border-left: 4px solid var(--success-color);
+}
+
+.alert-warning {
+  background: linear-gradient(135deg, #fff4e6 0%, #ffe8cc 100%);
+  color: #d68910;
+  border-left: 4px solid var(--warning-color);
+}
+
+/* ========================================
+   ANIMATIONS - Fun & Engaging
+   ======================================== */
+
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-5deg);
+  }
+  75% {
+    transform: rotate(5deg);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Utility classes for animations */
+.animate-bounce {
+  animation: bounce 1s infinite;
+}
+
+.animate-pulse {
+  animation: pulse 2s infinite;
+}
+
+.animate-wiggle {
+  animation: wiggle 0.5s ease-in-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+
+.shadow-soft {
+  box-shadow: 0 4px 16px var(--box-shadow-color);
+}
+
+.shadow-medium {
+  box-shadow: 0 8px 24px var(--box-shadow-hover);
+}
+
+.rounded-soft {
+  border-radius: var(--border-radius-md);
+}
+
+.rounded-playful {
+  border-radius: var(--border-radius-lg);
+}
+
+.rounded-full {
+  border-radius: var(--border-radius-full);
+}
+
+.transition-all {
+  transition: all var(--transition-normal);
+}
+
+/* ========================================
+   NAVBAR - Friendly Navigation
+   ======================================== */
+
+.navbar {
+  box-shadow: 0 2px 12px var(--box-shadow-color);
+  background-color: var(--nav-bg-color);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.navbar-brand {
+  font-family: var(--font-family-primary);
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--primary-color);
+  transition: all var(--transition-fast);
+}
+
+.navbar-brand:hover {
+  transform: scale(1.05);
+  color: var(--primary-hover-color);
+}
+
+.nav-link {
+  font-family: var(--font-family-primary);
+  font-weight: 600;
+  color: var(--text-primary);
+  padding: 10px 16px;
+  border-radius: var(--border-radius-md);
+  transition: all var(--transition-fast);
+}
+
+.nav-link:hover {
+  background-color: var(--nav-hover-color);
+  color: var(--primary-color);
+  transform: translateY(-2px);
+}
+
+.nav-item.active .nav-link {
+  color: var(--primary-color);
+  background-color: rgba(74, 144, 226, 0.1);
+}
+
+/* ========================================
+   SPINNER - Loading Animation
+   ======================================== */
+
+.spinner-border {
+  border-color: var(--primary-light);
+  border-right-color: var(--primary-color);
+  animation: spinner-border 0.75s linear infinite;
+}
+
+@keyframes spinner-border {
+  to {
+    transform: rotate(360deg);
+  }
 }

@@ -12,6 +12,23 @@
   }
 </script>
 
-<Navigation currentUser={data.currentUser}></Navigation>
-{@render children()}
-<Footer></Footer>
+<div class="app-layout">
+  <Navigation currentUser={data.currentUser}></Navigation>
+  <main class="app-content">
+    {@render children()}
+  </main>
+  <Footer></Footer>
+</div>
+
+<style>
+  .app-layout {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--background-color);
+  }
+
+  .app-content {
+    flex: 1;
+  }
+</style>
