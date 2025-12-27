@@ -23,7 +23,7 @@ rex-game-domain = { path = "../domain" }
 rex-game-shared = { path = "../shared" }
 
 [dependencies.sea-orm]
-version = "1.1.0"
+version = "2.0.0-rc.22"
 features = [
     "sqlx-postgres",
     "runtime-tokio-native-tls",

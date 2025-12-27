@@ -6,8 +6,9 @@ use rex_game_domain::{
     repositories::permission_repository_trait::PermissionRepositoryTrait,
 };
 use sea_orm::{
-    sea_query::Expr, sea_query::Func, ColumnTrait, Condition, DatabaseConnection, EntityTrait,
-    PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set,
+    sea_query::{Expr, Func},
+    ColumnTrait, Condition, DatabaseConnection, EntityTrait, ExprTrait, PaginatorTrait,
+    QueryFilter, QueryOrder, QuerySelect, Set,
 };
 use std::sync::Arc;
 
@@ -60,13 +61,13 @@ impl PermissionRepositoryTrait for PermissionRepository {
 
     async fn get_by_code(&self, code: &str) -> Result<Option<PermissionModel>, DomainError> {
         let db = self._db_connection.as_ref();
+
+        // SeaORM 2.0: Use binary_op for custom SQL expressions
+        let code_lower = code.to_lowercase();
         let existing = Permission::find()
             .filter(
                 Condition::all()
-                    .add(
-                        Expr::expr(Func::lower(Expr::col(permission::Column::Code)))
-                            .eq(code.to_lowercase()),
-                    )
+                    .add(Func::lower(Expr::col(permission::Column::Code)).eq(code_lower))
                     .add(permission::Column::IsActived.eq(true)),
             )
             .one(db)
@@ -103,13 +104,13 @@ impl PermissionRepositoryTrait for PermissionRepository {
 
     async fn get_by_name(&self, name: &str) -> Result<Option<PermissionModel>, DomainError> {
         let db = self._db_connection.as_ref();
+
+        // SeaORM 2.0: Use binary_op for custom SQL expressions
+        let name_lower = name.to_lowercase();
         let existing = Permission::find()
             .filter(
                 Condition::all()
-                    .add(
-                        Expr::expr(Func::lower(Expr::col(permission::Column::Name)))
-                            .eq(name.to_lowercase()),
-                    )
+                    .add(Func::lower(Expr::col(permission::Column::Name)).eq(name_lower))
                     .add(permission::Column::IsActived.eq(true)),
             )
             .one(db)
@@ -235,18 +236,21 @@ impl PermissionRepositoryTrait for PermissionRepository {
 
     async fn update(&self, permission_req: PermissionModel) -> Result<bool, DomainError> {
         let db = self._db_connection.as_ref();
-        let existing = Permission::find_by_id(permission_req.id).one(db).await;
-        let permission_option = match existing {
-            Ok(f) => f,
-            Err(_) => None,
-        };
+
+        // Find existing permission
+        let permission_option = Permission::find_by_id(permission_req.id)
+            .one(db)
+            .await
+            .map_err(|err| {
+                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
+            })?;
 
         let mut permission: permission::ActiveModel = match permission_option {
             Some(f) => f.into(),
             None => {
                 return Err(DomainError::new(
                     ErrorType::NotFound,
-                    "Flashcard file not found",
+                    "Permission not found",
                     None,
                 ))
             }

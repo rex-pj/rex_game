@@ -18,7 +18,7 @@ class AuthenticateApi extends BaseApi {
   }
 
   async refreshToken(fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>) {
-    const response = await this.post(fetch, "/auth/refresh_token", { observe: true });
+    const response = await this.post(fetch, "/auth/refresh", {}, { observe: true });
     return await response;
   }
 

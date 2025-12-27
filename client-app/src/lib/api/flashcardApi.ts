@@ -10,12 +10,23 @@ export class FlashcardApi extends BaseApi {
   async getList(
     fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
     page: number = 1,
-    page_size: number = 10
+    page_size: number = 10,
+    type_name?: string | null
   ) {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      page_size: page_size.toString()
+    });
+
+    // Only add type_name param if it's provided and not empty
+    if (type_name && type_name.trim() !== '') {
+      params.append('type_name', type_name);
+    }
+
     const response = await this.get(
       fetch,
       "/flashcards",
-      new URLSearchParams({ page: page.toString(), page_size: page_size.toString() }),
+      params,
       { observe: true }
     );
     if (response.status !== 200) {

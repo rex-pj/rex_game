@@ -250,7 +250,10 @@ impl RolePermissionRepositoryTrait for RolePermissionRepository {
             })
             .collect::<Vec<role_permission::ActiveModel>>();
         match RolePermission::insert_many(role_permissions).exec(db).await {
-            Ok(result) => Ok(result.last_insert_id),
+            Ok(result) => match result.last_insert_id {
+                Some(id) => Ok(id),
+                None => Ok(0), // insert_many may return None if empty
+            },
             Err(err) => Err(DomainError::new(
                 ErrorType::DatabaseError,
                 err.to_string().as_str(),

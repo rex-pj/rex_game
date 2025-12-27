@@ -7,6 +7,7 @@ export interface Flashcard {
   description: string;
   sub_description?: string;
   image_id: number;
+  flashcard_type_id?: number;
   created_date: string;
   updated_date: string;
   image_url?: string;

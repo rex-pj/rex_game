@@ -34,7 +34,7 @@ tree_magic_mini = "3.2.0"
 infer = "0.16"
 
 [dependencies.sea-orm]
-version = "1.1.0"
+version = "2.0.0-rc.22"
 features = [
     "sqlx-postgres",
     "runtime-tokio-native-tls",

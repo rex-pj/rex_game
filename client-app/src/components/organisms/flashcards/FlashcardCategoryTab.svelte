@@ -1,7 +1,3 @@
-<script>
-  import FlashcardMatching from "./FlashcardMatching.svelte";
-</script>
-
 <ul class="nav nav-pills nav-fill" id="pills-tab" role="tablist">
   <li class="nav-item" role="presentation">
     <span
@@ -11,7 +7,7 @@
       data-bs-target="#pills-matching"
       role="tab"
       aria-controls="pills-matching"
-      aria-selected="false"><span>Thẻ ghép cặp</span></span
+      aria-selected="false"><span>Ghép cặp</span></span
     >
   </li>
   <li class="nav-item" role="presentation">
@@ -48,44 +44,6 @@
     >
   </li>
 </ul>
-<div class="tab-content" id="pills-tabContent">
-  <div
-    class="tab-pane show active"
-    id="pills-matching"
-    role="tabpanel"
-    aria-labelledby="pills-matching-tab"
-    tabindex="0"
-  >
-    <FlashcardMatching></FlashcardMatching>
-  </div>
-  <div
-    class="tab-pane"
-    id="pills-animals"
-    role="tabpanel"
-    aria-labelledby="pills-animals-tab"
-    tabindex="0"
-  >
-    Animals
-  </div>
-  <div
-    class="tab-pane"
-    id="pills-numbers"
-    role="tabpanel"
-    aria-labelledby="pills-numbers-tab"
-    tabindex="0"
-  >
-    Numbers
-  </div>
-  <div
-    class="tab-pane"
-    id="pills-alphabet"
-    role="tabpanel"
-    aria-labelledby="pills-alphabet-tab"
-    tabindex="0"
-  >
-    Alphabet
-  </div>
-</div>
 
 <style>
   .nav-pills {
@@ -102,19 +60,6 @@
     z-index: 2;
     font-weight: bold;
     font-size: 1.5rem;
-  }
-
-  .tab-content {
-    padding: 5px 0px;
-    box-shadow: 0 4px 10px var(--box-shadow-color);
-    min-height: 400px;
-    border-radius: 0 0 8px 8px;
-  }
-
-  .tab-pane {
-    padding: 5px 0px;
-    border-radius: 3px;
-    background-color: var(--background-color);
   }
 
   .cloud-button {

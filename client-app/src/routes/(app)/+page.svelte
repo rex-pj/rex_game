@@ -1,6 +1,7 @@
 <script>
   import FlashcardCategoryTab from "../../components/organisms/flashcards/FlashcardCategoryTab.svelte";
   import PrimaryHeading from "../../components/atoms/heading/PrimaryHeading.svelte";
+  import FlashcardMatching from "../../components/organisms/flashcards/FlashcardMatching.svelte";
 </script>
 
 <div class="home-wrapper">
@@ -13,6 +14,44 @@
     </div>
 
     <FlashcardCategoryTab></FlashcardCategoryTab>
+    <div class="tab-content" id="pills-tabContent">
+      <div
+        class="tab-pane show active"
+        id="pills-matching"
+        role="tabpanel"
+        aria-labelledby="pills-matching-tab"
+        tabindex="0"
+      >
+        <FlashcardMatching></FlashcardMatching>
+      </div>
+      <div
+        class="tab-pane"
+        id="pills-animals"
+        role="tabpanel"
+        aria-labelledby="pills-animals-tab"
+        tabindex="0"
+      >
+        Animals
+      </div>
+      <div
+        class="tab-pane"
+        id="pills-numbers"
+        role="tabpanel"
+        aria-labelledby="pills-numbers-tab"
+        tabindex="0"
+      >
+        Numbers
+      </div>
+      <div
+        class="tab-pane"
+        id="pills-alphabet"
+        role="tabpanel"
+        aria-labelledby="pills-alphabet-tab"
+        tabindex="0"
+      >
+        Alphabet
+      </div>
+    </div>
   </div>
 </div>
 
@@ -36,5 +75,17 @@
   :global(.primary-heading) {
     margin-bottom: 20px;
     margin-top: 30px;
+  }
+
+  .tab-content {
+    padding: 5px 0px;
+    min-height: 400px;
+    border-radius: 0 0 8px 8px;
+  }
+
+  .tab-pane {
+    padding: 5px 0px;
+    border-radius: 3px;
+    background-color: var(--background-color);
   }
 </style>

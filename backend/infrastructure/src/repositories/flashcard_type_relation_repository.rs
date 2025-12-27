@@ -1,3 +1,4 @@
+use crate::entities::{flashcard_type_relation, prelude::FlashcardTypeRelation};
 use chrono::Utc;
 use rex_game_domain::{
     errors::domain_error::{DomainError, ErrorType},
@@ -6,8 +7,6 @@ use rex_game_domain::{
 };
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use std::sync::Arc;
-
-use crate::entities::{flashcard_type_relation, prelude::FlashcardTypeRelation};
 
 #[derive(Clone)]
 pub struct FlashcardTypeRelationRepository {
@@ -41,26 +40,24 @@ impl FlashcardTypeRelationRepositoryTrait for FlashcardTypeRelationRepository {
                     updated_date: Set(Utc::now().fixed_offset()),
                     ..Default::default()
                 });
-        match FlashcardTypeRelation::insert_many(flashcard_type_relations)
+
+        let inserted = FlashcardTypeRelation::insert_many(flashcard_type_relations)
             .exec(db)
             .await
-        {
-            Ok(result) => {
-                if result.last_insert_id > 0 {
-                    Ok(result.last_insert_id as i32)
-                } else {
-                    Err(DomainError::new(
-                        ErrorType::DatabaseError,
-                        "Failed to create flashcard type relations",
-                        None,
-                    ))
-                }
-            }
-            Err(err) => Err(DomainError::new(
+            .map_err(|err| {
+                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
+            })?;
+
+        match inserted.last_insert_id {
+            None => Err(DomainError::new(
                 ErrorType::DatabaseError,
-                err.to_string().as_str(),
+                "Failed to create flashcard type relations",
                 None,
             )),
+            last_insert_id => match last_insert_id {
+                Some(id) => Ok(id),
+                None => Ok(0),
+            },
         }
     }
 
