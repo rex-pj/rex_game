@@ -1,4 +1,3 @@
-use chrono::Utc;
 use crate::flashcard::domain::{
     models::{
         flashcard_file_model::FlashcardFileModel, flashcard_model::FlashcardModel,
@@ -10,11 +9,10 @@ use crate::flashcard::domain::{
         flashcard_type_relation_repository_trait::FlashcardTypeRelationRepositoryTrait,
     },
 };
+use chrono::Utc;
+use rex_game_shared_kernel::ApplicationError;
 
-use rex_game_shared_kernel::domain::{
-    errors::domain_error::{DomainError, ErrorType},
-    models::page_list_model::PageListModel,
-};
+use rex_game_shared_kernel::domain::models::page_list_model::PageListModel;
 
 use super::{
     flashcard_creation_dto::FlashcardCreationDto, flashcard_dto::FlashcardDto,
@@ -64,7 +62,7 @@ impl<
         type_name: Option<String>,
         page: u64,
         page_size: u64,
-    ) -> Result<PageListModel<FlashcardDto>, DomainError> {
+    ) -> Result<PageListModel<FlashcardDto>, ApplicationError> {
         match self
             ._flashcard_repository
             .get_list(type_name, page, page_size)
@@ -90,11 +88,7 @@ impl<
                     total_count: page_list.total_count,
                 })
             }
-            Err(_) => Err(DomainError::new(
-                ErrorType::DatabaseError,
-                "Failed to get flashcards",
-                None,
-            )),
+            Err(err) => Err(ApplicationError::Infrastructure(err)),
         }
     }
 
@@ -117,7 +111,7 @@ impl<
     async fn create_flashcard<'a>(
         &'a self,
         flashcard_req: FlashcardCreationDto,
-    ) -> Result<i32, DomainError> {
+    ) -> Result<i32, ApplicationError> {
         let active_flashcard_file = FlashcardFileModel {
             name: Some(flashcard_req.name.clone()),
             file_name: flashcard_req.file_name,
@@ -132,13 +126,7 @@ impl<
             ._flashcard_file_repository
             .create(active_flashcard_file)
             .await
-            .map_err(|_| {
-                DomainError::new(
-                    ErrorType::DatabaseError,
-                    "Failed to create flashcard file",
-                    None,
-                )
-            })?;
+            .map_err(|err| ApplicationError::Infrastructure(err))?;
         let active_flashcard = FlashcardModel {
             name: flashcard_req.name,
             description: flashcard_req.description,
@@ -152,13 +140,7 @@ impl<
             ._flashcard_repository
             .create(active_flashcard)
             .await
-            .map_err(|_| {
-                DomainError::new(
-                    ErrorType::DatabaseError,
-                    "Failed to create flashcard",
-                    None,
-                )
-            })?;
+            .map_err(|err| ApplicationError::Infrastructure(err))?;
 
         let mut active_type_relations: Vec<FlashcardTypeRelationModel> = Vec::new();
         for type_relation_id in flashcard_req.type_ids.iter() {
@@ -176,13 +158,7 @@ impl<
             ._flashcard_type_relation_repository
             .create(active_type_relations)
             .await
-            .map_err(|_| {
-                DomainError::new(
-                    ErrorType::DatabaseError,
-                    "Failed to create flashcard type relation",
-                    None,
-                )
-            });
+            .map_err(|err| ApplicationError::Infrastructure(err));
 
         match type_relations_created {
             Ok(_) => Ok(created_id),
@@ -194,14 +170,13 @@ impl<
         &'a self,
         id: i32,
         flashcard_req: FlashcardUpdationDto,
-    ) -> Result<bool, DomainError> {
+    ) -> Result<bool, ApplicationError> {
         let existing_flashcard = match self._flashcard_repository.get_by_id(id).await {
             Some(flashcard) => flashcard,
             None => {
-                return Err(DomainError::new(
-                    ErrorType::NotFound,
+                return Err(ApplicationError::not_found(
                     "Flashcard not found",
-                    None,
+                    id.to_string(),
                 ))
             }
         };
@@ -212,12 +187,9 @@ impl<
                 ._flashcard_file_repository
                 .get_by_id(existing_flashcard.file_id)
                 .await
-                .map_err(|_| {
-                    DomainError::new(
-                        ErrorType::DatabaseError,
-                        "Failed to get flashcard file",
-                        None,
-                    )
+                .map_err(|_| ApplicationError::EntityNotFound {
+                    entity: "Flashcard file".to_string(),
+                    id: existing_flashcard.file_id.to_string(),
                 })?;
 
             let updating_file = FlashcardFileModel {
@@ -233,13 +205,7 @@ impl<
             self._flashcard_file_repository
                 .update(updating_file)
                 .await
-                .map_err(|_| {
-                    DomainError::new(
-                        ErrorType::DatabaseError,
-                        "Failed to update flashcard file",
-                        None,
-                    )
-                })?;
+                .map_err(|_| ApplicationError::business_rule("Failed to update flashcard file"))?;
         };
 
         // Updating flashcard information
@@ -273,13 +239,7 @@ impl<
         self._flashcard_repository
             .update(updating_flashcard)
             .await
-            .map_err(|_| {
-                DomainError::new(
-                    ErrorType::DatabaseError,
-                    "Failed to update flashcard",
-                    None,
-                )
-            })?;
+            .map_err(|_| ApplicationError::business_rule("Failed to update flashcard"))?;
 
         match flashcard_req.type_ids {
             Some(req_type_ids) => {
@@ -287,11 +247,7 @@ impl<
                     .delete_by_flashcard_id(id)
                     .await
                     .map_err(|_| {
-                        DomainError::new(
-                            ErrorType::DatabaseError,
-                            "Failed to delete flashcard type relation",
-                            None,
-                        )
+                        ApplicationError::business_rule("Failed to delete flashcard type relation")
                     })?;
                 let mut existing_type_relations: Vec<FlashcardTypeRelationModel> = Vec::new();
                 for type_relation_id in req_type_ids.iter() {
@@ -309,19 +265,13 @@ impl<
                     .create(existing_type_relations)
                     .await
                     .map_err(|_| {
-                        DomainError::new(
-                            ErrorType::DatabaseError,
-                            "Failed to update flashcard type relation",
-                            None,
-                        )
+                        ApplicationError::business_rule("Failed to update flashcard type relation")
                     })?;
 
                 return Ok(true);
             }
-            None => Err(DomainError::new(
-                ErrorType::DatabaseError,
+            None => Err(ApplicationError::business_rule(
                 "Type IDs are required for updating flashcard",
-                None,
             )),
         }
     }
@@ -329,17 +279,14 @@ impl<
     async fn get_image_by_file_id<'a>(
         &'a self,
         file_id: i32,
-    ) -> Result<FlashcardFileDto, DomainError> {
+    ) -> Result<FlashcardFileDto, ApplicationError> {
         let existing = self
             ._flashcard_file_repository
             .get_by_id(file_id)
             .await
-            .map_err(|_| {
-                DomainError::new(
-                    ErrorType::DatabaseError,
-                    "Failed to get flashcard file",
-                    None,
-                )
+            .map_err(|_| ApplicationError::EntityNotFound {
+                entity: "Flashcard_file".to_string(),
+                id: file_id.to_string(),
             })?;
 
         Ok(FlashcardFileDto {
@@ -351,14 +298,13 @@ impl<
         })
     }
 
-    async fn delete_flashcard_by_id(&self, id: i32) -> Result<u64, DomainError> {
+    async fn delete_flashcard_by_id(&self, id: i32) -> Result<u64, ApplicationError> {
         let flashcard = match self._flashcard_repository.get_by_id(id).await {
             Some(f) => f,
             None => {
-                return Err(DomainError::new(
-                    ErrorType::NotFound,
+                return Err(ApplicationError::not_found(
                     "Flashcard not found",
-                    None,
+                    id.to_string(),
                 ))
             }
         };
@@ -370,10 +316,8 @@ impl<
         {
             Ok(i) => i,
             Err(_) => {
-                return Err(DomainError::new(
-                    ErrorType::DatabaseError,
+                return Err(ApplicationError::business_rule(
                     "Failed to delete flashcard type relations",
-                    None,
                 ))
             }
         };
@@ -381,10 +325,8 @@ impl<
         match self._flashcard_repository.delete_by_id(id).await {
             Ok(i) => i,
             Err(_) => {
-                return Err(DomainError::new(
-                    ErrorType::DatabaseError,
+                return Err(ApplicationError::business_rule(
                     "Failed to delete flashcard",
-                    None,
                 ))
             }
         };
@@ -396,10 +338,8 @@ impl<
         {
             Ok(i) => Ok(i),
             Err(_) => {
-                return Err(DomainError::new(
-                    ErrorType::DatabaseError,
+                return Err(ApplicationError::business_rule(
                     "Failed to delete flashcard file",
-                    None,
                 ))
             }
         }

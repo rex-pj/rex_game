@@ -1,6 +1,6 @@
 use std::{collections::HashSet, future::Future, pin::Pin};
 
-use crate::application::errors::application_error::ApplicationError;
+use rex_game_shared_kernel::ApplicationError;
 
 pub trait IdentityAuthorizeUseCaseTrait {
     fn is_user_in_role(

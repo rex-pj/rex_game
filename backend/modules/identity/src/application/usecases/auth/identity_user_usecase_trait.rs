@@ -1,9 +1,9 @@
 use rex_game_shared_kernel::domain::transaction_manager_trait::TransactionWrapperTrait;
+use rex_game_shared_kernel::ApplicationError;
 use std::future::Future;
 use std::pin::Pin;
 
 use super::identity_user_trait::IdentityUserTrait;
-use crate::application::errors::application_error::ApplicationError;
 use crate::application::usecases::loggedin_user_dto::LoggedInUserDto;
 
 pub trait IdentityUserUseCaseTrait {

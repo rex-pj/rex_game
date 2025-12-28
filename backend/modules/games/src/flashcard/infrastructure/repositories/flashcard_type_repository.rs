@@ -8,10 +8,8 @@ use crate::flashcard::infrastructure::entities::{
     prelude::FlashcardTypeRelation,
 };
 use chrono::Utc;
-use rex_game_shared_kernel::domain::{
-    errors::domain_error::{DomainError, ErrorType},
-    models::page_list_model::PageListModel,
-};
+use rex_game_shared_kernel::domain::models::page_list_model::PageListModel;
+use rex_game_shared_kernel::InfraError;
 use sea_orm::{
     ColumnTrait, Condition, DatabaseConnection, EntityTrait, JoinType, PaginatorTrait, QueryFilter,
     QueryOrder, QuerySelect, RelationTrait, Set,
@@ -37,7 +35,7 @@ impl FlashcardTypeRepositoryTrait for FlashcardTypeRepository {
         name: Option<String>,
         page: u64,
         page_size: u64,
-    ) -> Result<PageListModel<FlashcardTypeModel>, DomainError> {
+    ) -> Result<PageListModel<FlashcardTypeModel>, InfraError> {
         let db = self._db_connection.as_ref();
         let mut query = FlashcardType::find();
         if let Some(i) = name {
@@ -48,21 +46,13 @@ impl FlashcardTypeRepositoryTrait for FlashcardTypeRepository {
 
         let total_count = match query.clone().count(db).await {
             Ok(count) => count,
-            Err(err) => {
-                return Err(DomainError::new(
-                    ErrorType::DatabaseError,
-                    err.to_string().as_str(),
-                    None,
-                ))
-            }
+            Err(err) => return Err(InfraError::database(err.to_string().as_str())),
         };
         let page_list = query
             .paginate(db, page_size)
             .fetch_page(page - 1)
             .await
-            .map_err(|err| {
-                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-            });
+            .map_err(|err| InfraError::database(err.to_string().as_str()));
         match page_list {
             Ok(items) => {
                 let list = items
@@ -87,7 +77,7 @@ impl FlashcardTypeRepositoryTrait for FlashcardTypeRepository {
         }
     }
 
-    async fn get_by_id(&self, id: i32) -> Result<FlashcardTypeModel, DomainError> {
+    async fn get_by_id(&self, id: i32) -> Result<FlashcardTypeModel, InfraError> {
         let db = self._db_connection.as_ref();
         let existing = FlashcardType::find_by_id(id).one(db).await;
 
@@ -103,26 +93,19 @@ impl FlashcardTypeRepositoryTrait for FlashcardTypeRepository {
                     updated_by_id: f.updated_by_id,
                     is_actived: f.is_actived,
                 }),
-                None => Err(DomainError::new(
-                    ErrorType::NotFound,
+                None => Err(InfraError::not_found(
                     "Flashcard type not found",
-                    None,
+                    id.to_string(),
                 )),
             },
-            Err(err) => {
-                return Err(DomainError::new(
-                    ErrorType::DatabaseError,
-                    err.to_string().as_str(),
-                    None,
-                ))
-            }
+            Err(err) => return Err(InfraError::database(err.to_string().as_str())),
         }
     }
 
     async fn get_by_flashcard_id(
         &self,
         flashcard_id: i32,
-    ) -> Result<Vec<FlashcardTypeModel>, DomainError> {
+    ) -> Result<Vec<FlashcardTypeModel>, InfraError> {
         let db = self._db_connection.as_ref();
         let existing = match FlashcardType::find()
             .join(
@@ -135,11 +118,7 @@ impl FlashcardTypeRepositoryTrait for FlashcardTypeRepository {
         {
             Ok(f) => f,
             Err(err) => {
-                return Err(DomainError::new(
-                    ErrorType::DatabaseError,
-                    err.to_string().as_str(),
-                    None,
-                ));
+                return Err(InfraError::database(err.to_string().as_str()));
             }
         };
 
@@ -160,7 +139,7 @@ impl FlashcardTypeRepositoryTrait for FlashcardTypeRepository {
         return Ok(flashcard_types);
     }
 
-    async fn create(&self, flashcard_type_req: FlashcardTypeModel) -> Result<i32, DomainError> {
+    async fn create(&self, flashcard_type_req: FlashcardTypeModel) -> Result<i32, InfraError> {
         let db = self._db_connection.as_ref();
 
         let new_flashcard_type: flashcard_type::ActiveModel = flashcard_type::ActiveModel {
@@ -176,15 +155,11 @@ impl FlashcardTypeRepositoryTrait for FlashcardTypeRepository {
 
         match FlashcardType::insert(new_flashcard_type).exec(db).await {
             Ok(result) => Ok(result.last_insert_id),
-            Err(err) => Err(DomainError::new(
-                ErrorType::DatabaseError,
-                err.to_string().as_str(),
-                None,
-            )),
+            Err(err) => Err(InfraError::database(err.to_string().as_str())),
         }
     }
 
-    async fn update(&self, flashcard_type_req: FlashcardTypeModel) -> Result<bool, DomainError> {
+    async fn update(&self, flashcard_type_req: FlashcardTypeModel) -> Result<bool, InfraError> {
         let db = self._db_connection.as_ref();
         let existing = FlashcardType::find_by_id(flashcard_type_req.id)
             .one(db)
@@ -197,10 +172,9 @@ impl FlashcardTypeRepositoryTrait for FlashcardTypeRepository {
         let mut flashcard_type: flashcard_type::ActiveModel = match flashcard_type_option {
             Some(f) => f.into(),
             None => {
-                return Err(DomainError::new(
-                    ErrorType::NotFound,
+                return Err(InfraError::not_found(
                     "Flashcard file not found",
-                    None,
+                    flashcard_type_req.id.to_string(),
                 ))
             }
         };
@@ -212,30 +186,20 @@ impl FlashcardTypeRepositoryTrait for FlashcardTypeRepository {
 
         match FlashcardType::update(flashcard_type).exec(db).await {
             Ok(_) => Ok(true),
-            Err(err) => Err(DomainError::new(
-                ErrorType::DatabaseError,
-                err.to_string().as_str(),
-                None,
-            )),
+            Err(err) => Err(InfraError::database(err.to_string().as_str())),
         }
     }
 
-    async fn delete_by_id(&self, id: i32) -> Result<u64, DomainError> {
+    async fn delete_by_id(&self, id: i32) -> Result<u64, InfraError> {
         let db = self._db_connection.as_ref();
         FlashcardTypeRelation::delete_many()
             .filter(flashcard_type_relation::Column::FlashcardTypeId.eq(id))
             .exec(db)
             .await
-            .map_err(|err| {
-                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-            })?;
+            .map_err(|err| InfraError::database(err.to_string().as_str()))?;
         match FlashcardType::delete_by_id(id).exec(db).await {
             Ok(result) => Ok(result.rows_affected),
-            Err(err) => Err(DomainError::new(
-                ErrorType::DatabaseError,
-                err.to_string().as_str(),
-                None,
-            )),
+            Err(err) => Err(InfraError::database(err.to_string().as_str())),
         }
     }
 }

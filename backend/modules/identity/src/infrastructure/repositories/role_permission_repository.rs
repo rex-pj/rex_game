@@ -1,13 +1,13 @@
-use crate::domain::{
-    models::role_permission_model::RolePermissionModel,
-    repositories::role_permission_repository_trait::RolePermissionRepositoryTrait,
-};
 use super::super::entities::{
     permission, role,
     role_permission::{self, Entity as RolePermission},
 };
+use crate::domain::{
+    models::role_permission_model::RolePermissionModel,
+    repositories::role_permission_repository_trait::RolePermissionRepositoryTrait,
+};
 use chrono::{DateTime, Utc};
-use rex_game_shared_kernel::domain::errors::domain_error::{DomainError, ErrorType};
+use rex_game_shared_kernel::InfraError;
 use sea_orm::{
     ColumnTrait, Condition, DatabaseConnection, EntityTrait, FromQueryResult, JoinType,
     QueryFilter, QuerySelect, RelationTrait, Set,
@@ -44,7 +44,7 @@ impl RolePermissionRepository {
 }
 
 impl RolePermissionRepositoryTrait for RolePermissionRepository {
-    async fn create(&self, role_permission_req: RolePermissionModel) -> Result<i32, DomainError> {
+    async fn create(&self, role_permission_req: RolePermissionModel) -> Result<i32, InfraError> {
         let db = self._db_connection.as_ref();
         let role_permission = role_permission::ActiveModel {
             role_id: Set(role_permission_req.role_id),
@@ -59,18 +59,14 @@ impl RolePermissionRepositoryTrait for RolePermissionRepository {
 
         match RolePermission::insert(role_permission).exec(db).await {
             Ok(result) => Ok(result.last_insert_id),
-            Err(err) => Err(DomainError::new(
-                ErrorType::DatabaseError,
-                err.to_string().as_str(),
-                None,
-            )),
+            Err(err) => Err(InfraError::database(err.to_string().as_str())),
         }
     }
 
     fn get_list_by_role_id(
         &self,
         role_id: i32,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<RolePermissionModel>, DomainError>> + Send>> {
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<RolePermissionModel>, InfraError>> + Send>> {
         let db_connection = Arc::clone(&self._db_connection);
         Box::pin(async move {
             let db = db_connection.as_ref();
@@ -99,9 +95,7 @@ impl RolePermissionRepositoryTrait for RolePermissionRepository {
                 .into_model::<RolePermissionWithUser>()
                 .all(db)
                 .await
-                .map_err(|err| {
-                    DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-                })?;
+                .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
             let permissions = existing
                 .into_iter()
@@ -115,7 +109,7 @@ impl RolePermissionRepositoryTrait for RolePermissionRepository {
     fn get_list_by_role_ids(
         &self,
         role_ids: Vec<i32>,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<RolePermissionModel>, DomainError>> + Send>> {
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<RolePermissionModel>, InfraError>> + Send>> {
         let db_connection = Arc::clone(&self._db_connection);
         Box::pin(async move {
             let db = db_connection.as_ref();
@@ -144,9 +138,7 @@ impl RolePermissionRepositoryTrait for RolePermissionRepository {
                 .into_model::<RolePermissionWithUser>()
                 .all(db)
                 .await
-                .map_err(|err| {
-                    DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-                })?;
+                .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
             let permissions = existing
                 .into_iter()
@@ -159,7 +151,7 @@ impl RolePermissionRepositoryTrait for RolePermissionRepository {
 
     fn get_list(
         &self,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<RolePermissionModel>, DomainError>> + Send>> {
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<RolePermissionModel>, InfraError>> + Send>> {
         let db_connection = Arc::clone(&self._db_connection);
         Box::pin(async move {
             let db = db_connection.as_ref();
@@ -187,9 +179,7 @@ impl RolePermissionRepositoryTrait for RolePermissionRepository {
                 .into_model::<RolePermissionWithUser>()
                 .all(db)
                 .await
-                .map_err(|err| {
-                    DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-                })?;
+                .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
             let permissions = existing
                 .into_iter()
@@ -204,7 +194,7 @@ impl RolePermissionRepositoryTrait for RolePermissionRepository {
         &self,
         role_ids: Vec<i32>,
         permission_codes: HashSet<String>,
-    ) -> Pin<Box<dyn Future<Output = Result<bool, DomainError>> + Send>> {
+    ) -> Pin<Box<dyn Future<Output = Result<bool, InfraError>> + Send>> {
         let db_connection = Arc::clone(&self._db_connection);
         let codes = permission_codes.into_iter().collect::<Vec<String>>();
 
@@ -219,9 +209,7 @@ impl RolePermissionRepositoryTrait for RolePermissionRepository {
                 .filter(Condition::all().add(permission::Column::Code.is_in(codes)))
                 .one(db)
                 .await
-                .map_err(|err| {
-                    DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-                });
+                .map_err(|err| InfraError::database(err.to_string().as_str()));
 
             match existing {
                 Ok(permissions) => Ok(permissions.is_some()),
@@ -233,7 +221,7 @@ impl RolePermissionRepositoryTrait for RolePermissionRepository {
     async fn create_many(
         &self,
         role_permission_req: Vec<RolePermissionModel>,
-    ) -> Result<i32, DomainError> {
+    ) -> Result<i32, InfraError> {
         let db = self._db_connection.as_ref();
 
         let role_permissions = role_permission_req
@@ -254,11 +242,7 @@ impl RolePermissionRepositoryTrait for RolePermissionRepository {
                 Some(id) => Ok(id),
                 None => Ok(0), // insert_many may return None if empty
             },
-            Err(err) => Err(DomainError::new(
-                ErrorType::DatabaseError,
-                err.to_string().as_str(),
-                None,
-            )),
+            Err(err) => Err(InfraError::database(err.to_string().as_str())),
         }
     }
 
@@ -266,7 +250,7 @@ impl RolePermissionRepositoryTrait for RolePermissionRepository {
         &self,
         role_id: i32,
         role_permission_req: Vec<RolePermissionModel>,
-    ) -> Result<u64, DomainError> {
+    ) -> Result<u64, InfraError> {
         let db = self._db_connection.as_ref();
 
         let delete_permission_ids = role_permission_req
@@ -283,11 +267,7 @@ impl RolePermissionRepositoryTrait for RolePermissionRepository {
             .await
         {
             Ok(result) => Ok(result.rows_affected),
-            Err(err) => Err(DomainError::new(
-                ErrorType::DatabaseError,
-                err.to_string().as_str(),
-                None,
-            )),
+            Err(err) => Err(InfraError::database(err.to_string().as_str())),
         }
     }
 }

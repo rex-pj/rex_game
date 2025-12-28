@@ -1,13 +1,11 @@
+use super::super::entities::permission::{self, Entity as Permission};
 use crate::domain::{
     models::permission_model::PermissionModel,
     repositories::permission_repository_trait::PermissionRepositoryTrait,
 };
-use super::super::entities::permission::{self, Entity as Permission};
 use chrono::Utc;
-use rex_game_shared_kernel::domain::{
-    errors::domain_error::{DomainError, ErrorType},
-    models::page_list_model::PageListModel,
-};
+use rex_game_shared_kernel::domain::models::page_list_model::PageListModel;
+use rex_game_shared_kernel::InfraError;
 use sea_orm::{
     sea_query::{Expr, Func},
     ColumnTrait, Condition, DatabaseConnection, EntityTrait, ExprTrait, PaginatorTrait,
@@ -29,7 +27,7 @@ impl PermissionRepository {
 }
 
 impl PermissionRepositoryTrait for PermissionRepository {
-    async fn create(&self, permission_req: PermissionModel) -> Result<i32, DomainError> {
+    async fn create(&self, permission_req: PermissionModel) -> Result<i32, InfraError> {
         let db = self._db_connection.as_ref();
 
         let permission = permission::ActiveModel {
@@ -48,9 +46,7 @@ impl PermissionRepositoryTrait for PermissionRepository {
         let inserted = Permission::insert(permission)
             .exec(db)
             .await
-            .map_err(|err| {
-                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-            });
+            .map_err(|err| InfraError::database(err.to_string().as_str()));
 
         match inserted {
             Ok(updated) => {
@@ -62,7 +58,7 @@ impl PermissionRepositoryTrait for PermissionRepository {
         }
     }
 
-    async fn get_by_code(&self, code: &str) -> Result<Option<PermissionModel>, DomainError> {
+    async fn get_by_code(&self, code: &str) -> Result<Option<PermissionModel>, InfraError> {
         let db = self._db_connection.as_ref();
 
         // SeaORM 2.0: Use binary_op for custom SQL expressions
@@ -75,9 +71,7 @@ impl PermissionRepositoryTrait for PermissionRepository {
             )
             .one(db)
             .await
-            .map_err(|err| {
-                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-            })?;
+            .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
         match existing {
             Some(f) => Ok(Some(self::map_entity_to_model(f))),
@@ -85,15 +79,13 @@ impl PermissionRepositoryTrait for PermissionRepository {
         }
     }
 
-    async fn get_by_codes(&self, codes: Vec<String>) -> Result<Vec<PermissionModel>, DomainError> {
+    async fn get_by_codes(&self, codes: Vec<String>) -> Result<Vec<PermissionModel>, InfraError> {
         let db = self._db_connection.as_ref();
         let existing_permissions = Permission::find()
             .filter(permission::Column::Code.is_in(codes))
             .all(db)
             .await
-            .map_err(|err| {
-                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-            })?;
+            .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
         if existing_permissions.is_empty() {
             return Ok(vec![]);
@@ -105,7 +97,7 @@ impl PermissionRepositoryTrait for PermissionRepository {
         Ok(list)
     }
 
-    async fn get_by_name(&self, name: &str) -> Result<Option<PermissionModel>, DomainError> {
+    async fn get_by_name(&self, name: &str) -> Result<Option<PermissionModel>, InfraError> {
         let db = self._db_connection.as_ref();
 
         // SeaORM 2.0: Use binary_op for custom SQL expressions
@@ -118,9 +110,7 @@ impl PermissionRepositoryTrait for PermissionRepository {
             )
             .one(db)
             .await
-            .map_err(|err| {
-                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-            })?;
+            .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
         match existing {
             Some(f) => Ok(Some(self::map_entity_to_model(f))),
@@ -128,18 +118,18 @@ impl PermissionRepositoryTrait for PermissionRepository {
         }
     }
 
-    async fn get_by_id(&self, id: i32) -> Result<PermissionModel, DomainError> {
+    async fn get_by_id(&self, id: i32) -> Result<PermissionModel, InfraError> {
         let db = self._db_connection.as_ref();
-        let existing = Permission::find_by_id(id).one(db).await.map_err(|err| {
-            DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-        })?;
+        let existing = Permission::find_by_id(id)
+            .one(db)
+            .await
+            .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
         match existing {
             Some(f) => Ok(self::map_entity_to_model(f)),
-            None => Err(DomainError::new(
-                ErrorType::NotFound,
+            None => Err(InfraError::not_found(
                 "Permission not found",
-                None,
+                id.to_string(),
             )),
         }
     }
@@ -150,7 +140,7 @@ impl PermissionRepositoryTrait for PermissionRepository {
         description: Option<String>,
         page: u64,
         page_size_option: Option<u64>,
-    ) -> Result<PageListModel<PermissionModel>, DomainError> {
+    ) -> Result<PageListModel<PermissionModel>, InfraError> {
         let db = self._db_connection.as_ref();
         let mut query = Permission::find();
 
@@ -182,13 +172,7 @@ impl PermissionRepositoryTrait for PermissionRepository {
                 let paginator = query.paginate(db, page_size);
                 let total_count = match paginator.num_items().await {
                     Ok(count) => count,
-                    Err(err) => {
-                        return Err(DomainError::new(
-                            ErrorType::DatabaseError,
-                            err.to_string().as_str(),
-                            None,
-                        ))
-                    }
+                    Err(err) => return Err(InfraError::database(err.to_string().as_str())),
                 };
 
                 let page_list = paginator.fetch_page(page - 1).await;
@@ -203,13 +187,7 @@ impl PermissionRepositoryTrait for PermissionRepository {
                             total_count,
                         });
                     }
-                    Err(err) => {
-                        return Err(DomainError::new(
-                            ErrorType::DatabaseError,
-                            err.to_string().as_str(),
-                            None,
-                        ))
-                    }
+                    Err(err) => return Err(InfraError::database(err.to_string().as_str())),
                 }
             }
             None | Some(_) => {
@@ -225,36 +203,27 @@ impl PermissionRepositoryTrait for PermissionRepository {
                             total_count: list.len() as u64,
                         });
                     }
-                    Err(err) => {
-                        return Err(DomainError::new(
-                            ErrorType::DatabaseError,
-                            err.to_string().as_str(),
-                            None,
-                        ))
-                    }
+                    Err(err) => return Err(InfraError::database(err.to_string().as_str())),
                 }
             }
         }
     }
 
-    async fn update(&self, permission_req: PermissionModel) -> Result<bool, DomainError> {
+    async fn update(&self, permission_req: PermissionModel) -> Result<bool, InfraError> {
         let db = self._db_connection.as_ref();
 
         // Find existing permission
         let permission_option = Permission::find_by_id(permission_req.id)
             .one(db)
             .await
-            .map_err(|err| {
-                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-            })?;
+            .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
         let mut permission: permission::ActiveModel = match permission_option {
             Some(f) => f.into(),
             None => {
-                return Err(DomainError::new(
-                    ErrorType::NotFound,
+                return Err(InfraError::not_found(
                     "Permission not found",
-                    None,
+                    permission_req.id.to_string(),
                 ))
             }
         };
@@ -269,11 +238,7 @@ impl PermissionRepositoryTrait for PermissionRepository {
 
         match Permission::update(permission).exec(db).await {
             Ok(_) => Ok(true),
-            Err(err) => Err(DomainError::new(
-                ErrorType::DatabaseError,
-                err.to_string().as_str(),
-                None,
-            )),
+            Err(err) => Err(InfraError::database(err.to_string().as_str())),
         }
     }
 }

@@ -1,15 +1,14 @@
 use rex_game_shared_kernel::domain::transaction_manager_trait::TransactionWrapperTrait;
-use rex_game_shared_kernel::domain::models::page_list_model::PageListModel;
+use rex_game_shared_kernel::{domain::models::page_list_model::PageListModel, ApplicationError};
 
-use crate::application::errors::application_error::ApplicationError;
 use std::{future::Future, pin::Pin};
 
 use super::{
-    user_creation_dto::UserCreationDto, user_deletion_dto::UserDeletionDto, user_details_dto::UserDetailsDto,
-    user_dto::UserDto,
+    user_creation_dto::UserCreationDto, user_deletion_dto::UserDeletionDto,
+    user_details_dto::UserDetailsDto, user_dto::UserDto,
     user_permission_creation_dto::UserPermissionCreationDto,
-    user_permission_dto::UserPermissionDto, user_updation_dto::UserUpdationDto,
-    user_role_creation_dto::UserRoleCreationDto, user_role_dto::UserRoleDto,
+    user_permission_dto::UserPermissionDto, user_role_creation_dto::UserRoleCreationDto,
+    user_role_dto::UserRoleDto, user_updation_dto::UserUpdationDto,
 };
 
 pub trait UserUseCaseTrait {

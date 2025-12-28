@@ -1,6 +1,5 @@
 use super::token_claims::{AccessTokenClaims, HasExpiryTokenClaimTrait, RefreshTokenClaims};
 use crate::domain::services::{
-    identity_error::{IdentityError, IdentityErrorKind},
     token_helper_trait::TokenHelperTrait,
     token_types::{TokenGenerationOptions, TokenGenerationResult, TokenValidationResult},
 };
@@ -13,9 +12,12 @@ use jsonwebtoken::{
     errors::{Error, ErrorKind},
     Header, Validation,
 };
-use rex_game_shared_kernel::domain::{
-    enums::user_token_porposes::UserTokenPurposes,
-    helpers::configuration_helper_trait::ConfigurationHelperTrait,
+use rex_game_shared_kernel::{
+    domain::{
+        enums::user_token_porposes::UserTokenPurposes,
+        helpers::configuration_helper_trait::ConfigurationHelperTrait,
+    },
+    ApplicationError,
 };
 use serde::de::DeserializeOwned;
 use std::sync::Arc;
@@ -110,23 +112,20 @@ impl<CF: ConfigurationHelperTrait> TokenHelperTrait for IdentityTokenHelper<CF> 
         }
     }
 
-    fn validate_token(&self, access_token: &str) -> Result<TokenValidationResult, IdentityError> {
+    fn validate_token(
+        &self,
+        access_token: &str,
+    ) -> Result<TokenValidationResult, ApplicationError> {
         if access_token.is_empty() {
-            return Err(IdentityError {
-                kind: IdentityErrorKind::InvalidInput,
-                message: String::from("No token"),
-                details: None,
-            });
+            return Err(ApplicationError::invalid_input("No Token"));
         }
 
         let token_data_claims = match self.validate_token::<AccessTokenClaims>(access_token) {
             Ok(claims) => claims,
             Err(_) => {
-                return Err(IdentityError {
-                    kind: IdentityErrorKind::Unauthorized,
-                    message: String::from("Token is invalid or expired"),
-                    details: None,
-                })
+                return Err(ApplicationError::invalid_token(
+                    "Token is invalid or expired",
+                ));
             }
         };
 

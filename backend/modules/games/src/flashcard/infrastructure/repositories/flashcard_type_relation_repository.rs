@@ -6,7 +6,7 @@ use crate::flashcard::infrastructure::entities::{
     flashcard_type_relation, prelude::FlashcardTypeRelation,
 };
 use chrono::Utc;
-use rex_game_shared_kernel::domain::errors::domain_error::{DomainError, ErrorType};
+use rex_game_shared_kernel::InfraError;
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use std::sync::Arc;
 
@@ -27,7 +27,7 @@ impl FlashcardTypeRelationRepositoryTrait for FlashcardTypeRelationRepository {
     async fn create(
         &self,
         mut flashcard_type_relations_req: Vec<FlashcardTypeRelationModel>,
-    ) -> Result<i32, DomainError> {
+    ) -> Result<i32, InfraError> {
         let db = self._db_connection.as_ref();
 
         let flashcard_type_relations =
@@ -47,15 +47,11 @@ impl FlashcardTypeRelationRepositoryTrait for FlashcardTypeRelationRepository {
             .exec(db)
             .await
             .map_err(|err| {
-                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
+                InfraError::database(err.to_string().as_str())
             })?;
 
         match inserted.last_insert_id {
-            None => Err(DomainError::new(
-                ErrorType::DatabaseError,
-                "Failed to create flashcard type relations",
-                None,
-            )),
+            None => Err(InfraError::database("Failed to create flashcard type relations")),
             last_insert_id => match last_insert_id {
                 Some(id) => Ok(id),
                 None => Ok(0),
@@ -66,23 +62,14 @@ impl FlashcardTypeRelationRepositoryTrait for FlashcardTypeRelationRepository {
     async fn get_by_flashcard_id(
         &self,
         flashcard_id: i32,
-    ) -> Result<Vec<FlashcardTypeRelationModel>, DomainError> {
+    ) -> Result<Vec<FlashcardTypeRelationModel>, InfraError> {
         let db = self._db_connection.as_ref();
 
-        let existing = match FlashcardTypeRelation::find()
+        let existing = FlashcardTypeRelation::find()
             .filter(flashcard_type_relation::Column::FlashcardId.eq(flashcard_id))
             .all(db)
             .await
-        {
-            Ok(f) => f,
-            Err(err) => {
-                return Err(DomainError::new(
-                    ErrorType::DatabaseError,
-                    err.to_string().as_str(),
-                    None,
-                ));
-            }
-        };
+            .map_err(|err| InfraError::database(err.to_string()))?;
 
         let flashcard_type_relations = existing
             .into_iter()
@@ -100,37 +87,25 @@ impl FlashcardTypeRelationRepositoryTrait for FlashcardTypeRelationRepository {
         return Ok(flashcard_type_relations);
     }
 
-    async fn delete_by_ids(&self, ids: Vec<i32>) -> Result<u64, DomainError> {
+    async fn delete_by_ids(&self, ids: Vec<i32>) -> Result<u64, InfraError> {
         let db = self._db_connection.as_ref();
 
-        match FlashcardTypeRelation::delete_many()
+        FlashcardTypeRelation::delete_many()
             .filter(flashcard_type_relation::Column::Id.is_in(ids))
             .exec(db)
             .await
-        {
-            Ok(result) => Ok(result.rows_affected),
-            Err(err) => Err(DomainError::new(
-                ErrorType::DatabaseError,
-                err.to_string().as_str(),
-                None,
-            )),
-        }
+            .map(|result| result.rows_affected)
+            .map_err(|err| InfraError::database(err.to_string()))
     }
 
-    async fn delete_by_flashcard_id(&self, flashcard_id: i32) -> Result<u64, DomainError> {
+    async fn delete_by_flashcard_id(&self, flashcard_id: i32) -> Result<u64, InfraError> {
         let db = self._db_connection.as_ref();
 
-        match FlashcardTypeRelation::delete_many()
+        FlashcardTypeRelation::delete_many()
             .filter(flashcard_type_relation::Column::FlashcardId.eq(flashcard_id))
             .exec(db)
             .await
-        {
-            Ok(result) => Ok(result.rows_affected),
-            Err(err) => Err(DomainError::new(
-                ErrorType::DatabaseError,
-                err.to_string().as_str(),
-                None,
-            )),
-        }
+            .map(|result| result.rows_affected)
+            .map_err(|err| InfraError::database(err.to_string()))
     }
 }

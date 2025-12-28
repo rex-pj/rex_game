@@ -1,17 +1,14 @@
 use super::{
-    permission_creation_dto::PermissionCreationDto,
-    permission_deletion_dto::PermissionDeletionDto,
-    permission_dto::PermissionDto,
-    permission_updation_dto::PermissionUpdationDto,
+    permission_creation_dto::PermissionCreationDto, permission_deletion_dto::PermissionDeletionDto,
+    permission_dto::PermissionDto, permission_updation_dto::PermissionUpdationDto,
     permission_usecase_trait::PermissionUseCaseTrait,
 };
 use crate::{
-    application::errors::application_error::{ApplicationError, ApplicationErrorKind},
-    domain::repositories::permission_repository_trait::PermissionRepositoryTrait,
     domain::models::permission_model::PermissionModel,
+    domain::repositories::permission_repository_trait::PermissionRepositoryTrait,
 };
 use chrono::Utc;
-use rex_game_shared_kernel::domain::models::page_list_model::PageListModel;
+use rex_game_shared_kernel::{domain::models::page_list_model::PageListModel, ApplicationError};
 
 #[derive(Clone)]
 pub struct PermissionUseCase<R>
@@ -63,10 +60,7 @@ impl<R: PermissionRepositoryTrait> PermissionUseCaseTrait for PermissionUseCase<
                     total_count: i.total_count,
                 })
             }
-            Err(_) => Err(ApplicationError::new(
-                ApplicationErrorKind::InternalError,
-                "Failed to get permissions",
-            )),
+            Err(err) => Err(ApplicationError::Infrastructure(err)),
         }
     }
 
@@ -84,10 +78,7 @@ impl<R: PermissionRepositoryTrait> PermissionUseCaseTrait for PermissionUseCase<
                 updated_date: f.updated_date.with_timezone(&Utc),
                 updated_by_id: f.updated_by_id,
             }),
-            Err(_) => Err(ApplicationError::new(
-                ApplicationErrorKind::InternalError,
-                "Database error",
-            )),
+            Err(err) => Err(ApplicationError::Infrastructure(err)),
         }
     }
 
@@ -99,9 +90,7 @@ impl<R: PermissionRepositoryTrait> PermissionUseCaseTrait for PermissionUseCase<
             ._permission_repository
             .get_by_name(name)
             .await
-            .map_err(|_| {
-                ApplicationError::new(ApplicationErrorKind::InternalError, "Database error")
-            })?;
+            .map_err(|err| ApplicationError::Infrastructure(err))?;
         match existing {
             Some(f) => Ok(Some(PermissionDto {
                 id: f.id,
@@ -126,9 +115,7 @@ impl<R: PermissionRepositoryTrait> PermissionUseCaseTrait for PermissionUseCase<
             ._permission_repository
             .get_by_code(code)
             .await
-            .map_err(|_| {
-                ApplicationError::new(ApplicationErrorKind::InternalError, "Database error")
-            })?;
+            .map_err(|err| ApplicationError::Infrastructure(err))?;
         match existing {
             Some(f) => Ok(Some(PermissionDto {
                 id: f.id,
@@ -153,9 +140,7 @@ impl<R: PermissionRepositoryTrait> PermissionUseCaseTrait for PermissionUseCase<
             ._permission_repository
             .get_by_codes(codes)
             .await
-            .map_err(|_| {
-                ApplicationError::new(ApplicationErrorKind::InternalError, "Database error")
-            })?;
+            .map_err(|err| ApplicationError::Infrastructure(err))?;
         let items = existing
             .into_iter()
             .map(|f| PermissionDto {
@@ -190,10 +175,7 @@ impl<R: PermissionRepositoryTrait> PermissionUseCaseTrait for PermissionUseCase<
         let created = self._permission_repository.create(active_permission).await;
 
         match created {
-            Err(_) => Err(ApplicationError::new(
-                ApplicationErrorKind::InternalError,
-                "Database error",
-            )),
+            Err(err) => Err(ApplicationError::Infrastructure(err)),
             Ok(i) => Ok(i),
         }
     }

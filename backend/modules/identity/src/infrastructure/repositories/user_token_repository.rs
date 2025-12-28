@@ -1,10 +1,10 @@
+use super::super::entities::user_token::{self, Entity as UserToken};
 use crate::domain::{
     models::user_token_model::UserTokenModel,
     repositories::user_token_repository_trait::UserTokenRepositoryTrait,
 };
-use super::super::entities::user_token::{self, Entity as UserToken};
 use chrono::Utc;
-use rex_game_shared_kernel::domain::errors::domain_error::{DomainError, ErrorType};
+use rex_game_shared_kernel::InfraError;
 use sea_orm::{ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use std::sync::Arc;
 
@@ -22,7 +22,7 @@ impl UserTokenRepository {
 }
 
 impl UserTokenRepositoryTrait for UserTokenRepository {
-    async fn create(&self, user_token_req: UserTokenModel) -> Result<i32, DomainError> {
+    async fn create(&self, user_token_req: UserTokenModel) -> Result<i32, InfraError> {
         let db = self._db_connection.as_ref();
         let user_token = user_token::ActiveModel {
             user_id: Set(user_token_req.user_id),
@@ -37,9 +37,10 @@ impl UserTokenRepositoryTrait for UserTokenRepository {
             ..Default::default()
         };
 
-        let inserted = UserToken::insert(user_token).exec(db).await.map_err(|err| {
-            DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-        });
+        let inserted = UserToken::insert(user_token)
+            .exec(db)
+            .await
+            .map_err(|err| InfraError::database(err.to_string().as_str()));
 
         match inserted {
             Ok(updated) => {
@@ -51,47 +52,41 @@ impl UserTokenRepositoryTrait for UserTokenRepository {
         }
     }
 
-    async fn get_by_id(&self, id: i32) -> Result<UserTokenModel, DomainError> {
+    async fn get_by_id(&self, id: i32) -> Result<UserTokenModel, InfraError> {
         let db = self._db_connection.clone();
         let existing = UserToken::find_by_id(id)
             .one(db.as_ref())
             .await
-            .map_err(|err| {
-                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-            })?;
+            .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
         match existing {
             Some(f) => Ok(self::map_entity_to_model(f)),
-            None => Err(DomainError::new(
-                ErrorType::NotFound,
+            None => Err(InfraError::not_found(
                 "User Token not found",
-                None,
+                id.to_string(),
             )),
         }
     }
 
-    async fn get_by_token(&self, token: &str) -> Result<UserTokenModel, DomainError> {
+    async fn get_by_token(&self, token: &str) -> Result<UserTokenModel, InfraError> {
         let db = self._db_connection.clone();
         let token = token.to_owned();
         let existing = UserToken::find()
             .filter(Condition::all().add(user_token::Column::Token.eq(token)))
             .one(db.as_ref())
             .await
-            .map_err(|err| {
-                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-            })?;
+            .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
         match existing {
             Some(f) => Ok(self::map_entity_to_model(f)),
-            None => Err(DomainError::new(
-                ErrorType::NotFound,
+            None => Err(InfraError::not_found(
                 "User Token not found",
-                None,
+                "".to_string(),
             )),
         }
     }
 
-    async fn update(&self, user_token_req: UserTokenModel) -> Result<bool, DomainError> {
+    async fn update(&self, user_token_req: UserTokenModel) -> Result<bool, InfraError> {
         let db = self._db_connection.as_ref();
         let existing = UserToken::find_by_id(user_token_req.id).one(db).await;
         let user_token_option = match existing {
@@ -102,10 +97,9 @@ impl UserTokenRepositoryTrait for UserTokenRepository {
         let mut existing_user_token: user_token::ActiveModel = match user_token_option {
             Some(f) => f.into(),
             None => {
-                return Err(DomainError::new(
-                    ErrorType::NotFound,
+                return Err(InfraError::not_found(
                     "User Token not found",
-                    None,
+                    user_token_req.id.to_string(),
                 ))
             }
         };
@@ -116,11 +110,7 @@ impl UserTokenRepositoryTrait for UserTokenRepository {
 
         match UserToken::update(existing_user_token).exec(db).await {
             Ok(_) => Ok(true),
-            Err(err) => Err(DomainError::new(
-                ErrorType::DatabaseError,
-                err.to_string().as_str(),
-                None,
-            )),
+            Err(err) => Err(InfraError::database(err.to_string().as_str())),
         }
     }
 }

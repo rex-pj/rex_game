@@ -4,15 +4,16 @@ use super::{
     identity_authenticate_usecase_trait::IdentityAuthenticateUseCaseTrait,
     login_claims::LoginClaims,
 };
-use crate::application::errors::application_error::{ApplicationError, ApplicationErrorKind};
 use crate::application::usecases::user_usecase_trait::UserUseCaseTrait;
-use chrono::{Duration, Utc};
-use rex_game_shared_kernel::domain::configuration_helper_trait::ConfigurationHelperTrait;
 use crate::domain::services::{
-    password_hasher_trait::PasswordHasherTrait, token_helper_trait::TokenHelperTrait,
+    password_hasher_trait::PasswordHasherTrait,
+    token_helper_trait::TokenHelperTrait,
     token_types::{TokenGenerationOptions, TokenValidationResult},
 };
+use chrono::{Duration, Utc};
+use rex_game_shared_kernel::domain::configuration_helper_trait::ConfigurationHelperTrait;
 use rex_game_shared_kernel::domain::enums::user_token_porposes::UserTokenPurposes;
+use rex_game_shared_kernel::ApplicationError;
 
 #[derive(Clone)]
 pub struct IdentityAuthenticateUseCase<CF, PH, US, TH>
@@ -73,13 +74,7 @@ where
             .verify_password(password, &existing_user.password_hash)
         {
             Ok(_) => true,
-            Err(e) => {
-                return Err(ApplicationError {
-                    kind: ApplicationErrorKind::InvalidInput,
-                    message: e.message,
-                    details: None,
-                })
-            }
+            Err(err) => return Err(ApplicationError::invalid_input(err.to_string())),
         };
 
         let expiration = self
@@ -99,11 +94,9 @@ where
         {
             Some(claims) => claims,
             None => {
-                return Err(ApplicationError {
-                    kind: ApplicationErrorKind::InvalidInput,
-                    message: String::from("Failed to generate refresh token"),
-                    details: None,
-                })
+                return Err(ApplicationError::invalid_input(String::from(
+                    "Failed to generate refresh token",
+                )))
             }
         };
 
@@ -123,11 +116,9 @@ where
         {
             Some(refresh_token) => refresh_token,
             None => {
-                return Err(ApplicationError {
-                    kind: ApplicationErrorKind::InvalidInput,
-                    message: String::from("Failed to generate refresh token"),
-                    details: None,
-                })
+                return Err(ApplicationError::invalid_input(String::from(
+                    "Failed to generate refresh token",
+                )))
             }
         };
 
@@ -156,17 +147,15 @@ where
         ) {
             Some(claims) => claims,
             None => {
-                return Err(ApplicationError {
-                    kind: ApplicationErrorKind::InvalidInput,
-                    message: String::from("Failed to refresh access token"),
-                    details: None,
-                })
+                return Err(ApplicationError::invalid_input(String::from(
+                    "Failed to refresh access token",
+                )))
             }
         };
 
-        let email = access_token_claims.email.ok_or_else(|| {
-            ApplicationError::new(ApplicationErrorKind::NotFound, "No email found")
-        })?;
+        let email = access_token_claims
+            .email
+            .ok_or_else(|| ApplicationError::not_found("No email found", "".to_string()))?;
 
         let refresh_expiration = self
             ._configuration_helper
@@ -181,11 +170,9 @@ where
         let generated_token = match self._token_helper.generate_token(generated_token_options) {
             Some(refresh_token) => refresh_token,
             None => {
-                return Err(ApplicationError {
-                    kind: ApplicationErrorKind::InvalidInput,
-                    message: String::from("Failed to generate refresh token"),
-                    details: None,
-                })
+                return Err(ApplicationError::invalid_input(String::from(
+                    "Failed to generate refresh token",
+                )))
             }
         };
 
@@ -207,11 +194,7 @@ where
 
         match verify_result {
             Ok(claims) => Ok(claims),
-            Err(_) => Err(ApplicationError {
-                kind: ApplicationErrorKind::Unauthorized,
-                message: String::from("Unauthorized"),
-                details: None,
-            }),
+            Err(_) => Err(ApplicationError::invalid_token("Invalid token")),
         }
     }
 }

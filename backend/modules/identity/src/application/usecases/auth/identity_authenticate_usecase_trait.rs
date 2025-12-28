@@ -1,7 +1,8 @@
+use rex_game_shared_kernel::ApplicationError;
+
 use crate::domain::services::TokenValidationResult;
 
 use super::login_claims::LoginClaims;
-use crate::errors::application_error::ApplicationError;
 use std::future::Future;
 
 pub trait IdentityAuthenticateUseCaseTrait {

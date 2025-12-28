@@ -1,13 +1,11 @@
+use crate::domain::services::password_hasher_trait::PasswordHasherTrait;
 use argon2::password_hash::rand_core::OsRng;
 use argon2::{
     password_hash::{PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
 use argon2::{Algorithm, AssociatedData, KeyId, ParamsBuilder, PasswordHash, Version};
-use crate::domain::services::{
-    identity_error::{IdentityError, IdentityErrorKind},
-    password_hasher_trait::PasswordHasherTrait,
-};
+use rex_game_shared_kernel::ApplicationError;
 
 impl IdentityPasswordHasher {
     pub fn new() -> Self {
@@ -38,13 +36,11 @@ impl PasswordHasherTrait for IdentityPasswordHasher {
             .to_string()
     }
 
-    fn verify_password(&self, password: &str, password_hash: &str) -> Result<(), IdentityError> {
+    fn verify_password(&self, password: &str, password_hash: &str) -> Result<(), ApplicationError> {
         if password.is_empty() || password_hash.is_empty() {
-            return Err(IdentityError {
-                kind: IdentityErrorKind::InvalidInput,
-                message: String::from("Password verification failed"),
-                details: None,
-            });
+            return Err(ApplicationError::invalid_input(
+                "Password verification failed",
+            ));
         }
 
         let parsed_hash = PasswordHash::new(&password_hash).unwrap();
@@ -53,11 +49,7 @@ impl PasswordHasherTrait for IdentityPasswordHasher {
             .verify_password(password.as_bytes(), &parsed_hash)
         {
             Ok(_) => Ok(()),
-            Err(_) => Err(IdentityError {
-                kind: IdentityErrorKind::InternalServerError,
-                message: String::from("Password verification failed"),
-                details: None,
-            }),
+            Err(_) => Err(ApplicationError::InvalidCredentials),
         }
     }
 

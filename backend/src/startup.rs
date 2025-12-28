@@ -66,13 +66,11 @@ pub async fn start() {
         user_repository,
         role_repository.clone(),
         user_role_repository.clone(),
-        permission_repository.clone(),
         user_permission_repository.clone(),
         identity_password_hasher.clone(),
     );
     let role_usecase = RoleUseCase::new(
         role_repository,
-        permission_repository.clone(),
         role_permission_repository.clone(),
         user_role_repository.clone(),
     );

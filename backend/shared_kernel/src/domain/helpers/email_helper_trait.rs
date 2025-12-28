@@ -1,5 +1,5 @@
+use crate::InfraError;
 use std::future::Future;
-use crate::domain::domain_error::DomainError;
 
 pub struct EmailMessage {
     pub to_name: Option<String>,
@@ -15,5 +15,5 @@ pub trait EmailHelperTrait {
     fn send_email(
         &self,
         message: EmailMessage,
-    ) -> impl Future<Output = Result<bool, DomainError>> + Send;
+    ) -> impl Future<Output = Result<bool, InfraError>> + Send;
 }

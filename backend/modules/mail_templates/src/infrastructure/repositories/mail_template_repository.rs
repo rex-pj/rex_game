@@ -1,9 +1,10 @@
-use crate::{domain::models::MailTemplateModel, infrastructure::entities::mail_template::{self, Entity as MailTemplate}};
-use chrono::Utc;
-use rex_game_shared_kernel::domain::{
-    errors::domain_error::{DomainError, ErrorType},
-    models::page_list_model::PageListModel,
+use crate::{
+    domain::models::MailTemplateModel,
+    infrastructure::entities::mail_template::{self, Entity as MailTemplate},
 };
+use chrono::Utc;
+use rex_game_shared_kernel::domain::models::page_list_model::PageListModel;
+use rex_game_shared_kernel::InfraError;
 use sea_orm::{
     ColumnTrait, Condition, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
     QueryOrder, Set,
@@ -21,7 +22,7 @@ impl MailTemplateRepository {
             _db_connection: db_connection,
         }
     }
-    pub async fn create(&self, mail_template_req: MailTemplateModel) -> Result<i32, DomainError> {
+    pub async fn create(&self, mail_template_req: MailTemplateModel) -> Result<i32, InfraError> {
         let db = self._db_connection.as_ref();
 
         let mail_template = mail_template::ActiveModel {
@@ -40,9 +41,7 @@ impl MailTemplateRepository {
         let inserted = MailTemplate::insert(mail_template)
             .exec(db)
             .await
-            .map_err(|err| {
-                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-            });
+            .map_err(|err| InfraError::database(err.to_string().as_str()));
 
         match inserted {
             Ok(updated) => {
@@ -54,35 +53,33 @@ impl MailTemplateRepository {
         }
     }
 
-    pub async fn get_by_name(&self, name: String) -> Result<MailTemplateModel, DomainError> {
+    pub async fn get_by_name(&self, name: String) -> Result<MailTemplateModel, InfraError> {
         let db = self._db_connection.as_ref();
         let existing = MailTemplate::find()
             .filter(
                 Condition::all()
-                    .add(mail_template::Column::Name.eq(name))
+                    .add(mail_template::Column::Name.eq(name.to_owned()))
                     .add(mail_template::Column::IsActived.eq(true)),
             )
             .one(db)
             .await
-            .map_err(|err| {
-                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-            })?;
+            .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
         match existing {
             Some(mail_template) => Ok(self::map_entity_to_model(mail_template)),
-            None => Err(DomainError::new(
-                ErrorType::NotFound,
+            None => Err(InfraError::not_found(
                 "MailTemplate not found",
-                None,
+                name.to_string(),
             )),
         }
     }
 
-    pub async fn delete(&self, id: i32) -> Result<bool, DomainError> {
+    pub async fn delete(&self, id: i32) -> Result<bool, InfraError> {
         let db = self._db_connection.as_ref();
-        let existing = MailTemplate::find_by_id(id).one(db).await.map_err(|err| {
-            DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-        })?;
+        let existing = MailTemplate::find_by_id(id)
+            .one(db)
+            .await
+            .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
         if let Some(f) = existing {
             let mut mail_template: mail_template::ActiveModel = f.into();
@@ -91,17 +88,12 @@ impl MailTemplateRepository {
 
             match MailTemplate::update(mail_template).exec(db).await {
                 Ok(_) => Ok(true),
-                Err(err) => Err(DomainError::new(
-                    ErrorType::DatabaseError,
-                    err.to_string().as_str(),
-                    None,
-                )),
+                Err(err) => Err(InfraError::database(err.to_string().as_str())),
             }
         } else {
-            Err(DomainError::new(
-                ErrorType::NotFound,
+            Err(InfraError::not_found(
                 "MailTemplate not found",
-                None,
+                id.to_string(),
             ))
         }
     }
@@ -111,9 +103,13 @@ impl MailTemplateRepository {
         page: u64,
         per_page: u64,
         search: String,
-    ) -> Result<PageListModel<MailTemplateModel>, DomainError> {
+    ) -> Result<PageListModel<MailTemplateModel>, InfraError> {
         self.get_paged_list(
-            if search.is_empty() { None } else { Some(search.clone()) },
+            if search.is_empty() {
+                None
+            } else {
+                Some(search.clone())
+            },
             None,
             page,
             Some(per_page),
@@ -121,40 +117,37 @@ impl MailTemplateRepository {
         .await
     }
 
-    pub async fn get_by_id(&self, id: i32) -> Result<MailTemplateModel, DomainError> {
+    pub async fn get_by_id(&self, id: i32) -> Result<MailTemplateModel, InfraError> {
         let db = self._db_connection.as_ref();
-        let existing = MailTemplate::find_by_id(id).one(db).await.map_err(|err| {
-            DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-        })?;
+        let existing = MailTemplate::find_by_id(id)
+            .one(db)
+            .await
+            .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
         if let Some(f) = existing {
             if f.is_actived {
                 return Ok(self::map_entity_to_model(f));
             }
 
-            return Err(DomainError::new(
-                ErrorType::NotFound,
+            return Err(InfraError::not_found(
                 "MailTemplate not found",
-                None,
+                id.to_string(),
             ));
         }
 
-        Err(DomainError::new(
-            ErrorType::NotFound,
+        Err(InfraError::not_found(
             "MailTemplate not found",
-            None,
+            id.to_string(),
         ))
     }
 
-    pub async fn get_by_ids(&self, ids: Vec<i32>) -> Result<Vec<MailTemplateModel>, DomainError> {
+    pub async fn get_by_ids(&self, ids: Vec<i32>) -> Result<Vec<MailTemplateModel>, InfraError> {
         let db = self._db_connection.as_ref();
         let existing_mail_templates = MailTemplate::find()
             .filter(mail_template::Column::Id.is_in(ids))
             .all(db)
             .await
-            .map_err(|err| {
-                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-            })?;
+            .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
         let list = existing_mail_templates
             .into_iter()
@@ -169,7 +162,7 @@ impl MailTemplateRepository {
         subject: Option<String>,
         page: u64,
         page_size_option: Option<u64>,
-    ) -> Result<PageListModel<MailTemplateModel>, DomainError> {
+    ) -> Result<PageListModel<MailTemplateModel>, InfraError> {
         let db = self._db_connection.as_ref();
         let mut query = MailTemplate::find().filter(mail_template::Column::IsActived.eq(true));
 
@@ -188,13 +181,7 @@ impl MailTemplateRepository {
                 let paginator = query.paginate(db, page_size);
                 let total_count = match paginator.num_items().await {
                     Ok(count) => count,
-                    Err(err) => {
-                        return Err(DomainError::new(
-                            ErrorType::DatabaseError,
-                            err.to_string().as_str(),
-                            None,
-                        ))
-                    }
+                    Err(err) => return Err(InfraError::database(err.to_string().as_str())),
                 };
 
                 let page_list = paginator.fetch_page(page - 1).await;
@@ -209,13 +196,7 @@ impl MailTemplateRepository {
                             total_count,
                         });
                     }
-                    Err(err) => {
-                        return Err(DomainError::new(
-                            ErrorType::DatabaseError,
-                            err.to_string().as_str(),
-                            None,
-                        ))
-                    }
+                    Err(err) => return Err(InfraError::database(err.to_string().as_str())),
                 }
             }
             None | Some(_) => {
@@ -231,19 +212,13 @@ impl MailTemplateRepository {
                             total_count: list.len() as u64,
                         });
                     }
-                    Err(err) => {
-                        return Err(DomainError::new(
-                            ErrorType::DatabaseError,
-                            err.to_string().as_str(),
-                            None,
-                        ))
-                    }
+                    Err(err) => return Err(InfraError::database(err.to_string().as_str())),
                 }
             }
         }
     }
 
-    pub async fn update(&self, mail_template_req: MailTemplateModel) -> Result<bool, DomainError> {
+    pub async fn update(&self, mail_template_req: MailTemplateModel) -> Result<bool, InfraError> {
         let db = self._db_connection.as_ref();
         let existing = MailTemplate::find_by_id(mail_template_req.id).one(db).await;
         let mail_template_option = match existing {
@@ -254,10 +229,9 @@ impl MailTemplateRepository {
         let mut mail_template: mail_template::ActiveModel = match mail_template_option {
             Some(f) => f.into(),
             None => {
-                return Err(DomainError::new(
-                    ErrorType::NotFound,
-                    "Flashcard file not found",
-                    None,
+                return Err(InfraError::not_found(
+                    "Mail template not found",
+                    mail_template_req.id.to_string(),
                 ))
             }
         };
@@ -272,11 +246,7 @@ impl MailTemplateRepository {
 
         match MailTemplate::update(mail_template).exec(db).await {
             Ok(_) => Ok(true),
-            Err(err) => Err(DomainError::new(
-                ErrorType::DatabaseError,
-                err.to_string().as_str(),
-                None,
-            )),
+            Err(err) => Err(InfraError::database(err.to_string().as_str())),
         }
     }
 }

@@ -14,17 +14,13 @@ use axum::{
     response::Response,
     Extension, Json,
 };
-use rex_game_games::{
-    FlashcardTypeUseCaseTrait, FlashcardUseCaseTrait,
-};
 use rex_game_games::flashcard::application::usecases::{
-    flashcard_creation_dto::FlashcardCreationDto,
-    flashcard_detail_dto::FlashcardDetailDto,
-    flashcard_dto::FlashcardDto,
-    flashcard_updation_dto::FlashcardUpdationDto,
+    flashcard_creation_dto::FlashcardCreationDto, flashcard_detail_dto::FlashcardDetailDto,
+    flashcard_dto::FlashcardDto, flashcard_updation_dto::FlashcardUpdationDto,
 };
-use rex_game_shared_kernel::domain::models::PageListModel;
+use rex_game_games::{FlashcardTypeUseCaseTrait, FlashcardUseCaseTrait};
 use rex_game_identity::application::usecases::roles::*;
+use rex_game_shared_kernel::domain::models::PageListModel;
 use serde::Deserialize;
 use std::sync::Arc;
 use validator::{Validate, ValidationErrors};
@@ -44,7 +40,8 @@ impl FlashcardHandler {
         let page = params.page.unwrap_or(1);
         let page_size = params.page_size.unwrap_or(10);
         let flashcards = _state
-            .usecases.flashcard
+            .usecases
+            .flashcard
             .get_paged_list(params.type_name, page, page_size)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -67,7 +64,8 @@ impl FlashcardHandler {
         };
 
         let flashcard_types = match _state
-            .usecases.flashcard_type
+            .usecases
+            .flashcard_type
             .get_flashcard_type_by_flashcard_id(id)
             .await
         {
@@ -92,12 +90,13 @@ impl FlashcardHandler {
         State(_state): State<AppState>,
     ) -> HandlerResult<Response<Body>> {
         let flashcard_file = _state
-            .usecases.flashcard
+            .usecases
+            .flashcard
             .get_image_by_file_id(file_id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: format!("Failed to fetch flashcard image: {}", err.message),
+                message: format!("Failed to fetch flashcard image: {}", err),
                 ..Default::default()
             })?;
 
@@ -105,7 +104,7 @@ impl FlashcardHandler {
             HttpHelper::build_file_respone(flashcard_file.data, &flashcard_file.content_type)
                 .map_err(|err| HandlerError {
                     status: StatusCode::INTERNAL_SERVER_ERROR,
-                    message: format!("Failed to build response: {}", err.message),
+                    message: format!("Failed to build response: {}", err),
                     ..Default::default()
                 })?;
 
@@ -211,12 +210,13 @@ impl FlashcardHandler {
         };
 
         let id = _state
-            .usecases.flashcard
+            .usecases
+            .flashcard
             .create_flashcard(new_flashcard)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: format!("Failed to create flashcard: {}", err.message),
+                message: format!("Failed to create flashcard: {}", err),
 
                 ..Default::default()
             })?;
@@ -322,12 +322,13 @@ impl FlashcardHandler {
         }
 
         _state
-            .usecases.flashcard
+            .usecases
+            .flashcard
             .update_flashcard(id, flashcard)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: format!("Failed to update flashcard: {}", err.message),
+                message: format!("Failed to update flashcard: {}", err),
                 ..Default::default()
             })?;
         Ok(Json(true))
@@ -351,12 +352,13 @@ impl FlashcardHandler {
         }
 
         let deleted_numbers = _state
-            .usecases.flashcard
+            .usecases
+            .flashcard
             .delete_flashcard_by_id(id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: format!("Failed to delete flashcard: {}", err.message),
+                message: format!("Failed to delete flashcard: {}", err),
                 ..Default::default()
             })?;
 

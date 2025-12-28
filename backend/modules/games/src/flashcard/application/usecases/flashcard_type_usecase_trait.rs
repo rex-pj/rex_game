@@ -1,6 +1,6 @@
 use std::future::Future;
 
-use rex_game_shared_kernel::{domain::errors::domain_error::DomainError, domain::models::page_list_model::PageListModel};
+use rex_game_shared_kernel::{domain::models::page_list_model::PageListModel, ApplicationError};
 
 use super::{
     flashcard_type_creation_dto::FlashcardTypeCreationDto, flashcard_type_dto::FlashcardTypeDto,
@@ -13,7 +13,7 @@ pub trait FlashcardTypeUseCaseTrait {
         name: Option<String>,
         page: u64,
         page_size: u64,
-    ) -> impl Future<Output = Result<PageListModel<FlashcardTypeDto>, DomainError>>;
+    ) -> impl Future<Output = Result<PageListModel<FlashcardTypeDto>, ApplicationError>>;
     fn get_flashcard_type_by_id<'a>(
         &'a self,
         id: i32,

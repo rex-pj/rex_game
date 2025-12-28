@@ -1,4 +1,5 @@
-use super::identity_error::IdentityError;
+use rex_game_shared_kernel::ApplicationError;
+
 use super::token_types::{TokenGenerationOptions, TokenGenerationResult, TokenValidationResult};
 
 pub trait TokenHelperTrait {
@@ -9,5 +10,6 @@ pub trait TokenHelperTrait {
         refresh_token: &str,
         refresh_expiration: i64,
     ) -> Option<TokenGenerationResult>;
-    fn validate_token(&self, access_token: &str) -> Result<TokenValidationResult, IdentityError>;
+    fn validate_token(&self, access_token: &str)
+        -> Result<TokenValidationResult, ApplicationError>;
 }

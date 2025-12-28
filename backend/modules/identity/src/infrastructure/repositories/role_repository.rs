@@ -1,12 +1,10 @@
+use super::super::entities::role::{self, Entity as Role};
 use crate::domain::{
     models::role_model::RoleModel, repositories::role_repository_trait::RoleRepositoryTrait,
 };
-use super::super::entities::role::{self, Entity as Role};
 use chrono::Utc;
-use rex_game_shared_kernel::domain::{
-    errors::domain_error::{DomainError, ErrorType},
-    models::page_list_model::PageListModel,
-};
+use rex_game_shared_kernel::domain::models::page_list_model::PageListModel;
+use rex_game_shared_kernel::InfraError;
 use sea_orm::{
     ColumnTrait, Condition, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
     QueryOrder, Set,
@@ -27,7 +25,7 @@ impl RoleRepository {
 }
 
 impl RoleRepositoryTrait for RoleRepository {
-    async fn create(&self, role_req: RoleModel) -> Result<i32, DomainError> {
+    async fn create(&self, role_req: RoleModel) -> Result<i32, InfraError> {
         let db = self._db_connection.as_ref();
 
         let role = role::ActiveModel {
@@ -41,9 +39,10 @@ impl RoleRepositoryTrait for RoleRepository {
             ..Default::default()
         };
 
-        let inserted = Role::insert(role).exec(db).await.map_err(|err| {
-            DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-        });
+        let inserted = Role::insert(role)
+            .exec(db)
+            .await
+            .map_err(|err| InfraError::database(err.to_string().as_str()));
 
         match inserted {
             Ok(updated) => {
@@ -75,11 +74,12 @@ impl RoleRepositoryTrait for RoleRepository {
         }
     }
 
-    async fn get_by_id(&self, id: i32) -> Result<RoleModel, DomainError> {
+    async fn get_by_id(&self, id: i32) -> Result<RoleModel, InfraError> {
         let db = self._db_connection.as_ref();
-        let existing = Role::find_by_id(id).one(db).await.map_err(|err| {
-            DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-        })?;
+        let existing = Role::find_by_id(id)
+            .one(db)
+            .await
+            .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
         match existing {
             Some(f) => {
@@ -87,29 +87,19 @@ impl RoleRepositoryTrait for RoleRepository {
                     return Ok(self::map_entity_to_model(f));
                 }
 
-                Err(DomainError::new(
-                    ErrorType::NotFound,
-                    "Role not found",
-                    None,
-                ))
+                Err(InfraError::not_found("Role not found", id.to_string()))
             }
-            None => Err(DomainError::new(
-                ErrorType::NotFound,
-                "Role not found",
-                None,
-            )),
+            None => Err(InfraError::not_found("Role not found", id.to_string())),
         }
     }
 
-    async fn get_by_ids(&self, ids: Vec<i32>) -> Result<Vec<RoleModel>, DomainError> {
+    async fn get_by_ids(&self, ids: Vec<i32>) -> Result<Vec<RoleModel>, InfraError> {
         let db = self._db_connection.as_ref();
         let existing_roles = Role::find()
             .filter(role::Column::Id.is_in(ids))
             .all(db)
             .await
-            .map_err(|err| {
-                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-            })?;
+            .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
         let list = existing_roles
             .into_iter()
@@ -124,7 +114,7 @@ impl RoleRepositoryTrait for RoleRepository {
         description: Option<String>,
         page: u64,
         page_size_option: Option<u64>,
-    ) -> Result<PageListModel<RoleModel>, DomainError> {
+    ) -> Result<PageListModel<RoleModel>, InfraError> {
         let db = self._db_connection.as_ref();
         let mut query = Role::find().filter(role::Column::IsActived.eq(true));
 
@@ -143,13 +133,7 @@ impl RoleRepositoryTrait for RoleRepository {
                 let paginator = query.paginate(db, page_size);
                 let total_count = match paginator.num_items().await {
                     Ok(count) => count,
-                    Err(err) => {
-                        return Err(DomainError::new(
-                            ErrorType::DatabaseError,
-                            err.to_string().as_str(),
-                            None,
-                        ))
-                    }
+                    Err(err) => return Err(InfraError::database(err.to_string().as_str())),
                 };
 
                 let page_list = paginator.fetch_page(page - 1).await;
@@ -164,13 +148,7 @@ impl RoleRepositoryTrait for RoleRepository {
                             total_count,
                         });
                     }
-                    Err(err) => {
-                        return Err(DomainError::new(
-                            ErrorType::DatabaseError,
-                            err.to_string().as_str(),
-                            None,
-                        ))
-                    }
+                    Err(err) => return Err(InfraError::database(err.to_string().as_str())),
                 }
             }
             None | Some(_) => {
@@ -186,19 +164,13 @@ impl RoleRepositoryTrait for RoleRepository {
                             total_count: list.len() as u64,
                         });
                     }
-                    Err(err) => {
-                        return Err(DomainError::new(
-                            ErrorType::DatabaseError,
-                            err.to_string().as_str(),
-                            None,
-                        ))
-                    }
+                    Err(err) => return Err(InfraError::database(err.to_string().as_str())),
                 }
             }
         }
     }
 
-    async fn update(&self, role_req: RoleModel) -> Result<bool, DomainError> {
+    async fn update(&self, role_req: RoleModel) -> Result<bool, InfraError> {
         let db = self._db_connection.as_ref();
         let existing = Role::find_by_id(role_req.id).one(db).await;
         let role_option = match existing {
@@ -209,10 +181,9 @@ impl RoleRepositoryTrait for RoleRepository {
         let mut role: role::ActiveModel = match role_option {
             Some(f) => f.into(),
             None => {
-                return Err(DomainError::new(
-                    ErrorType::NotFound,
-                    "Flashcard file not found",
-                    None,
+                return Err(InfraError::not_found(
+                    "Role not found",
+                    role_req.id.to_string(),
                 ))
             }
         };
@@ -225,11 +196,7 @@ impl RoleRepositoryTrait for RoleRepository {
 
         match Role::update(role).exec(db).await {
             Ok(_) => Ok(true),
-            Err(err) => Err(DomainError::new(
-                ErrorType::DatabaseError,
-                err.to_string().as_str(),
-                None,
-            )),
+            Err(err) => Err(InfraError::database(err.to_string().as_str())),
         }
     }
 }

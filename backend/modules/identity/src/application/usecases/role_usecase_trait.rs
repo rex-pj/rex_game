@@ -1,12 +1,10 @@
-
 use super::{
-    role_creation_dto::RoleCreationDto, role_deletion_dto::RoleDeletionDto,
-    role_dto::RoleDto, role_permission_creation_dto::RolePermissionCreationDto,
+    role_creation_dto::RoleCreationDto, role_deletion_dto::RoleDeletionDto, role_dto::RoleDto,
+    role_permission_creation_dto::RolePermissionCreationDto,
     role_permission_dto::RolePermissionDto, role_updation_dto::RoleUpdationDto,
     user_role_dto::UserRoleDto,
 };
-use crate::application::errors::application_error::ApplicationError;
-use rex_game_shared_kernel::domain::models::page_list_model::PageListModel;
+use rex_game_shared_kernel::{domain::models::page_list_model::PageListModel, ApplicationError};
 use std::{future::Future, pin::Pin};
 
 pub trait RoleUseCaseTrait {

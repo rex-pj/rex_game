@@ -1,13 +1,13 @@
-use crate::domain::{
-    models::user_permission_model::UserPermissionModel,
-    repositories::user_permission_repository_trait::UserPermissionRepositoryTrait,
-};
 use super::super::entities::{
     permission, user,
     user_permission::{self, Entity as UserPermission},
 };
+use crate::domain::{
+    models::user_permission_model::UserPermissionModel,
+    repositories::user_permission_repository_trait::UserPermissionRepositoryTrait,
+};
 use chrono::{DateTime, Utc};
-use rex_game_shared_kernel::domain::errors::domain_error::{DomainError, ErrorType};
+use rex_game_shared_kernel::InfraError;
 use sea_orm::{
     ColumnTrait, Condition, DatabaseConnection, EntityTrait, FromQueryResult, JoinType,
     QueryFilter, QuerySelect, RelationTrait, Set,
@@ -44,7 +44,7 @@ impl UserPermissionRepository {
 }
 
 impl UserPermissionRepositoryTrait for UserPermissionRepository {
-    async fn create(&self, user_permission_req: UserPermissionModel) -> Result<i32, DomainError> {
+    async fn create(&self, user_permission_req: UserPermissionModel) -> Result<i32, InfraError> {
         let db = self._db_connection.as_ref();
         let user_permission = user_permission::ActiveModel {
             user_id: Set(user_permission_req.user_id),
@@ -59,18 +59,14 @@ impl UserPermissionRepositoryTrait for UserPermissionRepository {
 
         match UserPermission::insert(user_permission).exec(db).await {
             Ok(result) => Ok(result.last_insert_id),
-            Err(err) => Err(DomainError::new(
-                ErrorType::DatabaseError,
-                err.to_string().as_str(),
-                None,
-            )),
+            Err(err) => Err(InfraError::database(err.to_string().as_str())),
         }
     }
 
     fn get_list_by_user_id(
         &self,
         user_id: i32,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<UserPermissionModel>, DomainError>> + Send>> {
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<UserPermissionModel>, InfraError>> + Send>> {
         let db_connection = Arc::clone(&self._db_connection);
         Box::pin(async move {
             let db = db_connection.as_ref();
@@ -99,9 +95,7 @@ impl UserPermissionRepositoryTrait for UserPermissionRepository {
                 .into_model::<UserPermissionWithUser>()
                 .all(db)
                 .await
-                .map_err(|err| {
-                    DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-                })?;
+                .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
             let permissions = existing
                 .into_iter()
@@ -114,7 +108,7 @@ impl UserPermissionRepositoryTrait for UserPermissionRepository {
 
     fn get_list(
         &self,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<UserPermissionModel>, DomainError>> + Send>> {
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<UserPermissionModel>, InfraError>> + Send>> {
         let db_connection = Arc::clone(&self._db_connection);
         Box::pin(async move {
             let db = db_connection.as_ref();
@@ -142,9 +136,7 @@ impl UserPermissionRepositoryTrait for UserPermissionRepository {
                 .into_model::<UserPermissionWithUser>()
                 .all(db)
                 .await
-                .map_err(|err| {
-                    DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-                })?;
+                .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
             let permissions = existing
                 .into_iter()
@@ -159,7 +151,7 @@ impl UserPermissionRepositoryTrait for UserPermissionRepository {
         &self,
         user_id: i32,
         permission_codes: HashSet<String>,
-    ) -> Pin<Box<dyn Future<Output = Result<bool, DomainError>> + Send>> {
+    ) -> Pin<Box<dyn Future<Output = Result<bool, InfraError>> + Send>> {
         let db_connection = Arc::clone(&self._db_connection);
         let codes = permission_codes.into_iter().collect::<Vec<String>>();
 
@@ -174,9 +166,7 @@ impl UserPermissionRepositoryTrait for UserPermissionRepository {
                 .filter(Condition::all().add(permission::Column::Code.is_in(codes)))
                 .one(db)
                 .await
-                .map_err(|err| {
-                    DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-                });
+                .map_err(|err| InfraError::database(err.to_string().as_str()));
 
             match existing {
                 Ok(permissions) => Ok(permissions.is_some()),
@@ -188,7 +178,7 @@ impl UserPermissionRepositoryTrait for UserPermissionRepository {
     async fn create_many(
         &self,
         user_permission_req: Vec<UserPermissionModel>,
-    ) -> Result<i32, DomainError> {
+    ) -> Result<i32, InfraError> {
         let db = self._db_connection.as_ref();
 
         let user_permissions = user_permission_req
@@ -209,11 +199,7 @@ impl UserPermissionRepositoryTrait for UserPermissionRepository {
                 Some(id) => Ok(id),
                 None => Ok(0), // insert_many may return None if empty
             },
-            Err(err) => Err(DomainError::new(
-                ErrorType::DatabaseError,
-                err.to_string().as_str(),
-                None,
-            )),
+            Err(err) => Err(InfraError::database(err.to_string().as_str())),
         }
     }
 
@@ -221,7 +207,7 @@ impl UserPermissionRepositoryTrait for UserPermissionRepository {
         &self,
         user_id: i32,
         user_permission_req: Vec<UserPermissionModel>,
-    ) -> Result<u64, DomainError> {
+    ) -> Result<u64, InfraError> {
         let db = self._db_connection.as_ref();
 
         let delete_permission_ids = user_permission_req
@@ -238,11 +224,7 @@ impl UserPermissionRepositoryTrait for UserPermissionRepository {
             .await
         {
             Ok(result) => Ok(result.rows_affected),
-            Err(err) => Err(DomainError::new(
-                ErrorType::DatabaseError,
-                err.to_string().as_str(),
-                None,
-            )),
+            Err(err) => Err(InfraError::database(err.to_string().as_str())),
         }
     }
 }

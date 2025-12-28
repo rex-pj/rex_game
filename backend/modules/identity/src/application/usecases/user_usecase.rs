@@ -1,6 +1,5 @@
 use std::{future::Future, pin::Pin};
 
-use crate::application::errors::application_error::{ApplicationError, ApplicationErrorKind};
 use crate::domain::{
     models::{
         user_model::UserModel, user_permission_model::UserPermissionModel,
@@ -15,8 +14,8 @@ use crate::domain::{
     services::password_hasher_trait::PasswordHasherTrait,
 };
 use chrono::Utc;
-use rex_game_shared_kernel::domain::models::page_list_model::PageListModel;
 use rex_game_shared_kernel::domain::transaction_manager_trait::TransactionWrapperTrait;
+use rex_game_shared_kernel::{domain::models::page_list_model::PageListModel, ApplicationError};
 
 use super::{
     user_creation_dto::UserCreationDto, user_deletion_dto::UserDeletionDto,
@@ -99,10 +98,7 @@ where
                     updated_by_id: f.updated_by_id,
                     status_id: f.status_id,
                 }),
-                Err(_) => Err(ApplicationError::new(
-                    ApplicationErrorKind::InternalError,
-                    "Database error",
-                )),
+                Err(err) => Err(ApplicationError::Infrastructure(err)),
             }
         })
     }
@@ -121,10 +117,7 @@ where
                 updated_by_id: f.updated_by_id,
                 status_id: f.status_id,
             }),
-            Err(_) => Err(ApplicationError::new(
-                ApplicationErrorKind::InternalError,
-                "Database error",
-            )),
+            Err(err) => Err(ApplicationError::Infrastructure(err)),
         }
     }
 
@@ -142,10 +135,7 @@ where
                 updated_by_id: f.updated_by_id,
                 status_id: f.status_id,
             }),
-            Err(_) => Err(ApplicationError::new(
-                ApplicationErrorKind::InternalError,
-                "Database error",
-            )),
+            Err(err) => Err(ApplicationError::Infrastructure(err)),
         }
     }
 
@@ -170,10 +160,7 @@ where
             .await;
 
         match created {
-            Err(_) => Err(ApplicationError::new(
-                ApplicationErrorKind::InternalError,
-                "Database error",
-            )),
+            Err(err) => Err(ApplicationError::Infrastructure(err)),
             Ok(i) => Ok(i),
         }
     }
@@ -213,10 +200,7 @@ where
                     total_count: i.total_count,
                 })
             }
-            Err(_) => Err(ApplicationError::new(
-                ApplicationErrorKind::InternalError,
-                "Failed to get users",
-            )),
+            Err(err) => Err(ApplicationError::Infrastructure(err)),
         }
     }
 
@@ -234,10 +218,7 @@ where
         let created = self._user_repository.create(active_user).await;
 
         match created {
-            Err(_) => Err(ApplicationError::new(
-                ApplicationErrorKind::InternalError,
-                "Database error",
-            )),
+            Err(err) => Err(ApplicationError::Infrastructure(err)),
             Ok(i) => Ok(i),
         }
     }
@@ -304,9 +285,7 @@ where
         self._role_repository
             .get_by_id(role_id)
             .await
-            .map_err(|_| {
-                ApplicationError::new(ApplicationErrorKind::InternalError, "Database error")
-            })?;
+            .map_err(|err| ApplicationError::Infrastructure(err))?;
 
         let user_role = UserRoleModel {
             user_id,
@@ -319,9 +298,7 @@ where
         self._user_role_repository
             .create_without_commit(user_role, transaction)
             .await
-            .map_err(|_| {
-                ApplicationError::new(ApplicationErrorKind::InternalError, "Assign role failed")
-            })
+            .map_err(|err| ApplicationError::Infrastructure(err))
     }
 
     async fn assign_roles(
@@ -341,12 +318,7 @@ where
             .collect::<Vec<UserRoleModel>>();
         match self._user_role_repository.create_many(user_roles).await {
             Ok(inserted) => Ok(inserted),
-            Err(_) => {
-                return Err(ApplicationError::new(
-                    ApplicationErrorKind::InternalError,
-                    "Assign role failed",
-                ))
-            }
+            Err(err) => Err(ApplicationError::Infrastructure(err)),
         }
     }
 
@@ -368,11 +340,8 @@ where
             .await
         {
             Ok(deleted) => Ok(deleted),
-            Err(_) => {
-                return Err(ApplicationError::new(
-                    ApplicationErrorKind::InternalError,
-                    "Assign role failed",
-                ))
+            Err(err) => {
+                return Err(ApplicationError::Infrastructure(err));
             }
         }
     }
@@ -386,9 +355,7 @@ where
             let roles = user_role_repository
                 .get_user_roles_by_user_id(user_id)
                 .await
-                .map_err(|_| {
-                    ApplicationError::new(ApplicationErrorKind::InternalError, "Database error")
-                })?;
+                .map_err(|err| ApplicationError::Infrastructure(err))?;
             return Ok(roles
                 .into_iter()
                 .map(|f| UserRoleDto {
@@ -429,10 +396,7 @@ where
                         })
                         .collect());
                 }
-                Err(_) => Err(ApplicationError::new(
-                    ApplicationErrorKind::InternalError,
-                    "Database error",
-                )),
+                Err(err) => Err(ApplicationError::Infrastructure(err)),
             }
         })
     }
@@ -456,10 +420,7 @@ where
                     })
                     .collect());
             }
-            Err(_) => Err(ApplicationError::new(
-                ApplicationErrorKind::InternalError,
-                "Database error",
-            )),
+            Err(err) => Err(ApplicationError::Infrastructure(err)),
         }
     }
 
@@ -484,12 +445,7 @@ where
             .await
         {
             Ok(inserted) => Ok(inserted),
-            Err(_) => {
-                return Err(ApplicationError::new(
-                    ApplicationErrorKind::InternalError,
-                    "Assign permission failed",
-                ))
-            }
+            Err(err) => Err(ApplicationError::Infrastructure(err)),
         }
     }
 
@@ -511,12 +467,7 @@ where
             .await
         {
             Ok(deleted) => Ok(deleted),
-            Err(_) => {
-                return Err(ApplicationError::new(
-                    ApplicationErrorKind::InternalError,
-                    "Assign permission failed",
-                ))
-            }
+            Err(err) => Err(ApplicationError::Infrastructure(err)),
         }
     }
 }

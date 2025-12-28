@@ -1,8 +1,8 @@
-use mail_send::{mail_builder::MessageBuilder, Credentials, SmtpClientBuilder};
-use crate::domain::{
-    errors::domain_error::{DomainError, ErrorType},
-    helpers::email_helper_trait::{EmailHelperTrait, EmailMessage},
+use crate::{
+    domain::helpers::email_helper_trait::{EmailHelperTrait, EmailMessage},
+    InfraError,
 };
+use mail_send::{mail_builder::MessageBuilder, Credentials, SmtpClientBuilder};
 use std::sync::Arc;
 
 use crate::infrastructure::helpers::configuration_helper::ConfigurationHelper;
@@ -17,7 +17,7 @@ impl EmailHelper {
 }
 
 impl EmailHelperTrait for EmailHelper {
-    async fn send_email(&self, message: EmailMessage) -> Result<bool, DomainError> {
+    async fn send_email(&self, message: EmailMessage) -> Result<bool, InfraError> {
         let configuration_helper = Arc::new(ConfigurationHelper::new());
 
         let mut builed_message = MessageBuilder::new().subject(message.subject);
@@ -40,10 +40,8 @@ impl EmailHelperTrait for EmailHelper {
                 builed_message = builed_message.from(from_email.as_str());
             }
             _ => {
-                return Err(DomainError::new(
-                    ErrorType::EmailError,
-                    "Missing 'from' email address",
-                    None,
+                return Err(InfraError::EmailError(
+                    "Missing 'from' email address".to_string(),
                 ));
             }
         };
@@ -68,26 +66,14 @@ impl EmailHelperTrait for EmailHelper {
             .credentials(Credentials::new(username, password))
             .connect()
             .await
-            .map_err(|err| {
-                DomainError::new(
-                    ErrorType::EmailError,
-                    "Failed to connect to SMTP server",
-                    Some(err.to_string()),
-                )
-            })?
+            .map_err(|_| InfraError::EmailError("Failed to connect to SMTP server".to_string()))?
             // .send_signed(builed_message, &signer)
             .send(builed_message)
             .await;
 
         match sent {
             Ok(_) => Ok(true),
-            Err(e) => Err({
-                DomainError::new(
-                    ErrorType::EmailError,
-                    "Failed to send email",
-                    Some(e.to_string()),
-                )
-            }),
+            Err(_) => Err(InfraError::EmailError("Failed to send email".to_string())),
         }
     }
 }

@@ -1,16 +1,16 @@
+use super::super::entities::{
+    role, user,
+    user_role::{self, Entity as UserRole},
+};
 use crate::domain::{
     models::user_role_model::UserRoleModel,
     repositories::user_role_repository_trait::UserRoleRepositoryTrait,
 };
 use rex_game_shared_kernel::domain::transaction_manager_trait::TransactionWrapperTrait;
 use rex_game_shared_kernel::infrastructure::database::SeaOrmTransactionWrapper;
-use super::super::entities::{
-    role, user,
-    user_role::{self, Entity as UserRole},
-};
 
 use chrono::{DateTime, Utc};
-use rex_game_shared_kernel::domain::errors::domain_error::{DomainError, ErrorType};
+use rex_game_shared_kernel::InfraError;
 use sea_orm::{
     ColumnTrait, Condition, DatabaseConnection, EntityTrait, FromQueryResult, JoinType,
     QueryFilter, QuerySelect, RelationTrait, Set,
@@ -49,7 +49,7 @@ impl UserRoleRepositoryTrait for UserRoleRepository {
         &self,
         user_role_req: UserRoleModel,
         transaction: Box<&dyn TransactionWrapperTrait>,
-    ) -> Result<i32, DomainError> {
+    ) -> Result<i32, InfraError> {
         let user_role = user_role::ActiveModel {
             user_id: Set(user_role_req.user_id),
             role_id: Set(user_role_req.role_id),
@@ -64,28 +64,18 @@ impl UserRoleRepositoryTrait for UserRoleRepository {
         let it = transaction.as_ref().as_any();
         let transact = match it.downcast_ref::<SeaOrmTransactionWrapper>() {
             Some(i) => i,
-            None => {
-                return Err(DomainError::new(
-                    ErrorType::DatabaseError,
-                    "Unable to cast the transaction",
-                    None,
-                ))
-            }
+            None => return Err(InfraError::database("Unable to cast the transaction")),
         };
         match UserRole::insert(user_role)
             .exec(transact.txn.as_ref().unwrap())
             .await
         {
             Ok(result) => Ok(result.last_insert_id),
-            Err(err) => Err(DomainError::new(
-                ErrorType::DatabaseError,
-                err.to_string().as_str(),
-                None,
-            )),
+            Err(err) => Err(InfraError::database(err.to_string().as_str())),
         }
     }
 
-    async fn create_many(&self, user_role_req: Vec<UserRoleModel>) -> Result<i32, DomainError> {
+    async fn create_many(&self, user_role_req: Vec<UserRoleModel>) -> Result<i32, InfraError> {
         let db = self._db_connection.as_ref();
 
         let user_roles = user_role_req
@@ -106,11 +96,7 @@ impl UserRoleRepositoryTrait for UserRoleRepository {
                 Some(id) => Ok(id),
                 None => Ok(0), // insert_many may return None if empty
             },
-            Err(err) => Err(DomainError::new(
-                ErrorType::DatabaseError,
-                err.to_string().as_str(),
-                None,
-            )),
+            Err(err) => Err(InfraError::database(err.to_string().as_str())),
         }
     }
 
@@ -118,7 +104,7 @@ impl UserRoleRepositoryTrait for UserRoleRepository {
         &self,
         user_id: i32,
         user_role_req: Vec<UserRoleModel>,
-    ) -> Result<u64, DomainError> {
+    ) -> Result<u64, InfraError> {
         let db = self._db_connection.as_ref();
 
         let delete_role_ids = user_role_req
@@ -135,18 +121,14 @@ impl UserRoleRepositoryTrait for UserRoleRepository {
             .await
         {
             Ok(result) => Ok(result.rows_affected),
-            Err(err) => Err(DomainError::new(
-                ErrorType::DatabaseError,
-                err.to_string().as_str(),
-                None,
-            )),
+            Err(err) => Err(InfraError::database(err.to_string().as_str())),
         }
     }
 
     fn get_user_roles_by_user_id(
         &self,
         user_id: i32,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<UserRoleModel>, DomainError>> + Send>> {
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<UserRoleModel>, InfraError>> + Send>> {
         let db_connection = Arc::clone(&self._db_connection);
         Box::pin(async move {
             let db = db_connection.as_ref();
@@ -170,9 +152,7 @@ impl UserRoleRepositoryTrait for UserRoleRepository {
                 .into_model::<UserRoleWithUser>()
                 .all(db)
                 .await
-                .map_err(|err| {
-                    DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-                })?;
+                .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
             let roles = existing
                 .into_iter()
@@ -198,7 +178,7 @@ impl UserRoleRepositoryTrait for UserRoleRepository {
 
     fn get_list(
         &self,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<UserRoleModel>, DomainError>> + Send>> {
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<UserRoleModel>, InfraError>> + Send>> {
         let db_connection = Arc::clone(&self._db_connection);
         Box::pin(async move {
             let db = db_connection.as_ref();
@@ -221,9 +201,7 @@ impl UserRoleRepositoryTrait for UserRoleRepository {
                 .into_model::<UserRoleWithUser>()
                 .all(db)
                 .await
-                .map_err(|err| {
-                    DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-                })?;
+                .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
             let roles = existing
                 .into_iter()
@@ -251,7 +229,7 @@ impl UserRoleRepositoryTrait for UserRoleRepository {
         &self,
         user_id: i32,
         roles: HashSet<String>,
-    ) -> Pin<Box<dyn Future<Output = Result<bool, DomainError>> + Send>> {
+    ) -> Pin<Box<dyn Future<Output = Result<bool, InfraError>> + Send>> {
         let db_connection = Arc::clone(&self._db_connection);
         let role_names = roles.into_iter().collect::<Vec<String>>();
 
@@ -263,9 +241,7 @@ impl UserRoleRepositoryTrait for UserRoleRepository {
                 .filter(Condition::all().add(role::Column::Name.is_in(role_names)))
                 .one(db)
                 .await
-                .map_err(|err| {
-                    DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-                });
+                .map_err(|err| InfraError::database(err.to_string().as_str()));
 
             match existing {
                 Ok(roles) => Ok(roles.is_some()),

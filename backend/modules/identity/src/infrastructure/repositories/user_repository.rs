@@ -2,18 +2,16 @@ use crate::domain::{
     models::{user_model::UserModel, user_statuses::UserStatuses},
     repositories::user_repository_trait::UserRepositoryTrait,
 };
-use rex_game_shared_kernel::domain::transaction_manager_trait::TransactionWrapperTrait;
-use crate::infrastructure::{
-    entities::{
-        role,
-        user::{self, Entity as User},
-        user_role,
-    },
+use crate::infrastructure::entities::{
+    role,
+    user::{self, Entity as User},
+    user_role,
 };
-use rex_game_shared_kernel::infrastructure::database::SeaOrmTransactionWrapper;
 use chrono::Utc;
-use rex_game_shared_kernel::domain::errors::domain_error::{DomainError, ErrorType};
 use rex_game_shared_kernel::domain::models::page_list_model::PageListModel;
+use rex_game_shared_kernel::domain::transaction_manager_trait::TransactionWrapperTrait;
+use rex_game_shared_kernel::infrastructure::database::SeaOrmTransactionWrapper;
+use rex_game_shared_kernel::InfraError;
 use sea_orm::{
     ColumnTrait, Condition, DatabaseConnection, EntityTrait, JoinType, PaginatorTrait, QueryFilter,
     QueryOrder, QuerySelect, RelationTrait, Set, TransactionTrait,
@@ -42,7 +40,7 @@ impl UserRepositoryTrait for UserRepository {
         role_name: Option<String>,
         page: u64,
         page_size: u64,
-    ) -> Result<PageListModel<UserModel>, DomainError> {
+    ) -> Result<PageListModel<UserModel>, InfraError> {
         let db = self._db_connection.as_ref();
         let mut query =
             User::find().filter(user::Column::StatusId.ne(UserStatuses::Deleted as i32));
@@ -69,13 +67,15 @@ impl UserRepositoryTrait for UserRepository {
             .distinct();
 
         let paginator = query.paginate(db, page_size);
-        let total_count = paginator.num_items().await.map_err(|err| {
-            DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-        })?;
+        let total_count = paginator
+            .num_items()
+            .await
+            .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
-        let page_list = paginator.fetch_page(page - 1).await.map_err(|err| {
-            DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-        })?;
+        let page_list = paginator
+            .fetch_page(page - 1)
+            .await
+            .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
         let items = page_list
             .into_iter()
@@ -95,16 +95,10 @@ impl UserRepositoryTrait for UserRepository {
         return Ok(PageListModel { items, total_count });
     }
 
-    async fn create(&self, user_req: UserModel) -> Result<i32, DomainError> {
+    async fn create(&self, user_req: UserModel) -> Result<i32, InfraError> {
         let db_transaction = match self._db_connection.begin().await {
             Ok(transaction) => transaction,
-            Err(err) => {
-                return Err(DomainError::new(
-                    ErrorType::DatabaseError,
-                    err.to_string().as_str(),
-                    None,
-                ))
-            }
+            Err(err) => return Err(InfraError::database(err.to_string().as_str())),
         };
 
         let new_user = user::ActiveModel {
@@ -124,9 +118,7 @@ impl UserRepositoryTrait for UserRepository {
         let inserted_user = User::insert(new_user)
             .exec(&db_transaction)
             .await
-            .map_err(|err| {
-                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-            })?;
+            .map_err(|err| InfraError::database(err.to_string().as_str()))?;
         let updating_user: user::ActiveModel = user::ActiveModel {
             id: Set(inserted_user.last_insert_id),
             created_by_id: Set(Some(inserted_user.last_insert_id)),
@@ -137,20 +129,18 @@ impl UserRepositoryTrait for UserRepository {
         let updated_user = User::update(updating_user).exec(&db_transaction).await;
         match updated_user {
             Ok(_) => {
-                db_transaction.commit().await.map_err(|err| {
-                    DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-                })?;
+                db_transaction
+                    .commit()
+                    .await
+                    .map_err(|err| InfraError::database(err.to_string().as_str()))?;
                 return Ok(inserted_user.last_insert_id);
             }
             Err(err) => {
-                db_transaction.rollback().await.map_err(|err| {
-                    DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-                })?;
-                return Err(DomainError::new(
-                    ErrorType::DatabaseError,
-                    err.to_string().as_str(),
-                    None,
-                ));
+                db_transaction
+                    .rollback()
+                    .await
+                    .map_err(|err| InfraError::database(err.to_string().as_str()))?;
+                return Err(InfraError::database(err.to_string().as_str()));
             }
         }
     }
@@ -159,7 +149,7 @@ impl UserRepositoryTrait for UserRepository {
         &self,
         user_req: UserModel,
         transaction: Box<&dyn TransactionWrapperTrait>,
-    ) -> Result<i32, DomainError> {
+    ) -> Result<i32, InfraError> {
         let new_user = user::ActiveModel {
             display_name: Set(user_req.display_name),
             email: Set(user_req.email),
@@ -177,20 +167,12 @@ impl UserRepositoryTrait for UserRepository {
         let it = transaction.as_ref().as_any();
         let transact = match it.downcast_ref::<SeaOrmTransactionWrapper>() {
             Some(i) => i,
-            None => {
-                return Err(DomainError::new(
-                    ErrorType::DatabaseError,
-                    "Unable to cast the transaction",
-                    None,
-                ))
-            }
+            None => return Err(InfraError::database("Unable to cast the transaction")),
         };
         let inserted_user = User::insert(new_user)
             .exec(transact.txn.as_ref().unwrap())
             .await
-            .map_err(|err| {
-                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-            })?;
+            .map_err(|err| InfraError::database(err.to_string().as_str()))?;
         let updating_user: user::ActiveModel = user::ActiveModel {
             id: Set(inserted_user.last_insert_id),
             created_by_id: Set(Some(inserted_user.last_insert_id)),
@@ -206,11 +188,7 @@ impl UserRepositoryTrait for UserRepository {
                 return Ok(updated.id);
             }
             Err(err) => {
-                return Err(DomainError::new(
-                    ErrorType::DatabaseError,
-                    err.to_string().as_str(),
-                    None,
-                ));
+                return Err(InfraError::database(err.to_string().as_str()));
             }
         }
     }
@@ -218,66 +196,51 @@ impl UserRepositoryTrait for UserRepository {
     fn get_by_email(
         &self,
         email: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<UserModel, DomainError>> + Send>> {
+    ) -> Pin<Box<dyn Future<Output = Result<UserModel, InfraError>> + Send>> {
         let db = self._db_connection.clone();
         let email = email.to_owned();
         Box::pin(async move {
             let existing = User::find()
-                .filter(Condition::all().add(user::Column::Email.eq(email)))
+                .filter(Condition::all().add(user::Column::Email.eq(email.to_owned())))
                 .one(db.as_ref())
                 .await
-                .map_err(|err| {
-                    DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-                })?;
+                .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
             match existing {
                 Some(f) => Ok(self::map_entity_to_model(f)),
-                None => Err(DomainError::new(
-                    ErrorType::NotFound,
-                    "User not found",
-                    None,
-                )),
+                None => Err(InfraError::not_found("User not found", email.to_string())),
             }
         })
     }
 
-    async fn get_by_name(&self, name: &String) -> Result<UserModel, DomainError> {
+    async fn get_by_name(&self, name: &String) -> Result<UserModel, InfraError> {
         let db = self._db_connection.clone();
         let existing = User::find()
-            .filter(Condition::all().add(user::Column::Name.eq(name)))
+            .filter(Condition::all().add(user::Column::Name.eq(name.to_owned())))
             .one(db.as_ref())
             .await
-            .map_err(|err| {
-                DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-            })?;
+            .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
         match existing {
             Some(f) => Ok(self::map_entity_to_model(f)),
-            None => Err(DomainError::new(
-                ErrorType::NotFound,
-                "User not found",
-                None,
-            )),
+            None => Err(InfraError::not_found("User not found", name)),
         }
     }
 
-    async fn get_by_id(&self, id: i32) -> Result<UserModel, DomainError> {
+    async fn get_by_id(&self, id: i32) -> Result<UserModel, InfraError> {
         let db = self._db_connection.as_ref();
-        let existing = User::find_by_id(id).one(db).await.map_err(|err| {
-            DomainError::new(ErrorType::DatabaseError, err.to_string().as_str(), None)
-        })?;
+        let existing = User::find_by_id(id)
+            .one(db)
+            .await
+            .map_err(|err| InfraError::database(err.to_string().as_str()))?;
 
         match existing {
             Some(f) => Ok(self::map_entity_to_model(f)),
-            None => Err(DomainError::new(
-                ErrorType::NotFound,
-                "User not found",
-                None,
-            )),
+            None => Err(InfraError::not_found("User not found", id.to_string())),
         }
     }
 
-    async fn update(&self, user_req: UserModel) -> Result<bool, DomainError> {
+    async fn update(&self, user_req: UserModel) -> Result<bool, InfraError> {
         let db = self._db_connection.as_ref();
         let existing = User::find_by_id(user_req.id).one(db).await;
         let user_option = match existing {
@@ -288,10 +251,9 @@ impl UserRepositoryTrait for UserRepository {
         let mut existing_user: user::ActiveModel = match user_option {
             Some(f) => f.into(),
             None => {
-                return Err(DomainError::new(
-                    ErrorType::NotFound,
-                    "User Token not found",
-                    None,
+                return Err(InfraError::not_found(
+                    "User not found",
+                    user_req.id.to_string(),
                 ))
             }
         };
@@ -306,11 +268,7 @@ impl UserRepositoryTrait for UserRepository {
 
         match User::update(existing_user).exec(db).await {
             Ok(_) => Ok(true),
-            Err(err) => Err(DomainError::new(
-                ErrorType::DatabaseError,
-                err.to_string().as_str(),
-                None,
-            )),
+            Err(err) => Err(InfraError::database(err.to_string().as_str())),
         }
     }
 }

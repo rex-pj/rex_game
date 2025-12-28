@@ -1,12 +1,9 @@
+use rex_game_shared_kernel::InfraError;
 use std::{future::Future, pin::Pin};
 
-use crate::domain::models::{user_model::UserModel};
-use rex_game_shared_kernel::{
-    domain::{
-        errors::domain_error::DomainError,
-        models::page_list_model::PageListModel,
-        transaction_manager_trait::TransactionWrapperTrait,
-    },
+use crate::domain::models::user_model::UserModel;
+use rex_game_shared_kernel::domain::{
+    models::page_list_model::PageListModel, transaction_manager_trait::TransactionWrapperTrait,
 };
 
 pub trait UserRepositoryTrait {
@@ -18,20 +15,20 @@ pub trait UserRepositoryTrait {
         role_name: Option<String>,
         page: u64,
         page_size: u64,
-    ) -> impl Future<Output = Result<PageListModel<UserModel>, DomainError>>;
-    fn create(&self, user: UserModel) -> impl Future<Output = Result<i32, DomainError>>;
+    ) -> impl Future<Output = Result<PageListModel<UserModel>, InfraError>>;
+    fn create(&self, user: UserModel) -> impl Future<Output = Result<i32, InfraError>>;
 
     fn create_without_commit(
         &self,
         user: UserModel,
         transaction: Box<&dyn TransactionWrapperTrait>,
-    ) -> impl Future<Output = Result<i32, DomainError>>;
+    ) -> impl Future<Output = Result<i32, InfraError>>;
 
     fn get_by_email(
         &self,
         email: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<UserModel, DomainError>> + Send>>;
-    fn get_by_id(&self, id: i32) -> impl Future<Output = Result<UserModel, DomainError>>;
-    fn get_by_name(&self, name: &String) -> impl Future<Output = Result<UserModel, DomainError>>;
-    fn update(&self, user_req: UserModel) -> impl Future<Output = Result<bool, DomainError>>;
+    ) -> Pin<Box<dyn Future<Output = Result<UserModel, InfraError>> + Send>>;
+    fn get_by_id(&self, id: i32) -> impl Future<Output = Result<UserModel, InfraError>>;
+    fn get_by_name(&self, name: &String) -> impl Future<Output = Result<UserModel, InfraError>>;
+    fn update(&self, user_req: UserModel) -> impl Future<Output = Result<bool, InfraError>>;
 }

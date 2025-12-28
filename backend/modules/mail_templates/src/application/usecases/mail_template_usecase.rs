@@ -4,9 +4,9 @@ use super::{
 };
 use crate::{domain::models::MailTemplateModel, infrastructure::repositories::MailTemplateRepository};
 use chrono::Utc;
-use rex_game_shared_kernel::domain::{
-    errors::domain_error::DomainError,
-    models::page_list_model::PageListModel,
+use rex_game_shared_kernel::{
+    InfraError,
+    domain::models::page_list_model::PageListModel,
 };
 
 #[derive(Clone)]
@@ -23,7 +23,7 @@ impl MailTemplateUseCase {
 }
 
 impl MailTemplateUseCaseTrait for MailTemplateUseCase {
-    async fn create(&self, mail_template_req: MailTemplateCreationDto) -> Result<i32, DomainError> {
+    async fn create(&self, mail_template_req: MailTemplateCreationDto) -> Result<i32, InfraError> {
         let model = MailTemplateModel {
             id: 0,
             name: mail_template_req.name,
@@ -39,7 +39,7 @@ impl MailTemplateUseCaseTrait for MailTemplateUseCase {
         self._mail_template_repository.create(model).await
     }
 
-    async fn update(&self, mail_template_req: MailTemplateUpdationDto) -> Result<bool, DomainError> {
+    async fn update(&self, mail_template_req: MailTemplateUpdationDto) -> Result<bool, InfraError> {
         // Get existing mail template
         let existing = self._mail_template_repository.get_by_id(mail_template_req.id).await?;
 
@@ -58,7 +58,7 @@ impl MailTemplateUseCaseTrait for MailTemplateUseCase {
         self._mail_template_repository.update(model).await
     }
 
-    async fn delete(&self, mail_template_req: MailTemplateDeletionDto) -> Result<bool, DomainError> {
+    async fn delete(&self, mail_template_req: MailTemplateDeletionDto) -> Result<bool, InfraError> {
         self._mail_template_repository.delete(mail_template_req.id).await
     }
 
@@ -67,7 +67,7 @@ impl MailTemplateUseCaseTrait for MailTemplateUseCase {
         page: u64,
         per_page: u64,
         search: String,
-    ) -> Result<PageListModel<MailTemplateDto>, DomainError> {
+    ) -> Result<PageListModel<MailTemplateDto>, InfraError> {
         let result = self._mail_template_repository.get_list(page, per_page, search).await?;
         
         let items = result.items.into_iter().map(|m| MailTemplateDto {
@@ -89,7 +89,7 @@ impl MailTemplateUseCaseTrait for MailTemplateUseCase {
         })
     }
 
-    async fn get_by_id(&self, id: i32) -> Result<MailTemplateDto, DomainError> {
+    async fn get_by_id(&self, id: i32) -> Result<MailTemplateDto, InfraError> {
         let model = self._mail_template_repository.get_by_id(id).await?;
         Ok(MailTemplateDto {
             id: model.id,
@@ -105,7 +105,7 @@ impl MailTemplateUseCaseTrait for MailTemplateUseCase {
         })
     }
 
-    async fn get_by_name(&self, name: String) -> Result<MailTemplateDto, DomainError> {
+    async fn get_by_name(&self, name: String) -> Result<MailTemplateDto, InfraError> {
         let model = self._mail_template_repository.get_by_name(name).await?;
         Ok(MailTemplateDto {
             id: model.id,

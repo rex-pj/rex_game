@@ -70,7 +70,8 @@ impl UserHandler {
         let page = params.page.unwrap_or(1);
         let page_size = params.page_size.unwrap_or(10);
         let users = _state
-            .usecases.user
+            .usecases
+            .user
             .get_users(
                 params.display_name,
                 params.name,
@@ -91,7 +92,8 @@ impl UserHandler {
         State(_state): State<AppState>,
     ) -> Result<Json<UserDto>, StatusCode> {
         let user = _state
-            .usecases.user
+            .usecases
+            .user
             .get_user_by_id(id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -123,7 +125,8 @@ impl UserHandler {
         })?;
 
         let existing_user = _state
-            .usecases.user
+            .usecases
+            .user
             .get_user_by_email(&req.email)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR);
@@ -145,12 +148,13 @@ impl UserHandler {
         };
 
         let signup_result = _state
-            .usecases.identity_user
+            .usecases
+            .identity_user
             .create_user(new_user, &req.password)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
@@ -161,9 +165,7 @@ impl UserHandler {
             purpose: UserTokenPurposes::SignupConfirmation.to_string(),
             iat: Some(Utc::now().timestamp()),
         };
-        let generated_token_option = _state
-            .helpers.token
-            .generate_token(generated_token_options);
+        let generated_token_option = _state.helpers.token.generate_token(generated_token_options);
 
         let generated_token = match generated_token_option {
             Some(token) => token,
@@ -186,17 +188,19 @@ impl UserHandler {
         };
 
         _state
-            .usecases.identity_user_token
+            .usecases
+            .identity_user_token
             .create_user_token(token_creation)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
         let register_mail_template = match _state
-            .usecases.mail_template
+            .usecases
+            .mail_template
             .get_by_name(MailTemplateNames::USER_REGISTRATION_CONFIRMATION.to_string())
             .await
         {
@@ -236,7 +240,8 @@ impl UserHandler {
                 .replace("[platform_name]", &platform_name);
 
             _state
-                .helpers.email
+                .helpers
+                .email
                 .send_email(EmailMessage {
                     to_name: Some(req.name.to_owned()),
                     to_email: req.email,
@@ -249,7 +254,7 @@ impl UserHandler {
                 .await
                 .map_err(|err| HandlerError {
                     status: StatusCode::INTERNAL_SERVER_ERROR,
-                    message: err.message,
+                    message: err.to_string(),
                     ..Default::default()
                 })?;
         }
@@ -298,19 +303,20 @@ impl UserHandler {
             Err(err) => {
                 return Err(HandlerError {
                     status: StatusCode::BAD_REQUEST,
-                    message: err.message,
+                    message: err.to_string(),
                     ..Default::default()
                 })
             }
         };
 
         let user_token = _state
-            .usecases.identity_user_token
+            .usecases
+            .identity_user_token
             .get_user_token_by_token(signup_token)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
@@ -325,17 +331,19 @@ impl UserHandler {
         }
 
         let existing_user = _state
-            .usecases.user
+            .usecases
+            .user
             .get_user_by_id(token_validation.sub)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
         _state
-            .usecases.identity_user_token
+            .usecases
+            .identity_user_token
             .update_user_token(
                 user_token.id,
                 UserTokenUpdationDto {
@@ -372,7 +380,8 @@ impl UserHandler {
         };
 
         let result = _state
-            .usecases.user
+            .usecases
+            .user
             .update_user(token_validation.sub, updating)
             .await;
 
@@ -411,12 +420,13 @@ impl UserHandler {
         })?;
 
         let existing_user = _state
-            .usecases.user
+            .usecases
+            .user
             .get_user_by_email(&req.email)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::BAD_REQUEST,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
@@ -427,9 +437,7 @@ impl UserHandler {
             purpose: UserTokenPurposes::ForgotPassword.to_string(),
             iat: None,
         };
-        let generated_token_option = _state
-            .helpers.token
-            .generate_token(generated_token_options);
+        let generated_token_option = _state.helpers.token.generate_token(generated_token_options);
 
         let generated_token = match generated_token_option {
             Some(token) => token,
@@ -452,17 +460,19 @@ impl UserHandler {
         };
 
         _state
-            .usecases.identity_user_token
+            .usecases
+            .identity_user_token
             .create_user_token(token_creation)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
         let forgot_password_mail_template = match _state
-            .usecases.mail_template
+            .usecases
+            .mail_template
             .get_by_name(MailTemplateNames::PASSWORD_RESET_REQUEST.to_string())
             .await
         {
@@ -503,7 +513,8 @@ impl UserHandler {
                 .replace("[platform_name]", &platform_name);
 
             _state
-                .helpers.email
+                .helpers
+                .email
                 .send_email(EmailMessage {
                     to_name: Some(existing_user.name.to_owned()),
                     to_email: req.email,
@@ -516,7 +527,7 @@ impl UserHandler {
                 .await
                 .map_err(|err| HandlerError {
                     status: StatusCode::INTERNAL_SERVER_ERROR,
-                    message: err.message,
+                    message: err.to_string(),
                     ..Default::default()
                 })?;
         }
@@ -560,12 +571,13 @@ impl UserHandler {
         };
 
         let user_token = _state
-            .usecases.identity_user_token
+            .usecases
+            .identity_user_token
             .get_user_token_by_token(reset_password_token)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
@@ -578,27 +590,26 @@ impl UserHandler {
             });
         }
 
-        let token_validation_result = _state
-            .helpers.token
-            .validate_token(reset_password_token);
+        let token_validation_result = _state.helpers.token.validate_token(reset_password_token);
         let token_validation = match token_validation_result {
             Ok(info) => info,
             Err(err) => {
                 return Err(HandlerError {
                     status: StatusCode::BAD_REQUEST,
-                    message: err.message,
+                    message: err.to_string(),
                     ..Default::default()
                 })
             }
         };
 
         let existing_user = _state
-            .usecases.user
+            .usecases
+            .user
             .get_user_by_id(token_validation.sub)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
@@ -611,7 +622,8 @@ impl UserHandler {
         }
 
         _state
-            .usecases.identity_user_token
+            .usecases
+            .identity_user_token
             .update_user_token(
                 user_token.id,
                 UserTokenUpdationDto {
@@ -632,7 +644,8 @@ impl UserHandler {
         };
 
         let result = _state
-            .usecases.user
+            .usecases
+            .user
             .update_user(token_validation.sub, updating)
             .await;
         return match result {
@@ -678,12 +691,13 @@ impl UserHandler {
         }
 
         let existing = _state
-            .usecases.user
+            .usecases
+            .user
             .get_user_by_id(current_user.id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
@@ -747,12 +761,13 @@ impl UserHandler {
         };
 
         let existing = _state
-            .usecases.user
+            .usecases
+            .user
             .get_user_by_id(current_user.id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
@@ -777,7 +792,8 @@ impl UserHandler {
         }
 
         let is_succeed = _state
-            .usecases.user
+            .usecases
+            .user
             .delete_user_by_id(id, deletion_req)
             .await;
 
@@ -842,32 +858,35 @@ impl UserHandler {
         }
 
         _state
-            .usecases.user
+            .usecases
+            .user
             .get_user_by_id(user_id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
         let incomming_roles = _state
-            .usecases.role
+            .usecases
+            .role
             .get_roles_by_ids(role_ids)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
         let existing_assignments = _state
-            .usecases.user
+            .usecases
+            .user
             .get_user_roles_by_user_id(user_id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
@@ -887,7 +906,8 @@ impl UserHandler {
             .collect::<Vec<UserRoleCreationDto>>();
 
         _state
-            .usecases.user
+            .usecases
+            .user
             .assign_roles(user_id, to_be_assigned_roles.clone())
             .await
             .ok();
@@ -902,7 +922,8 @@ impl UserHandler {
             .collect();
 
         _state
-            .usecases.user
+            .usecases
+            .user
             .unassign_roles(user_id, to_be_deleted_roles)
             .await
             .ok();
@@ -916,12 +937,13 @@ impl UserHandler {
         Path(user_id): Path<i32>,
     ) -> HandlerResult<Json<Vec<UserRoleDto>>> {
         _state
-            .usecases.user
+            .usecases
+            .user
             .get_user_by_id(user_id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
@@ -938,7 +960,8 @@ impl UserHandler {
         }
 
         let user_roles = _state
-            .usecases.user
+            .usecases
+            .user
             .get_user_roles_by_user_id(user_id)
             .await;
 
@@ -1003,32 +1026,35 @@ impl UserHandler {
         }
 
         _state
-            .usecases.user
+            .usecases
+            .user
             .get_user_by_id(user_id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
         let incomming_permissions = _state
-            .usecases.permission
+            .usecases
+            .permission
             .get_permission_by_codes(permission_codes)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
         let existing_assignments = _state
-            .usecases.user
+            .usecases
+            .user
             .get_user_permissions_by_user_id(user_id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
@@ -1049,7 +1075,8 @@ impl UserHandler {
             .collect::<Vec<UserPermissionCreationDto>>();
 
         _state
-            .usecases.user
+            .usecases
+            .user
             .assign_permissions(user_id, to_be_assigned_permissons.clone())
             .await
             .ok();
@@ -1065,7 +1092,8 @@ impl UserHandler {
             .collect();
 
         _state
-            .usecases.user
+            .usecases
+            .user
             .unassign_permissions(user_id, to_be_deleted_permissions)
             .await
             .ok();
@@ -1079,12 +1107,13 @@ impl UserHandler {
         Path(user_id): Path<i32>,
     ) -> HandlerResult<Json<Vec<UserPermissionDto>>> {
         _state
-            .usecases.user
+            .usecases
+            .user
             .get_user_by_id(user_id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
@@ -1101,7 +1130,8 @@ impl UserHandler {
         }
 
         let user_permissions = _state
-            .usecases.user
+            .usecases
+            .user
             .get_user_permissions_by_user_id(user_id)
             .await;
 

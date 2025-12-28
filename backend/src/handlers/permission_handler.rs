@@ -13,19 +13,14 @@ use axum::{
     Extension, Json,
 };
 use hyper::StatusCode;
-use rex_game_shared_kernel::domain::models::PageListModel;
 use rex_game_identity::application::usecases::{
-    permission_creation_dto::PermissionCreationDto,
-    permission_deletion_dto::PermissionDeletionDto,
-    permission_dto::PermissionDto,
-    permission_updation_dto::PermissionUpdationDto,
-    PermissionUseCaseTrait,
-    role_permission_dto::RolePermissionDto,
-    RoleUseCaseTrait,
-    roles::ROLE_ROOT_ADMIN,
-    user_permission_dto::UserPermissionDto,
+    permission_creation_dto::PermissionCreationDto, permission_deletion_dto::PermissionDeletionDto,
+    permission_dto::PermissionDto, permission_updation_dto::PermissionUpdationDto,
+    role_permission_dto::RolePermissionDto, roles::ROLE_ROOT_ADMIN,
+    user_permission_dto::UserPermissionDto, PermissionUseCaseTrait, RoleUseCaseTrait,
     UserUseCaseTrait,
 };
+use rex_game_shared_kernel::domain::models::PageListModel;
 use serde::Deserialize;
 use validator::{Validate, ValidationErrors};
 
@@ -53,12 +48,13 @@ impl PermissionHandler {
 
         let page = params.page.unwrap_or(1);
         let permissions = _state
-            .usecases.permission
+            .usecases
+            .permission
             .get_permissions(params.name, params.description, page, params.page_size)
             .await;
         return match permissions {
             Ok(data) => Ok(Json(data)),
-            Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR)
+            Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
         };
     }
 
@@ -67,12 +63,13 @@ impl PermissionHandler {
         State(_state): State<AppState>,
     ) -> HandlerResult<Json<PermissionDto>> {
         let permission = _state
-            .usecases.permission
+            .usecases
+            .permission
             .get_permission_by_id(id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: format!("Permission not found: {}", err.message),
+                message: format!("Permission not found: {}", err),
                 ..Default::default()
             })?;
         Ok(Json(permission))
@@ -116,12 +113,13 @@ impl PermissionHandler {
         }
 
         let existing_permission: Option<PermissionDto> = _state
-            .usecases.permission
+            .usecases
+            .permission
             .get_permission_by_code(&req.code)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: format!("Failed to check existing permission: {}", err.message),
+                message: format!("Failed to check existing permission: {}", err),
                 ..Default::default()
             })?;
 
@@ -134,12 +132,13 @@ impl PermissionHandler {
         }
 
         let existing_permission_by_name: Option<PermissionDto> = _state
-            .usecases.permission
+            .usecases
+            .permission
             .get_permission_by_name(&req.name)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: format!("Failed to check existing permission: {}", err.message),
+                message: format!("Failed to check existing permission: {}", err),
                 ..Default::default()
             })?;
 
@@ -161,7 +160,8 @@ impl PermissionHandler {
             ..Default::default()
         };
         let created_result = _state
-            .usecases.permission
+            .usecases
+            .permission
             .create_permission(new_permission)
             .await;
         match created_result {
@@ -219,12 +219,13 @@ impl PermissionHandler {
         }
 
         let existing = _state
-            .usecases.permission
+            .usecases
+            .permission
             .get_permission_by_id(id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: format!("Permission not found: {}", err.message),
+                message: format!("Permission not found: {}", err),
                 ..Default::default()
             })?;
 
@@ -281,7 +282,8 @@ impl PermissionHandler {
         }
 
         let result = _state
-            .usecases.permission
+            .usecases
+            .permission
             .update_permission(id, updating)
             .await;
         return match result {
@@ -304,12 +306,13 @@ impl PermissionHandler {
         };
 
         let existing = _state
-            .usecases.permission
+            .usecases
+            .permission
             .get_permission_by_id(id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: format!("Permission not found: {}", err.message),
+                message: format!("Permission not found: {}", err),
                 ..Default::default()
             })?;
 
@@ -334,7 +337,8 @@ impl PermissionHandler {
         }
 
         let is_succeed = _state
-            .usecases.permission
+            .usecases
+            .permission
             .delete_permission_by_id(id, deletion_req)
             .await;
 

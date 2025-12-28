@@ -1,7 +1,8 @@
 use std::{collections::HashSet, future::Future, pin::Pin};
 
+use rex_game_shared_kernel::ApplicationError;
+
 use super::identity_authorize_usecase_trait::IdentityAuthorizeUseCaseTrait;
-use crate::application::errors::application_error::{ApplicationError, ApplicationErrorKind};
 use crate::domain::repositories::{
     role_permission_repository_trait::RolePermissionRepositoryTrait,
     user_permission_repository_trait::UserPermissionRepositoryTrait,
@@ -60,11 +61,7 @@ where
             let is_in_role = user_role_repository
                 .is_user_in_role(user_id, roles)
                 .await
-                .map_err(|_| ApplicationError {
-                    kind: ApplicationErrorKind::Unauthorized,
-                    message: String::from("Unauthorized"),
-                    details: None,
-                })?;
+                .map_err(|_| ApplicationError::unauthorized("User not in role"))?;
 
             Ok(is_in_role)
         })
@@ -81,12 +78,7 @@ where
             let is_in_permission = user_permission_repository
                 .is_user_in_permission(user_id, permission_codes)
                 .await
-                .map_err(|_| ApplicationError {
-                    kind: ApplicationErrorKind::Unauthorized,
-                    message: String::from("Unauthorized"),
-                    details: None,
-                })?;
-
+                .map_err(|_| ApplicationError::unauthorized("User not in permission"))?;
             Ok(is_in_permission)
         })
     }
@@ -105,12 +97,7 @@ where
             let is_in_permission = user_permission_repository
                 .are_roles_in_permission(role_ids, permission_codes)
                 .await
-                .map_err(|_| ApplicationError {
-                    kind: ApplicationErrorKind::Unauthorized,
-                    message: String::from("Unauthorized"),
-                    details: None,
-                })?;
-
+                .map_err(|_| ApplicationError::unauthorized("Roles not in permission"))?;
             Ok(is_in_permission)
         })
     }

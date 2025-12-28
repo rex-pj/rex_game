@@ -46,7 +46,8 @@ impl RoleHandler {
         }
         let page = params.page.unwrap_or(1);
         let roles = _state
-            .usecases.role
+            .usecases
+            .role
             .get_roles(params.name, params.description, page, params.page_size)
             .await;
         return match roles {
@@ -60,12 +61,13 @@ impl RoleHandler {
         State(_state): State<AppState>,
     ) -> HandlerResult<Json<RoleDto>> {
         let role = _state
-            .usecases.role
+            .usecases
+            .role
             .get_role_by_id(id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: format!("Role not found: {}", err.message),
+                message: format!("Role not found: {}", err),
                 ..Default::default()
             })?;
         Ok(Json(role))
@@ -109,7 +111,8 @@ impl RoleHandler {
         }
 
         let existing_role = _state
-            .usecases.role
+            .usecases
+            .role
             .get_role_by_name(req.name.as_str())
             .await;
 
@@ -184,12 +187,13 @@ impl RoleHandler {
         }
 
         let existing = _state
-            .usecases.role
+            .usecases
+            .role
             .get_role_by_id(id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: format!("Role not found: {}", err.message),
+                message: format!("Role not found: {}", err),
                 ..Default::default()
             })?;
 
@@ -253,12 +257,13 @@ impl RoleHandler {
         };
 
         let existing = _state
-            .usecases.role
+            .usecases
+            .role
             .get_role_by_id(id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: format!("Role not found: {}", err.message),
+                message: format!("Role not found: {}", err),
                 ..Default::default()
             })?;
 
@@ -283,7 +288,8 @@ impl RoleHandler {
         }
 
         let is_succeed = _state
-            .usecases.role
+            .usecases
+            .role
             .delete_role_by_id(id, deletion_req)
             .await;
 
@@ -348,32 +354,35 @@ impl RoleHandler {
         }
 
         _state
-            .usecases.role
+            .usecases
+            .role
             .get_role_by_id(role_id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: format!("Role not found: {}", err.message),
+                message: format!("Role not found: {}", err),
                 ..Default::default()
             })?;
 
         let incomming_permissions = _state
-            .usecases.permission
+            .usecases
+            .permission
             .get_permission_by_codes(permission_codes)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::BAD_REQUEST,
-                message: format!("Failed to fetch permissions: {}", err.message),
+                message: format!("Failed to fetch permissions: {}", err),
                 ..Default::default()
             })?;
 
         let existing_assignments = _state
-            .usecases.role
+            .usecases
+            .role
             .get_role_permissions_by_role_id(role_id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: format!("Failed to fetch existing role permissions: {}", err.message),
+                message: format!("Failed to fetch existing role permissions: {}", err),
                 ..Default::default()
             })?;
 
@@ -394,7 +403,8 @@ impl RoleHandler {
             .collect::<Vec<RolePermissionCreationDto>>();
 
         _state
-            .usecases.role
+            .usecases
+            .role
             .assign_permissions(role_id, to_be_assigned_permissons.clone())
             .await
             .ok();
@@ -410,7 +420,8 @@ impl RoleHandler {
             .collect();
 
         _state
-            .usecases.role
+            .usecases
+            .role
             .unassign_permissions(role_id, to_be_deleted_permissions)
             .await
             .ok();
@@ -424,12 +435,13 @@ impl RoleHandler {
         Path(role_id): Path<i32>,
     ) -> HandlerResult<Json<Vec<RolePermissionDto>>> {
         _state
-            .usecases.role
+            .usecases
+            .role
             .get_role_by_id(role_id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: format!("Role not found: {}", err.message),
+                message: format!("Role not found: {}", err),
                 ..Default::default()
             })?;
 
@@ -446,7 +458,8 @@ impl RoleHandler {
         }
 
         let role_permissions = _state
-            .usecases.role
+            .usecases
+            .role
             .get_role_permissions_by_role_id(role_id)
             .await;
 

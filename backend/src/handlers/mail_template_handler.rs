@@ -46,7 +46,8 @@ impl MailTemplateHandler {
         let per_page = params.page_size.unwrap_or(10);
         let search = params.name.unwrap_or_default();
         let mail_templates = _state
-            .usecases.mail_template
+            .usecases
+            .mail_template
             .get_list(page, per_page, search)
             .await;
 
@@ -74,12 +75,13 @@ impl MailTemplateHandler {
         State(_state): State<AppState>,
     ) -> HandlerResult<Json<MailTemplateDto>> {
         let mail_template = _state
-            .usecases.mail_template
+            .usecases
+            .mail_template
             .get_by_id(id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: format!("Mail template not found: {}", err.message),
+                message: format!("Mail template not found: {}", err),
                 ..Default::default()
             })?;
         Ok(Json(mail_template))
@@ -123,7 +125,8 @@ impl MailTemplateHandler {
         }
 
         let existing_mail_template = _state
-            .usecases.mail_template
+            .usecases
+            .mail_template
             .get_by_name(req.name.clone())
             .await;
 
@@ -142,7 +145,8 @@ impl MailTemplateHandler {
             created_by_id: Some(current_user.id),
         };
         let created_result = _state
-            .usecases.mail_template
+            .usecases
+            .mail_template
             .create(new_mail_template)
             .await;
         match created_result {
@@ -264,12 +268,13 @@ impl MailTemplateHandler {
         let deletion_req = MailTemplateDeletionDto { id };
 
         let existing = _state
-            .usecases.mail_template
+            .usecases
+            .mail_template
             .get_by_id(id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: format!("Mail template not found: {}", err.message),
+                message: format!("Mail template not found: {}", err),
                 ..Default::default()
             })?;
 

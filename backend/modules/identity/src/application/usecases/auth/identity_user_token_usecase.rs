@@ -1,5 +1,5 @@
-use crate::application::errors::application_error::{ApplicationError, ApplicationErrorKind};
-use rex_game_shared_kernel::domain::errors::domain_error::ErrorType;
+use rex_game_shared_kernel::ApplicationError;
+
 use super::{
     identity_user_token_usecase_trait::IdentityUserTokenUseCaseTrait,
     user_token_creation_dto::UserTokenCreationDto, user_token_dto::UserTokenDto,
@@ -50,10 +50,7 @@ where
         let result = self._user_token_repository.create(user_token_model).await;
         match result {
             Ok(id) => Ok(id),
-            Err(err) => Err(ApplicationError::new(
-                ApplicationErrorKind::InternalError,
-                &err.message,
-            ).with_details(err.details.unwrap_or_default())),
+            Err(err) => Err(ApplicationError::Infrastructure(err)),
         }
     }
 
@@ -72,20 +69,7 @@ where
                 is_actived: f.is_actived,
                 purpose: f.purpose,
             }),
-            Err(err) => match err.kind {
-                ErrorType::DatabaseError => Err(ApplicationError::new(
-                    ApplicationErrorKind::InternalError,
-                    &err.message,
-                ).with_details(err.details.unwrap_or_default())),
-                ErrorType::NotFound => Err(ApplicationError::new(
-                    ApplicationErrorKind::NotFound,
-                    &err.message,
-                ).with_details(err.details.unwrap_or_default())),
-                ErrorType::EmailError => Err(ApplicationError::new(
-                    ApplicationErrorKind::InternalError,
-                    &err.message,
-                ).with_details(err.details.unwrap_or_default())),
-            },
+            Err(err) => Err(ApplicationError::Infrastructure(err))?,
         }
     }
 
@@ -98,8 +82,9 @@ where
             ._user_token_repository
             .get_by_id(id)
             .await
-            .map_err(|err| {
-                ApplicationError::new(ApplicationErrorKind::NotFound, &err.message).with_details(err.details.unwrap_or_default())
+            .map_err(|_| ApplicationError::EntityNotFound {
+                entity: "UserToken".to_string(),
+                id: id.to_string(),
             })?;
 
         match user_token_req.is_actived {
@@ -110,10 +95,7 @@ where
         let updated = self._user_token_repository.update(existing).await;
         match updated {
             Ok(i) => Ok(i),
-            Err(err) => Err(ApplicationError::new(
-                ApplicationErrorKind::InternalError,
-                &err.message,
-            ).with_details(err.details.unwrap_or_default())),
+            Err(err) => Err(ApplicationError::Infrastructure(err)),
         }
     }
 }

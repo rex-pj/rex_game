@@ -4,7 +4,6 @@ use super::{
     role_permission_dto::RolePermissionDto, role_updation_dto::RoleUpdationDto,
     role_usecase_trait::RoleUseCaseTrait, user_role_dto::UserRoleDto,
 };
-use crate::application::errors::application_error::{ApplicationError, ApplicationErrorKind};
 use crate::domain::{
     models::{role_model::RoleModel, role_permission_model::RolePermissionModel},
     repositories::{
@@ -14,7 +13,7 @@ use crate::domain::{
     },
 };
 use chrono::Utc;
-use rex_game_shared_kernel::domain::models::page_list_model::PageListModel;
+use rex_game_shared_kernel::{domain::models::page_list_model::PageListModel, ApplicationError};
 use std::{future::Future, pin::Pin};
 
 #[derive(Clone)]
@@ -86,10 +85,7 @@ where
                     total_count: i.total_count,
                 })
             }
-            Err(_) => Err(ApplicationError::new(
-                ApplicationErrorKind::InternalError,
-                "Failed to get roles",
-            )),
+            Err(err) => Err(ApplicationError::Infrastructure(err)),
         }
     }
 
@@ -111,10 +107,7 @@ where
                     .collect();
                 Ok(items)
             }
-            Err(_) => Err(ApplicationError::new(
-                ApplicationErrorKind::InternalError,
-                "Failed to get roles by ids",
-            )),
+            Err(err) => Err(ApplicationError::Infrastructure(err)),
         }
     }
 
@@ -146,10 +139,7 @@ where
                 updated_date: f.updated_date.with_timezone(&Utc),
                 updated_by_id: f.updated_by_id,
             }),
-            Err(_) => Err(ApplicationError::new(
-                ApplicationErrorKind::InternalError,
-                "Database error",
-            )),
+            Err(err) => Err(ApplicationError::Infrastructure(err)),
         }
     }
 
@@ -165,10 +155,7 @@ where
         let created = self._role_repository.create(active_role).await;
 
         match created {
-            Err(_) => Err(ApplicationError::new(
-                ApplicationErrorKind::InternalError,
-                "Database error",
-            )),
+            Err(err) => Err(ApplicationError::Infrastructure(err)),
             Ok(i) => Ok(i),
         }
     }
@@ -228,10 +215,7 @@ where
                         })
                         .collect());
                 }
-                Err(_) => Err(ApplicationError::new(
-                    ApplicationErrorKind::InternalError,
-                    "Database error",
-                )),
+                Err(err) => Err(ApplicationError::Infrastructure(err)),
             }
         })
     }
@@ -262,10 +246,7 @@ where
                         })
                         .collect());
                 }
-                Err(_) => Err(ApplicationError::new(
-                    ApplicationErrorKind::InternalError,
-                    "Database error",
-                )),
+                Err(err) => Err(ApplicationError::Infrastructure(err)),
             }
         })
     }
@@ -296,10 +277,7 @@ where
                         })
                         .collect());
                 }
-                Err(_) => Err(ApplicationError::new(
-                    ApplicationErrorKind::InternalError,
-                    "Database error",
-                )),
+                Err(err) => Err(ApplicationError::Infrastructure(err)),
             }
         })
     }
@@ -327,10 +305,7 @@ where
                         })
                         .collect());
                 }
-                Err(_) => Err(ApplicationError::new(
-                    ApplicationErrorKind::InternalError,
-                    "Database error",
-                )),
+                Err(err) => Err(ApplicationError::Infrastructure(err)),
             }
         })
     }
@@ -356,12 +331,7 @@ where
             .await
         {
             Ok(inserted) => Ok(inserted),
-            Err(_) => {
-                return Err(ApplicationError::new(
-                    ApplicationErrorKind::InternalError,
-                    "Assign permission failed",
-                ))
-            }
+            Err(err) => Err(ApplicationError::Infrastructure(err)),
         }
     }
 
@@ -383,12 +353,7 @@ where
             .await
         {
             Ok(deleted) => Ok(deleted),
-            Err(_) => {
-                return Err(ApplicationError::new(
-                    ApplicationErrorKind::InternalError,
-                    "Assign permission failed",
-                ))
-            }
+            Err(err) => Err(ApplicationError::Infrastructure(err)),
         }
     }
 }

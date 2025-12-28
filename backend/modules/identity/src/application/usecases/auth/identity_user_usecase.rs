@@ -1,14 +1,16 @@
 use super::{
     identity_user_trait::IdentityUserTrait, identity_user_usecase_trait::IdentityUserUseCaseTrait,
 };
-use crate::application::errors::application_error::{ApplicationError, ApplicationErrorKind};
+use crate::application::usecases::loggedin_user_dto::{
+    LoggedInUserDto, LoggedInUserPermissonDto, LoggedInUserRoleDto,
+};
 use crate::application::usecases::role_usecase_trait::RoleUseCaseTrait;
-use crate::application::usecases::loggedin_user_dto::{LoggedInUserDto, LoggedInUserPermissonDto, LoggedInUserRoleDto};
 use crate::application::usecases::user_creation_dto::UserCreationDto;
 use crate::application::usecases::user_usecase_trait::UserUseCaseTrait;
 use crate::domain::services::password_hasher_trait::PasswordHasherTrait;
 use crate::domain::services::token_helper_trait::TokenHelperTrait;
 use rex_game_shared_kernel::domain::transaction_manager_trait::TransactionWrapperTrait;
+use rex_game_shared_kernel::ApplicationError;
 use std::future::Future;
 use std::pin::Pin;
 
@@ -77,12 +79,7 @@ where
             .await
         {
             Ok(id) => id,
-            Err(_) => {
-                return Err(ApplicationError::new(
-                    ApplicationErrorKind::InvalidInput,
-                    "Create user failed",
-                ))
-            }
+            Err(err) => return Err(err),
         };
 
         user.set_id(created_id);
@@ -110,12 +107,7 @@ where
                 status_id: user.status_id(),
             })
             .await
-            .map_err(|_| {
-                ApplicationError::new(
-                    ApplicationErrorKind::InvalidInput,
-                    "Create user failed",
-                )
-            })?;
+            .map_err(|err| err)?;
 
         user.set_id(created_id);
         Ok(user)
@@ -129,18 +121,17 @@ where
         let user_usecase = self._user_usecase.clone();
         let role_usecase = self._role_usecase.clone();
         Box::pin(async move {
-            let claims = token_helper.validate_token(access_token).map_err(|err| {
-                ApplicationError::new(ApplicationErrorKind::InvalidInput, &err.message)
-            })?;
+            let claims = token_helper
+                .validate_token(access_token)
+                .map_err(|err| ApplicationError::invalid_input(err.to_string()))?;
 
-            let email = claims.email.ok_or_else(|| {
-                ApplicationError::new(ApplicationErrorKind::NotFound, "No email found")
-            })?;
+            let email = claims
+                .email
+                .ok_or_else(|| ApplicationError::not_found("email", ""))?;
 
             let user = match user_usecase.get_user_by_email(&email).await {
                 Err(_) => {
-                    return Err(ApplicationError::new(
-                        ApplicationErrorKind::InvalidInput,
+                    return Err(ApplicationError::invalid_input(
                         "Failed to get the user by email",
                     ));
                 }
@@ -150,12 +141,7 @@ where
             let roles = user_usecase
                 .get_user_roles_by_user_id(user.id)
                 .await
-                .map_err(|_| {
-                    ApplicationError::new(
-                        ApplicationErrorKind::InvalidInput,
-                        "Failed to get the assigned roles",
-                    )
-                })?
+                .map_err(|_| ApplicationError::invalid_input("Failed to get the assigned roles"))?
                 .into_iter()
                 .map(|r| LoggedInUserRoleDto {
                     role_name: r.role_name,
@@ -167,10 +153,7 @@ where
                 .get_user_permissions_by_user_id(user.id)
                 .await
                 .map_err(|_| {
-                    ApplicationError::new(
-                        ApplicationErrorKind::InvalidInput,
-                        "Failed to get the assigned permissions",
-                    )
+                    ApplicationError::invalid_input("Failed to get the assigned permissions")
                 })?
                 .into_iter()
                 .map(|p| LoggedInUserPermissonDto {

@@ -45,12 +45,7 @@ pub struct UseCases {
             UserPermissionRepository,
             IdentityPasswordHasher,
         >,
-        RoleUseCase<
-            RoleRepository,
-            PermissionRepository,
-            RolePermissionRepository,
-            UserRoleRepository,
-        >,
+        RoleUseCase<RoleRepository, RolePermissionRepository, UserRoleRepository>,
         IdentityTokenHelper<ConfigurationHelper>,
     >,
     pub identity_authenticate: IdentityAuthenticateUseCase<
@@ -65,12 +60,7 @@ pub struct UseCases {
         >,
         IdentityTokenHelper<ConfigurationHelper>,
     >,
-    pub role: RoleUseCase<
-        RoleRepository,
-        PermissionRepository,
-        RolePermissionRepository,
-        UserRoleRepository,
-    >,
+    pub role: RoleUseCase<RoleRepository, RolePermissionRepository, UserRoleRepository>,
     pub permission: PermissionUseCase<PermissionRepository>,
     pub identity_authorize: IdentityAuthorizeUseCase<
         UserRoleRepository,

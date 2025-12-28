@@ -1,4 +1,5 @@
-use crate::application::errors::application_error::ApplicationError;
+use rex_game_shared_kernel::ApplicationError;
+
 use super::{
     user_token_creation_dto::UserTokenCreationDto, user_token_dto::UserTokenDto,
     user_token_updation_dto::UserTokenUpdationDto,

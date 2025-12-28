@@ -1,13 +1,10 @@
-use chrono::Utc;
 use crate::flashcard::domain::{
     models::flashcard_type_model::FlashcardTypeModel,
     repositories::flashcard_type_repository_trait::FlashcardTypeRepositoryTrait,
 };
+use chrono::Utc;
 
-use rex_game_shared_kernel::domain::{
-    errors::domain_error::{DomainError, ErrorType},
-    models::page_list_model::PageListModel,
-};
+use rex_game_shared_kernel::{domain::models::page_list_model::PageListModel, ApplicationError};
 
 use super::{
     flashcard_type_creation_dto::FlashcardTypeCreationDto, flashcard_type_dto::FlashcardTypeDto,
@@ -37,7 +34,7 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
         name: Option<String>,
         page: u64,
         page_size: u64,
-    ) -> Result<PageListModel<FlashcardTypeDto>, DomainError> {
+    ) -> Result<PageListModel<FlashcardTypeDto>, ApplicationError> {
         match self
             ._flashcard_type_repository
             .get_paged_list(name, page, page_size)
@@ -60,11 +57,7 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
                     total_count: i.total_count,
                 })
             }
-            Err(_) => Err(DomainError::new(
-                ErrorType::DatabaseError,
-                "Failed to get flashcard types",
-                None,
-            )),
+            Err(err) => Err(ApplicationError::Infrastructure(err)),
         }
     }
 
