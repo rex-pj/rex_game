@@ -1,0 +1,9 @@
+pub mod flashcard_file_repository_trait;
+pub mod flashcard_repository_trait;
+pub mod flashcard_type_relation_repository_trait;
+pub mod flashcard_type_repository_trait;
+
+pub use flashcard_file_repository_trait::FlashcardFileRepositoryTrait;
+pub use flashcard_repository_trait::FlashcardRepositoryTrait;
+pub use flashcard_type_relation_repository_trait::FlashcardTypeRelationRepositoryTrait;
+pub use flashcard_type_repository_trait::FlashcardTypeRepositoryTrait;

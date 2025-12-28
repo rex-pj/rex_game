@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(do if grep -q \"Func\\\\|Expr\" \"$file\")",
+      "Bash(! grep -q \"Expr, Func\" \"$file\")",
+      "Bash(then sed -i 's|Set,|Set, Expr, Func,|g' \"$file\")",
+      "Bash(fi)",
+      "Bash(grep:*)",
+      "Bash(echo:*)",
+      "Bash(do sed -i 's|use rex_game_shared_kernel::domain::{\\\\n    errors::domain_error::{DomainError, ErrorType},\\\\n    crate::flashcard::|use rex_game_shared_kernel::domain::errors::domain_error::{DomainError, ErrorType};\\\\nuse crate::flashcard::|g' \"$file\")",
+      "Bash(do sed -i '1,10 s|use crate::{|use rex_game_shared_kernel::domain::errors::domain_error::DomainError;\\\\nuse crate::flashcard::domain::{|g' \"$f\")",
+      "Bash(cargo build:*)",
+      "Bash(cat:*)",
+      "Bash(python3:*)",
+      "Bash(find:*)",
+      "Bash(1)",
+      "Bash(cargo clean:*)",
+      "Bash(rm:*)",
+      "Bash(cargo check:*)",
+      "Bash(for f in mod.rs flashcard_file_repository.rs flashcard_repository.rs flashcard_type_relation_repository.rs flashcard_type_repository.rs)",
+      "Bash(do sed -i '/^use sea_orm::prelude::\\\\*;$/d' \"$f\")",
+      "Bash(done)",
+      "Bash(for:*)",
+      "Bash(do sed -i 's|rex_game_shared_kernel::domain::repositories::|rex_game_identity::domain::repositories::|g; s|rex_game_shared_kernel::domain::models::role|rex_game_identity::domain::models::role|g; s|rex_game_shared_kernel::domain::models::permission|rex_game_identity::domain::models::permission|g; s|rex_game_shared_kernel::domain::models::user|rex_game_identity::domain::models::user|g' \"$f\")",
+      "Bash(dir:*)",
+      "Bash(git stash:*)",
+      "Bash(cargo tree:*)",
+      "Bash(cargo update:*)",
+      "Bash(tree:*)",
+      "Bash(cargo test:*)",
+      "Bash(cmd /c \"del /f REFACTORING_COMPLETE_SUMMARY.md 2>nul && echo Deleted successfully || echo File is locked\")",
+      "Bash(powershell -Command \"Remove-Item -Force ''REFACTORING_COMPLETE_SUMMARY.md'' -ErrorAction SilentlyContinue; if \\(-not \\(Test-Path ''REFACTORING_COMPLETE_SUMMARY.md''\\)\\) { Write-Host ''Deleted successfully'' } else { Write-Host ''Still exists'' }\")"
+    ]
+  }
+}

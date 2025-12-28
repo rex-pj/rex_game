@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 config = "0.15.4"
-axum = { version = "0.8.1", features = ["multipart", "macros"] }
+axum = { version = "0.8.8", features = ["multipart", "macros"] }
 chrono = "0.4.38"
 time = "0.3.41"
 axum-macros = "0.4.2"
@@ -13,11 +13,11 @@ hyper = { version = "1.0", features = [] }
 tower-http = { version = "0.6.1", features = ["cors"] }
 tower = { version = "0.5.2", features = ["full"] }
 tokio = { version = "1.42.0", features = ["full"] }
-rex-game-domain = { path = "./domain" }
-rex-game-infrastructure = { path = "./infrastructure" }
-rex-game-application = { path = "./application" }
 rex-game-migration = { path = "./migration" }
-rex-game-shared = { path = "./shared" }
+rex-game-shared-kernel = { path = "./shared_kernel" }
+rex-game-identity = { path = "./modules/identity" }
+rex-game-games = { path = "./modules/games" }
+rex-game-mail-templates = { path = "./modules/mail_templates" }
 # The core APIs, including the Serialize and Deserialize traits. Always
 # required when using Serde. The "derive" feature is only required when
 # using #[derive(Serialize, Deserialize)] to make Serde work with structs
@@ -45,9 +45,9 @@ features = [
 [workspace]
 members = [
     ".",
-    "application",
-    "domain",
-    "infrastructure",
     "migration",
-    "shared",
+    "shared_kernel",
+    "modules/identity",
+    "modules/games",
+    "modules/mail_templates",
 ]

@@ -3,7 +3,7 @@ use axum::{
     http::{header, HeaderValue, StatusCode},
     response::Response,
 };
-use rex_game_application::errors::application_error::{ApplicationError, ApplicationErrorKind};
+use rex_game_identity::errors::application_error::{ApplicationError, ApplicationErrorKind};
 
 pub struct HttpHelper {}
 
@@ -18,7 +18,6 @@ impl HttpHelper {
                 return Err(ApplicationError::new(
                     ApplicationErrorKind::InvalidInput,
                     "Invalid content type",
-                    None,
                 ))
             }
         };
@@ -32,7 +31,6 @@ impl HttpHelper {
             Err(_) => Err(ApplicationError::new(
                 ApplicationErrorKind::InvalidInput,
                 "Invalid data",
-                None,
             )),
         }
     }

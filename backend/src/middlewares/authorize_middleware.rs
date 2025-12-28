@@ -1,13 +1,10 @@
-use crate::{app_state::AppStateTrait, middlewares::AuthorizedState};
+use crate::{app_state::AppState, middlewares::AuthorizedState};
 use axum::{body::Body, extract::Request, response::Response};
 use hyper::StatusCode;
-use rex_game_application::{
-    identities::{
-        identity_authenticate_usecase_trait::IdentityAuthenticateUseCaseTrait,
-        identity_authorize_usecase_trait::IdentityAuthorizeUseCaseTrait,
-    },
-    roles::roles::ROLE_ROOT_ADMIN,
-    users::user_usecase_trait::UserUseCaseTrait,
+use rex_game_identity::application::usecases::{
+    auth::{IdentityAuthenticateUseCaseTrait, IdentityAuthorizeUseCaseTrait},
+    roles::ROLE_ROOT_ADMIN,
+    UserUseCaseTrait,
 };
 use std::{
     collections::HashSet,
@@ -19,19 +16,13 @@ use std::{
 use tower::{self, Layer, Service};
 
 #[derive(Clone)]
-pub struct AuthorizeLayer<T>
-where
-    T: AppStateTrait,
-{
-    pub app_state: Arc<T>,
+pub struct AuthorizeLayer {
+    pub app_state: Arc<AppState>,
     pub permissions: Option<Vec<String>>,
 }
 
-impl<S, T> Layer<S> for AuthorizeLayer<T>
-where
-    T: AppStateTrait,
-{
-    type Service = AuthorizeMiddleware<S, T>;
+impl<S> Layer<S> for AuthorizeLayer {
+    type Service = AuthorizeMiddleware<S>;
 
     fn layer(&self, inner: S) -> Self::Service {
         AuthorizeMiddleware {
@@ -43,17 +34,16 @@ where
 }
 
 #[derive(Clone)]
-pub struct AuthorizeMiddleware<S, T> {
+pub struct AuthorizeMiddleware<S> {
     pub inner: S,
-    _app_state: Arc<T>,
+    _app_state: Arc<AppState>,
     _permission_codes: Option<Vec<String>>,
 }
 
-impl<S, T> Service<Request> for AuthorizeMiddleware<S, T>
+impl<S> Service<Request> for AuthorizeMiddleware<S>
 where
     S: Service<Request, Response = Response> + Clone + Send + 'static,
     S::Future: Send + 'static,
-    T: AppStateTrait + Send + Sync + 'static,
 {
     type Response = S::Response;
     type Error = S::Error;
@@ -68,7 +58,7 @@ where
 
         let user_claims = match self
             ._app_state
-            .identity_authenticate_usecase()
+            .usecases.identity_authenticate
             .validate_token(auth_token)
         {
             Ok(claims) => claims,
@@ -87,7 +77,7 @@ where
                     required_permission_codes.into_iter().collect();
 
                 let user_roles = app_state
-                    .user_usecase()
+                    .usecases.user
                     .get_user_roles_by_user_id(user_id)
                     .await
                     .unwrap_or_default();
@@ -103,7 +93,7 @@ where
 
                 // Check if the user has the required permissions
                 let mut is_authorized = app_state
-                    .identity_authorize_usecase()
+                    .usecases.identity_authorize
                     .is_user_in_permission(user_id, required_permissions.to_owned())
                     .await
                     .is_ok_and(|is_ok| is_ok);
@@ -115,7 +105,7 @@ where
 
                     // Check if the user's roles have the required permissions
                     is_authorized = app_state
-                        .identity_authorize_usecase()
+                        .usecases.identity_authorize
                         .are_roles_in_permission(user_role_ids, required_permissions)
                         .await
                         .is_ok_and(|is_ok| is_ok);
@@ -133,7 +123,7 @@ where
     }
 }
 
-impl<S, T> AuthorizeMiddleware<S, T>
+impl<S> AuthorizeMiddleware<S>
 where
     S: Service<Request, Response = Response> + Clone + Send + 'static,
 {
