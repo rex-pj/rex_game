@@ -1,13 +1,11 @@
 use crate::{
-    app_state::AppStateTrait, middlewares::AuthorizedState,
+    app_state::AppState, middlewares::AuthorizedState,
     view_models::users::current_user::CurrentUser,
 };
 use axum::{body::Body, extract::Request, response::Response};
 use hyper::StatusCode;
-use rex_game_application::identities::{
-    identity_authenticate_usecase_trait::IdentityAuthenticateUseCaseTrait,
-    identity_authorize_usecase_trait::IdentityAuthorizeUseCaseTrait,
-    identity_user_usecase_trait::IdentityUserUseCaseTrait,
+use rex_game_identity::application::usecases::auth::{
+    IdentityAuthenticateUseCaseTrait, IdentityUserUseCaseTrait,
 };
 use std::{
     future::Future,
@@ -15,43 +13,36 @@ use std::{
     sync::Arc,
     task::{Context, Poll},
 };
-use tower::{self, Layer, Service};
+use tower::{Layer, Service};
 
+/// Authentication middleware layer - simplified version
 #[derive(Clone)]
-pub struct AuthenticateLayer<T>
-where
-    T: AppStateTrait,
-{
-    pub app_state: Arc<T>,
-    pub roles: Option<Vec<String>>,
+pub struct AuthenticateLayer {
+    pub app_state: Arc<AppState>,
 }
 
-impl<S, T> Layer<S> for AuthenticateLayer<T>
-where
-    T: AppStateTrait,
-{
-    type Service = AuthenticateMiddleware<S, T>;
+impl<S> Layer<S> for AuthenticateLayer {
+    type Service = AuthenticateMiddleware<S>;
 
     fn layer(&self, inner: S) -> Self::Service {
         AuthenticateMiddleware {
             inner,
-            _app_state: self.app_state.clone(),
-            _roles: self.roles.clone(),
+            app_state: self.app_state.clone(),
         }
     }
 }
 
+/// Authentication middleware service
 #[derive(Clone)]
-pub struct AuthenticateMiddleware<S, T> {
-    pub inner: S,
-    _app_state: Arc<T>,
-    _roles: Option<Vec<String>>,
+pub struct AuthenticateMiddleware<S> {
+    inner: S,
+    app_state: Arc<AppState>,
 }
-impl<S, T> Service<Request> for AuthenticateMiddleware<S, T>
+
+impl<S> Service<Request> for AuthenticateMiddleware<S>
 where
     S: Service<Request, Response = Response> + Clone + Send + 'static,
     S::Future: Send + 'static,
-    T: AppStateTrait + Send + Sync + 'static,
 {
     type Response = S::Response;
     type Error = S::Error;
@@ -62,47 +53,46 @@ where
     }
 
     fn call(&mut self, mut req: Request) -> Self::Future {
-        let auth_token = Self::get_auth_token(&req).unwrap_or("");
-
-        // Verify the access token and extract user claims
-        // If verification fails, return Unauthorized response
-        let user_claims = match self
-            ._app_state
-            .identity_authenticate_usecase()
-            .validate_token(auth_token)
-        {
-            Ok(claims) => claims,
-            Err(_) => {
-                return Box::pin(async { Self::unauthorized_response() });
+        let auth_token = match get_auth_token(&req) {
+            Some(token) => token.to_string(),
+            None => {
+                return Box::pin(async { Ok(unauthorized_response()) });
             }
         };
 
-        let uer_id = user_claims.sub;
-        let app_state = self._app_state.clone();
+        // Verify the access token and extract user claims
+        let user_claims = match self
+            .app_state
+            .usecases
+            .identity_authenticate
+            .validate_token(&auth_token)
+        {
+            Ok(claims) => claims,
+            Err(_) => {
+                return Box::pin(async { Ok(unauthorized_response()) });
+            }
+        };
+
+        let user_id = user_claims.sub;
+        let app_state = self.app_state.clone();
         let mut inner = self.inner.clone();
-        let required_roles_option = self._roles.clone();
-        let access_token = auth_token.to_string();
+        let email = user_claims.email;
 
         Box::pin(async move {
-            // If there are required roles, check if the user has any of them
-            if let Some(roles) = required_roles_option {
-                let is_authorized = app_state
-                    .identity_authorize_usecase()
-                    .is_user_in_role(uer_id, roles.into_iter().collect())
-                    .await
-                    .is_ok_and(|is_ok| is_ok);
-                if !is_authorized {
-                    return Self::unauthorized_response();
-                }
-            }
-
+            // Fetch current user with roles and permissions
             let current_user = match app_state
-                .identity_user_usecase()
-                .get_logged_in_user(access_token.as_str())
+                .usecases
+                .identity_user
+                .get_logged_in_user(auth_token.as_str())
                 .await
             {
                 Ok(user) => user,
-                Err(_) => return Self::unauthorized_response(),
+                Err(_) => return Ok(unauthorized_response()),
+            };
+
+            let email = match email {
+                Some(e) => e,
+                None => return Ok(unauthorized_response()),
             };
 
             let role_names: Vec<String> = current_user
@@ -116,49 +106,35 @@ where
                 .map(|perm| perm.permisson_code)
                 .collect();
 
-            let email = match user_claims.email {
-                Some(mail_address) => mail_address,
-                None => return Self::unauthorized_response(),
-            };
             let user = Arc::new(CurrentUser {
-                id: uer_id,
-                email: email,
+                id: user_id,
+                email,
                 name: current_user.name,
                 display_name: current_user.display_name,
                 roles: role_names,
                 permissions: user_permission_codes,
             });
+
             req.extensions_mut().insert(AuthorizedState::IsInRole);
             req.extensions_mut().insert(user);
+
             inner.call(req).await
         })
     }
 }
 
-impl<S, T> AuthenticateMiddleware<S, T>
-where
-    S: Service<Request, Response = Response> + Clone + Send + 'static,
-{
-    pub fn unauthorized_response() -> Result<S::Response, S::Error> {
-        return Ok(Response::builder()
-            .status(StatusCode::UNAUTHORIZED)
-            .body(Body::from("Unauthorized"))
-            .unwrap());
-    }
+/// Extract token from Authorization header (Bearer scheme)
+fn get_auth_token(req: &Request) -> Option<&str> {
+    req.headers()
+        .get("Authorization")
+        .and_then(|header| header.to_str().ok())
+        .and_then(|header| header.strip_prefix("Bearer "))
+}
 
-    pub fn get_auth_token(req: &Request) -> Option<&str> {
-        let auth_header = req
-            .headers()
-            .get("Authorization")
-            .and_then(|header| header.to_str().ok());
-
-        // Extract the token from the Authorization header
-        // The header should be in the format "Bearer <token>"
-        let token_option = match auth_header {
-            Some(header) => header.strip_prefix("Bearer "),
-            None => None,
-        };
-
-        return token_option;
-    }
+/// Build a generic unauthorized response
+fn unauthorized_response() -> Response {
+    Response::builder()
+        .status(StatusCode::UNAUTHORIZED)
+        .body(Body::from("Unauthorized"))
+        .unwrap()
 }

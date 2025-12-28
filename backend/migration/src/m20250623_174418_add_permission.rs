@@ -182,7 +182,15 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // Replace the sample below with your own migration scripts
+        // Drop tables in reverse order to avoid foreign key constraint violations
+        manager
+            .drop_table(Table::drop().table(RolePermission::Table).to_owned())
+            .await?;
+
+        manager
+            .drop_table(Table::drop().table(UserPermission::Table).to_owned())
+            .await?;
+
         manager
             .drop_table(Table::drop().table(Permission::Table).to_owned())
             .await?;

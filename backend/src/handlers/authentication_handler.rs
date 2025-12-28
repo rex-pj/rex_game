@@ -1,5 +1,5 @@
 use crate::{
-    app_state::AppStateTrait,
+    app_state::AppState,
     validators::validation_helper::ValidationHelper,
     view_models::{
         authentications::user_login_request::UserLoginRequest, users::login_result::LoginResult,
@@ -12,13 +12,13 @@ use axum_extra::extract::{
     CookieJar,
 };
 use hyper::StatusCode;
-use rex_game_application::identities::identity_authenticate_usecase_trait::IdentityAuthenticateUseCaseTrait;
-use rex_game_infrastructure::helpers::datetime_helper_trait::DateTimeHelperTrait;
+use rex_game_identity::application::usecases::auth::IdentityAuthenticateUseCaseTrait;
+use rex_game_shared::infrastructure::helpers::datetime_helper_trait::DateTimeHelperTrait;
 use validator::{Validate, ValidationErrors};
 
 impl AuthenticationHandler {
-    pub async fn login<T: AppStateTrait>(
-        State(_state): State<T>,
+    pub async fn login(
+        State(_state): State<AppState>,
         jar: CookieJar,
         Json(payload): Json<Option<UserLoginRequest>>,
     ) -> HandlerResult<(CookieJar, Json<LoginResult>)> {
@@ -43,7 +43,8 @@ impl AuthenticationHandler {
         })?;
 
         let token_claims = match _state
-            .identity_authenticate_usecase()
+            .usecases
+            .identity_authenticate
             .password_login(&req.email, &req.password)
             .await
         {
@@ -62,7 +63,8 @@ impl AuthenticationHandler {
         cookie.set_same_site(SameSite::Lax);
         cookie.set_secure(true);
         let refresh_token_expires = _state
-            .date_time_helper()
+            .helpers
+            .date_time
             .timestamp_to_offset_date_time(token_claims.refresh_token_expiration);
         match refresh_token_expires {
             Ok(offset) => cookie.set_expires(Expiration::DateTime(offset)),
@@ -76,7 +78,8 @@ impl AuthenticationHandler {
         }
 
         let access_token_expires = match _state
-            .date_time_helper()
+            .helpers
+            .date_time
             .timestamp_to_utc_date_time(token_claims.expiration)
         {
             Ok(offset) => offset,
@@ -98,8 +101,8 @@ impl AuthenticationHandler {
         ))
     }
 
-    pub async fn logout<T: AppStateTrait>(
-        State(_state): State<T>,
+    pub async fn logout(
+        State(_state): State<AppState>,
         jar: CookieJar,
     ) -> HandlerResult<(CookieJar, Json<bool>)> {
         let mut cookie = Cookie::new("refresh_token", "");
@@ -110,9 +113,9 @@ impl AuthenticationHandler {
         Ok((jar.remove(cookie), Json(true)))
     }
 
-    pub async fn refresh_access_token<T: AppStateTrait>(
+    pub async fn refresh_access_token(
         headers: HeaderMap,
-        State(_state): State<T>,
+        State(_state): State<AppState>,
         jar: CookieJar,
     ) -> HandlerResult<(CookieJar, Json<LoginResult>)> {
         let access_token_header = match headers.get("authorization") {
@@ -149,7 +152,8 @@ impl AuthenticationHandler {
             }
         };
         let token_claims = match _state
-            .identity_authenticate_usecase()
+            .usecases
+            .identity_authenticate
             .refresh_access_token(&access_token, &req_refresh_token)
             .await
         {
@@ -168,7 +172,8 @@ impl AuthenticationHandler {
         cookie.set_same_site(SameSite::Lax);
         cookie.set_secure(true);
         let refresh_token_expires = _state
-            .date_time_helper()
+            .helpers
+            .date_time
             .timestamp_to_offset_date_time(token_claims.refresh_token_expiration);
         match refresh_token_expires {
             Ok(offset) => cookie.set_expires(Expiration::DateTime(offset)),
@@ -182,7 +187,8 @@ impl AuthenticationHandler {
         }
 
         let access_token_expires = match _state
-            .date_time_helper()
+            .helpers
+            .date_time
             .timestamp_to_utc_date_time(token_claims.expiration)
         {
             Ok(offset) => offset,

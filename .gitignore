@@ -1,2 +1,13 @@
 /backend/target
 backend/src/config.dev.toml
+.github
+.claude
+
+# Environment files (contain secrets) - DO NOT COMMIT
+backend/environments/.env.dev
+backend/environments/.env.prod
+backend/environments/.env.local
+backend/environments/.env
+**/.env.local
+**/.env.dev
+**/.env.prod

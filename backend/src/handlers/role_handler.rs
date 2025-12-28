@@ -1,5 +1,5 @@
 use crate::{
-    app_state::AppStateTrait,
+    app_state::AppState,
     validators::validation_helper::ValidationHelper,
     view_models::{
         roles::role_create_request::RoleCreateRequest,
@@ -12,17 +12,13 @@ use axum::{
     Extension, Json,
 };
 use hyper::StatusCode;
-use rex_game_application::{
-    page_list_dto::PageListDto,
-    permissions::permission_usecase_trait::PermissionUseCaseTrait,
-    roles::{
-        role_creation_dto::RoleCreationDto, role_deletion_dto::RoleDeletionDto, role_dto::RoleDto,
-        role_permission_creation_dto::RolePermissionCreationDto,
-        role_permission_dto::RolePermissionDto, role_updation_dto::RoleUpdationDto,
-        role_usecase_trait::RoleUseCaseTrait, roles::ROLE_ROOT_ADMIN,
-    },
-    users::user_role_dto::UserRoleDto,
+use rex_game_identity::application::usecases::{
+    role_creation_dto::RoleCreationDto, role_deletion_dto::RoleDeletionDto, role_dto::RoleDto,
+    role_permission_creation_dto::RolePermissionCreationDto,
+    role_permission_dto::RolePermissionDto, role_updation_dto::RoleUpdationDto,
+    roles::ROLE_ROOT_ADMIN, user_role_dto::UserRoleDto, PermissionUseCaseTrait, RoleUseCaseTrait,
 };
+use rex_game_shared::domain::models::PageListModel;
 use serde::Deserialize;
 use std::{collections::HashMap, sync::Arc};
 use validator::{Validate, ValidationErrors};
@@ -36,58 +32,50 @@ pub struct RoleQuery {
 }
 
 impl RoleHandler {
-    pub async fn get_roles<T: AppStateTrait>(
+    pub async fn get_roles(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
         Query(params): Query<RoleQuery>,
-    ) -> HandlerResult<Json<PageListDto<RoleDto>>> {
+    ) -> Result<Json<PageListModel<RoleDto>>, StatusCode> {
         if !current_user
             .roles
             .iter()
             .any(|role| role == ROLE_ROOT_ADMIN)
         {
-            return Err(HandlerError {
-                status: StatusCode::FORBIDDEN,
-                message: "You do not have permission to view roles".to_string(),
-                ..Default::default()
-            });
+            return Err(StatusCode::FORBIDDEN);
         }
         let page = params.page.unwrap_or(1);
         let roles = _state
-            .role_usecase()
+            .usecases
+            .role
             .get_roles(params.name, params.description, page, params.page_size)
             .await;
         return match roles {
             Ok(data) => Ok(Json(data)),
-            Err(_) => {
-                return Err(HandlerError {
-                    status: StatusCode::INTERNAL_SERVER_ERROR,
-                    message: "Failed to fetch roles".to_string(),
-                    ..Default::default()
-                })
-            }
+            Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
         };
     }
 
-    pub async fn get_role_by_id<T: AppStateTrait>(
+    pub async fn get_role_by_id(
         Path(id): Path<i32>,
-        State(_state): State<T>,
+        State(_state): State<AppState>,
     ) -> HandlerResult<Json<RoleDto>> {
         let role = _state
-            .role_usecase()
+            .usecases
+            .role
             .get_role_by_id(id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: format!("Role not found: {}", err.message),
+                message: format!("Role not found: {}", err),
                 ..Default::default()
             })?;
         Ok(Json(role))
     }
 
-    pub async fn create_role<T: AppStateTrait>(
+    pub async fn create_role(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
         Json(payload): Json<Option<RoleCreateRequest>>,
     ) -> HandlerResult<Json<i32>> {
         let req = match payload {
@@ -123,7 +111,8 @@ impl RoleHandler {
         }
 
         let existing_role = _state
-            .role_usecase()
+            .usecases
+            .role
             .get_role_by_name(req.name.as_str())
             .await;
 
@@ -142,7 +131,7 @@ impl RoleHandler {
             updated_by_id: Some(current_user.id),
             ..Default::default()
         };
-        let created_result = _state.role_usecase().create_role(new_role).await;
+        let created_result = _state.usecases.role.create_role(new_role).await;
         match created_result {
             Ok(created_id) => Ok(Json(created_id)),
             Err(_) => Err(HandlerError {
@@ -153,9 +142,9 @@ impl RoleHandler {
         }
     }
 
-    pub async fn update_role<T: AppStateTrait>(
+    pub async fn update_role(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
         Path(id): Path<i32>,
         Json(payload): Json<Option<HashMap<String, String>>>,
     ) -> HandlerResult<Json<bool>> {
@@ -198,12 +187,13 @@ impl RoleHandler {
         }
 
         let existing = _state
-            .role_usecase()
+            .usecases
+            .role
             .get_role_by_id(id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: format!("Role not found: {}", err.message),
+                message: format!("Role not found: {}", err),
                 ..Default::default()
             })?;
 
@@ -231,7 +221,7 @@ impl RoleHandler {
                     });
                 }
 
-                if let Some(_) = _state.role_usecase().get_role_by_name(&name).await {
+                if let Some(_) = _state.usecases.role.get_role_by_name(&name).await {
                     return Err(HandlerError {
                         status: StatusCode::BAD_REQUEST,
                         message: "This name already exists. Please choose a different one."
@@ -246,7 +236,7 @@ impl RoleHandler {
             }
         }
 
-        let result = _state.role_usecase().update_role(id, updating).await;
+        let result = _state.usecases.role.update_role(id, updating).await;
         return match result {
             None => Err(HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
@@ -257,9 +247,9 @@ impl RoleHandler {
         };
     }
 
-    pub async fn delete_role<T: AppStateTrait>(
+    pub async fn delete_role(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
         Path(id): Path<i32>,
     ) -> HandlerResult<Json<bool>> {
         let deletion_req = RoleDeletionDto {
@@ -267,12 +257,13 @@ impl RoleHandler {
         };
 
         let existing = _state
-            .role_usecase()
+            .usecases
+            .role
             .get_role_by_id(id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: format!("Role not found: {}", err.message),
+                message: format!("Role not found: {}", err),
                 ..Default::default()
             })?;
 
@@ -297,7 +288,8 @@ impl RoleHandler {
         }
 
         let is_succeed = _state
-            .role_usecase()
+            .usecases
+            .role
             .delete_role_by_id(id, deletion_req)
             .await;
 
@@ -313,9 +305,9 @@ impl RoleHandler {
         }
     }
 
-    pub async fn assign_permissions<T: AppStateTrait>(
+    pub async fn assign_permissions(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
         Path(role_id): Path<i32>,
         Json(payload): Json<Option<AssignPermissionRequest>>,
     ) -> HandlerResult<Json<i32>> {
@@ -362,32 +354,35 @@ impl RoleHandler {
         }
 
         _state
-            .role_usecase()
+            .usecases
+            .role
             .get_role_by_id(role_id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: format!("Role not found: {}", err.message),
+                message: format!("Role not found: {}", err),
                 ..Default::default()
             })?;
 
         let incomming_permissions = _state
-            .permission_usecase()
+            .usecases
+            .permission
             .get_permission_by_codes(permission_codes)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::BAD_REQUEST,
-                message: format!("Failed to fetch permissions: {}", err.message),
+                message: format!("Failed to fetch permissions: {}", err),
                 ..Default::default()
             })?;
 
         let existing_assignments = _state
-            .role_usecase()
+            .usecases
+            .role
             .get_role_permissions_by_role_id(role_id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: format!("Failed to fetch existing role permissions: {}", err.message),
+                message: format!("Failed to fetch existing role permissions: {}", err),
                 ..Default::default()
             })?;
 
@@ -408,7 +403,8 @@ impl RoleHandler {
             .collect::<Vec<RolePermissionCreationDto>>();
 
         _state
-            .role_usecase()
+            .usecases
+            .role
             .assign_permissions(role_id, to_be_assigned_permissons.clone())
             .await
             .ok();
@@ -424,7 +420,8 @@ impl RoleHandler {
             .collect();
 
         _state
-            .role_usecase()
+            .usecases
+            .role
             .unassign_permissions(role_id, to_be_deleted_permissions)
             .await
             .ok();
@@ -432,18 +429,19 @@ impl RoleHandler {
         Ok(Json(to_be_assigned_permissons.len() as i32))
     }
 
-    pub async fn get_permissions<T: AppStateTrait>(
+    pub async fn get_permissions(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
         Path(role_id): Path<i32>,
     ) -> HandlerResult<Json<Vec<RolePermissionDto>>> {
         _state
-            .role_usecase()
+            .usecases
+            .role
             .get_role_by_id(role_id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: format!("Role not found: {}", err.message),
+                message: format!("Role not found: {}", err),
                 ..Default::default()
             })?;
 
@@ -460,7 +458,8 @@ impl RoleHandler {
         }
 
         let role_permissions = _state
-            .role_usecase()
+            .usecases
+            .role
             .get_role_permissions_by_role_id(role_id)
             .await;
 
@@ -476,9 +475,9 @@ impl RoleHandler {
         }
     }
 
-    pub async fn get_user_roles<T: AppStateTrait>(
+    pub async fn get_user_roles(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
     ) -> HandlerResult<Json<Vec<UserRoleDto>>> {
         if !current_user
             .roles
@@ -492,7 +491,7 @@ impl RoleHandler {
             });
         }
 
-        let user_roles = _state.role_usecase().get_user_roles().await;
+        let user_roles = _state.usecases.role.get_user_roles().await;
         match user_roles {
             Ok(u) => Ok(Json(u)),
             Err(_) => {

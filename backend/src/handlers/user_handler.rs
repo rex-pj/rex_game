@@ -6,38 +6,37 @@ use crate::view_models::users::current_user::CurrentUser;
 use crate::view_models::users::forgot_password_request::ForgotPasswordRequest;
 use crate::view_models::users::reset_password_request::ResetPasswordRequest;
 use crate::view_models::{HandlerError, HandlerResult};
-use crate::{app_state::AppStateTrait, view_models::users::signup_request::SignupRequest};
+use crate::{app_state::AppState, view_models::users::signup_request::SignupRequest};
 use axum::extract::{Path, Query};
 use axum::Extension;
 use axum::{extract::State, Json};
 use chrono::{DateTime, Duration, Utc};
 use hyper::StatusCode;
-use rex_game_application::identities::identity_user_token_usecase_trait::IdentityUserTokenUseCaseTrait;
-use rex_game_application::identities::identity_user_usecase_trait::IdentityUserUseCaseTrait;
-use rex_game_application::identities::user_creation_dto::UserCreationDto;
-use rex_game_application::identities::user_token_creation_dto::UserTokenCreationDto;
-use rex_game_application::identities::user_token_updation_dto::UserTokenUpdationDto;
-use rex_game_application::mail_templates::mail_template_usecase_trait::MailTemplateUseCaseTrait;
-use rex_game_application::page_list_dto::PageListDto;
-use rex_game_application::permissions::permission_usecase_trait::PermissionUseCaseTrait;
-use rex_game_application::roles::role_usecase_trait::RoleUseCaseTrait;
-use rex_game_application::roles::roles::ROLE_ROOT_ADMIN;
-use rex_game_application::users::user_deletion_dto::UserDeletionDto;
-use rex_game_application::users::user_dto::UserDto;
-use rex_game_application::users::user_permission_creation_dto::UserPermissionCreationDto;
-use rex_game_application::users::user_permission_dto::UserPermissionDto;
-use rex_game_application::users::user_role_creation_dto::UserRoleCreationDto;
-use rex_game_application::users::user_role_dto::UserRoleDto;
-use rex_game_application::users::user_updation_dto::UserUpdationDto;
-use rex_game_application::users::user_usecase_trait::UserUseCaseTrait;
-use rex_game_domain::helpers::configuration_helper_trait::ConfigurationHelperTrait;
-use rex_game_domain::helpers::email_helper_trait::{EmailHelperTrait, EmailMessage};
-use rex_game_domain::identities::token_helper_trait::TokenHelperTrait;
-use rex_game_domain::identities::TokenGenerationOptions;
-use rex_game_domain::models::user_statuses::UserStatuses;
-use rex_game_infrastructure::helpers::configuration_helper::ConfigurationHelper;
-use rex_game_shared::enums::mail_template_names::MailTemplateNames;
-use rex_game_shared::enums::user_token_porposes::UserTokenPurposes;
+use rex_game_identity::application::usecases::{
+    auth::{
+        user_creation_dto::UserCreationDto, user_token_creation_dto::UserTokenCreationDto,
+        user_token_updation_dto::UserTokenUpdationDto, IdentityUserTokenUseCaseTrait,
+        IdentityUserUseCaseTrait,
+    },
+    roles::ROLE_ROOT_ADMIN,
+    user_deletion_dto::UserDeletionDto,
+    user_dto::UserDto,
+    user_permission_creation_dto::UserPermissionCreationDto,
+    user_permission_dto::UserPermissionDto,
+    user_role_creation_dto::UserRoleCreationDto,
+    user_role_dto::UserRoleDto,
+    user_updation_dto::UserUpdationDto,
+    PermissionUseCaseTrait, RoleUseCaseTrait, UserUseCaseTrait,
+};
+use rex_game_identity::domain::models::user_statuses::UserStatuses;
+use rex_game_identity::domain::services::token_helper_trait::TokenHelperTrait;
+use rex_game_identity::domain::services::TokenGenerationOptions;
+use rex_game_mail_templates::application::MailTemplateUseCaseTrait;
+use rex_game_shared::domain::enums::mail_template_names::MailTemplateNames;
+use rex_game_shared::domain::enums::user_token_porposes::UserTokenPurposes;
+use rex_game_shared::domain::helpers::email_helper_trait::{EmailHelperTrait, EmailMessage};
+use rex_game_shared::domain::models::PageListModel;
+use rex_game_shared::infrastructure::helpers::configuration_helper::ConfigurationHelper;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -56,26 +55,23 @@ pub struct UserQuery {
 }
 
 impl UserHandler {
-    pub async fn get_users<T: AppStateTrait>(
+    pub async fn get_users(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
         Query(params): Query<UserQuery>,
-    ) -> HandlerResult<Json<PageListDto<UserDto>>> {
+    ) -> Result<Json<PageListModel<UserDto>>, StatusCode> {
         if !current_user
             .roles
             .iter()
             .any(|role| role == ROLE_ROOT_ADMIN)
         {
-            return Err(HandlerError {
-                status: StatusCode::FORBIDDEN,
-                message: "Access denied".to_string(),
-                ..Default::default()
-            });
+            return Err(StatusCode::FORBIDDEN);
         }
         let page = params.page.unwrap_or(1);
         let page_size = params.page_size.unwrap_or(10);
         let users = _state
-            .user_usecase()
+            .usecases
+            .user
             .get_users(
                 params.display_name,
                 params.name,
@@ -87,30 +83,25 @@ impl UserHandler {
             .await;
         return match users {
             Ok(data) => Ok(Json(data)),
-            Err(_) => {
-                return Err(HandlerError {
-                    status: StatusCode::INTERNAL_SERVER_ERROR,
-                    message: "Failed to fetch users".to_string(),
-                    ..Default::default()
-                })
-            }
+            Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
         };
     }
 
-    pub async fn get_user_by_id<T: AppStateTrait>(
+    pub async fn get_user_by_id(
         Path(id): Path<i32>,
-        State(_state): State<T>,
+        State(_state): State<AppState>,
     ) -> Result<Json<UserDto>, StatusCode> {
         let user = _state
-            .user_usecase()
+            .usecases
+            .user
             .get_user_by_id(id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
         Ok(Json(user))
     }
 
-    pub async fn create_user<T: AppStateTrait>(
-        State(_state): State<T>,
+    pub async fn create_user(
+        State(_state): State<AppState>,
         Json(payload): Json<Option<SignupRequest>>,
     ) -> HandlerResult<Json<i32>> {
         let req = match payload {
@@ -134,22 +125,9 @@ impl UserHandler {
         })?;
 
         let existing_user = _state
-            .user_usecase()
+            .usecases
+            .user
             .get_user_by_email(&req.email)
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR);
-
-        if existing_user.is_ok() {
-            return Err(HandlerError {
-                status: StatusCode::CONFLICT,
-                message: "Email already in use".to_string(),
-                ..Default::default()
-            });
-        }
-
-        let existing_user = _state
-            .user_usecase()
-            .get_user_by_name(&req.name)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR);
 
@@ -170,12 +148,13 @@ impl UserHandler {
         };
 
         let signup_result = _state
-            .identity_user_usecase()
+            .usecases
+            .identity_user
             .create_user(new_user, &req.password)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
@@ -185,10 +164,10 @@ impl UserHandler {
             exp_secs: Duration::days(1).num_seconds(),
             purpose: UserTokenPurposes::SignupConfirmation.to_string(),
             iat: Some(Utc::now().timestamp()),
+            permissions: vec![],
+            roles: vec![],
         };
-        let generated_token_option = _state
-            .identity_token_helper()
-            .generate_token(generated_token_options);
+        let generated_token_option = _state.helpers.token.generate_token(generated_token_options);
 
         let generated_token = match generated_token_option {
             Some(token) => token,
@@ -211,22 +190,24 @@ impl UserHandler {
         };
 
         _state
-            .identity_user_token_usecase()
+            .usecases
+            .identity_user_token
             .create_user_token(token_creation)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
         let register_mail_template = match _state
-            .mail_template_usecase()
-            .get_mail_template_by_name(MailTemplateNames::USER_REGISTRATION_CONFIRMATION)
+            .usecases
+            .mail_template
+            .get_by_name(MailTemplateNames::USER_REGISTRATION_CONFIRMATION.to_string())
             .await
         {
-            Some(template) => template,
-            None => {
+            Ok(template) => template,
+            Err(_) => {
                 return Err(HandlerError {
                     status: StatusCode::INTERNAL_SERVER_ERROR,
                     message: "Failed to get mail template".to_string(),
@@ -237,11 +218,11 @@ impl UserHandler {
 
         if register_mail_template.is_enabled {
             let configuration_helper = Arc::new(ConfigurationHelper::new());
-            let verification_url = configuration_helper.get_value("email.signup_verification_url");
-            let from_name = configuration_helper.get_value("email.from_name");
-            let username = configuration_helper.get_value("email.username");
-            let platform_name = configuration_helper.get_value("email.platform_name");
-            let platform_url = configuration_helper.get_value("email.platform_url");
+            let verification_url = configuration_helper.get("SIGNUP_VERIFICATION_URL");
+            let from_name = configuration_helper.get("EMAIL_FROM_NAME");
+            let username = configuration_helper.get("SMTP_USERNAME");
+            let platform_name = configuration_helper.get("PLATFORM_NAME");
+            let platform_url = configuration_helper.get("PLATFORM_URL");
             let expiration_date = DateTime::from_timestamp(generated_token.exp as i64, 0)
                 .unwrap()
                 .format("%d/%m/%Y %H:%M")
@@ -261,7 +242,8 @@ impl UserHandler {
                 .replace("[platform_name]", &platform_name);
 
             _state
-                .email_helper()
+                .helpers
+                .email
                 .send_email(EmailMessage {
                     to_name: Some(req.name.to_owned()),
                     to_email: req.email,
@@ -274,7 +256,7 @@ impl UserHandler {
                 .await
                 .map_err(|err| HandlerError {
                     status: StatusCode::INTERNAL_SERVER_ERROR,
-                    message: err.message,
+                    message: err.to_string(),
                     ..Default::default()
                 })?;
         }
@@ -282,8 +264,8 @@ impl UserHandler {
         Ok(Json(signup_result.id))
     }
 
-    pub async fn confirm_user<T: AppStateTrait>(
-        State(_state): State<T>,
+    pub async fn confirm_user(
+        State(_state): State<AppState>,
         Json(payload): Json<Option<ConfirmUserRequest>>,
     ) -> HandlerResult<Json<bool>> {
         let request = match payload {
@@ -317,25 +299,26 @@ impl UserHandler {
             }
         };
 
-        let token_validation_result = _state.identity_token_helper().validate_token(signup_token);
+        let token_validation_result = _state.helpers.token.validate_token(signup_token);
         let token_validation = match token_validation_result {
             Ok(info) => info,
             Err(err) => {
                 return Err(HandlerError {
                     status: StatusCode::BAD_REQUEST,
-                    message: err.message,
+                    message: err.to_string(),
                     ..Default::default()
                 })
             }
         };
 
         let user_token = _state
-            .identity_user_token_usecase()
+            .usecases
+            .identity_user_token
             .get_user_token_by_token(signup_token)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
@@ -350,17 +333,19 @@ impl UserHandler {
         }
 
         let existing_user = _state
-            .user_usecase()
+            .usecases
+            .user
             .get_user_by_id(token_validation.sub)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
         _state
-            .identity_user_token_usecase()
+            .usecases
+            .identity_user_token
             .update_user_token(
                 user_token.id,
                 UserTokenUpdationDto {
@@ -397,7 +382,8 @@ impl UserHandler {
         };
 
         let result = _state
-            .user_usecase()
+            .usecases
+            .user
             .update_user(token_validation.sub, updating)
             .await;
 
@@ -411,8 +397,8 @@ impl UserHandler {
         };
     }
 
-    pub async fn forgot_password<T: AppStateTrait>(
-        State(_state): State<T>,
+    pub async fn forgot_password(
+        State(_state): State<AppState>,
         Json(payload): Json<Option<ForgotPasswordRequest>>,
     ) -> HandlerResult<Json<bool>> {
         let req = match payload {
@@ -436,12 +422,13 @@ impl UserHandler {
         })?;
 
         let existing_user = _state
-            .user_usecase()
+            .usecases
+            .user
             .get_user_by_email(&req.email)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::BAD_REQUEST,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
@@ -451,10 +438,10 @@ impl UserHandler {
             exp_secs: Duration::days(1).num_seconds(),
             purpose: UserTokenPurposes::ForgotPassword.to_string(),
             iat: None,
+            permissions: vec![],
+            roles: vec![],
         };
-        let generated_token_option = _state
-            .identity_token_helper()
-            .generate_token(generated_token_options);
+        let generated_token_option = _state.helpers.token.generate_token(generated_token_options);
 
         let generated_token = match generated_token_option {
             Some(token) => token,
@@ -477,22 +464,24 @@ impl UserHandler {
         };
 
         _state
-            .identity_user_token_usecase()
+            .usecases
+            .identity_user_token
             .create_user_token(token_creation)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
         let forgot_password_mail_template = match _state
-            .mail_template_usecase()
-            .get_mail_template_by_name(MailTemplateNames::PASSWORD_RESET_REQUEST)
+            .usecases
+            .mail_template
+            .get_by_name(MailTemplateNames::PASSWORD_RESET_REQUEST.to_string())
             .await
         {
-            Some(template) => template,
-            None => {
+            Ok(template) => template,
+            Err(_) => {
                 return Err(HandlerError {
                     status: StatusCode::INTERNAL_SERVER_ERROR,
                     message: "Failed to get mail template".to_string(),
@@ -502,13 +491,12 @@ impl UserHandler {
         };
 
         if forgot_password_mail_template.is_enabled {
-            let configuration_helper = _state.configuration_helper();
-            let reset_password_url: String =
-                configuration_helper.get_value("email.reset_password_url");
-            let from_name: String = configuration_helper.get_value("email.from_name");
-            let username: String = configuration_helper.get_value("email.username");
-            let platform_name: String = configuration_helper.get_value("email.platform_name");
-            let platform_url: String = configuration_helper.get_value("email.platform_url");
+            let configuration_helper = _state.helpers.configuration;
+            let reset_password_url: String = configuration_helper.get("RESET_PASSWORD_URL");
+            let from_name: String = configuration_helper.get("EMAIL_FROM_NAME");
+            let username: String = configuration_helper.get("SMTP_USERNAME");
+            let platform_name: String = configuration_helper.get("PLATFORM_NAME");
+            let platform_url: String = configuration_helper.get("PLATFORM_URL");
             let expiration_date: String = DateTime::from_timestamp(generated_token.exp as i64, 0)
                 .unwrap()
                 .format("%d/%m/%Y %H:%M")
@@ -528,7 +516,8 @@ impl UserHandler {
                 .replace("[platform_name]", &platform_name);
 
             _state
-                .email_helper()
+                .helpers
+                .email
                 .send_email(EmailMessage {
                     to_name: Some(existing_user.name.to_owned()),
                     to_email: req.email,
@@ -541,7 +530,7 @@ impl UserHandler {
                 .await
                 .map_err(|err| HandlerError {
                     status: StatusCode::INTERNAL_SERVER_ERROR,
-                    message: err.message,
+                    message: err.to_string(),
                     ..Default::default()
                 })?;
         }
@@ -549,8 +538,8 @@ impl UserHandler {
         Ok(Json(true))
     }
 
-    pub async fn reset_password<T: AppStateTrait>(
-        State(_state): State<T>,
+    pub async fn reset_password(
+        State(_state): State<AppState>,
         Json(payload): Json<Option<ResetPasswordRequest>>,
     ) -> HandlerResult<Json<bool>> {
         let request = match payload {
@@ -585,12 +574,13 @@ impl UserHandler {
         };
 
         let user_token = _state
-            .identity_user_token_usecase()
+            .usecases
+            .identity_user_token
             .get_user_token_by_token(reset_password_token)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
@@ -603,27 +593,26 @@ impl UserHandler {
             });
         }
 
-        let token_validation_result = _state
-            .identity_token_helper()
-            .validate_token(reset_password_token);
+        let token_validation_result = _state.helpers.token.validate_token(reset_password_token);
         let token_validation = match token_validation_result {
             Ok(info) => info,
             Err(err) => {
                 return Err(HandlerError {
                     status: StatusCode::BAD_REQUEST,
-                    message: err.message,
+                    message: err.to_string(),
                     ..Default::default()
                 })
             }
         };
 
         let existing_user = _state
-            .user_usecase()
+            .usecases
+            .user
             .get_user_by_id(token_validation.sub)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
@@ -636,7 +625,8 @@ impl UserHandler {
         }
 
         _state
-            .identity_user_token_usecase()
+            .usecases
+            .identity_user_token
             .update_user_token(
                 user_token.id,
                 UserTokenUpdationDto {
@@ -657,7 +647,8 @@ impl UserHandler {
         };
 
         let result = _state
-            .user_usecase()
+            .usecases
+            .user
             .update_user(token_validation.sub, updating)
             .await;
         return match result {
@@ -670,16 +661,16 @@ impl UserHandler {
         };
     }
 
-    pub async fn get_current_user<T: AppStateTrait>(
+    pub async fn get_current_user(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
     ) -> Result<Json<CurrentUser>, StatusCode> {
         Ok(Json((*current_user).clone()))
     }
 
-    pub async fn update_user<T: AppStateTrait>(
+    pub async fn update_user(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
         Path(id): Path<i32>,
         Json(payload): Json<Option<HashMap<String, String>>>,
     ) -> HandlerResult<Json<bool>> {
@@ -703,12 +694,13 @@ impl UserHandler {
         }
 
         let existing = _state
-            .user_usecase()
+            .usecases
+            .user
             .get_user_by_id(current_user.id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
@@ -751,7 +743,7 @@ impl UserHandler {
             }
         }
 
-        let result = _state.user_usecase().update_user(id, updating).await;
+        let result = _state.usecases.user.update_user(id, updating).await;
         return match result {
             None => Err(HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
@@ -762,9 +754,9 @@ impl UserHandler {
         };
     }
 
-    pub async fn delete_user<T: AppStateTrait>(
+    pub async fn delete_user(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
         Path(id): Path<i32>,
     ) -> HandlerResult<Json<bool>> {
         let deletion_req = UserDeletionDto {
@@ -772,12 +764,13 @@ impl UserHandler {
         };
 
         let existing = _state
-            .user_usecase()
+            .usecases
+            .user
             .get_user_by_id(current_user.id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
@@ -802,7 +795,8 @@ impl UserHandler {
         }
 
         let is_succeed = _state
-            .user_usecase()
+            .usecases
+            .user
             .delete_user_by_id(id, deletion_req)
             .await;
 
@@ -818,9 +812,9 @@ impl UserHandler {
         }
     }
 
-    pub async fn assign_roles<T: AppStateTrait>(
+    pub async fn assign_roles(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
         Path(user_id): Path<i32>,
         Json(payload): Json<Option<AssignRoleRequest>>,
     ) -> HandlerResult<Json<i32>> {
@@ -867,32 +861,35 @@ impl UserHandler {
         }
 
         _state
-            .user_usecase()
+            .usecases
+            .user
             .get_user_by_id(user_id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
         let incomming_roles = _state
-            .role_usecase()
+            .usecases
+            .role
             .get_roles_by_ids(role_ids)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
         let existing_assignments = _state
-            .user_usecase()
+            .usecases
+            .user
             .get_user_roles_by_user_id(user_id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
@@ -912,7 +909,8 @@ impl UserHandler {
             .collect::<Vec<UserRoleCreationDto>>();
 
         _state
-            .user_usecase()
+            .usecases
+            .user
             .assign_roles(user_id, to_be_assigned_roles.clone())
             .await
             .ok();
@@ -927,7 +925,8 @@ impl UserHandler {
             .collect();
 
         _state
-            .user_usecase()
+            .usecases
+            .user
             .unassign_roles(user_id, to_be_deleted_roles)
             .await
             .ok();
@@ -935,18 +934,19 @@ impl UserHandler {
         Ok(Json(to_be_assigned_roles.len() as i32))
     }
 
-    pub async fn get_roles<T: AppStateTrait>(
+    pub async fn get_roles(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
         Path(user_id): Path<i32>,
     ) -> HandlerResult<Json<Vec<UserRoleDto>>> {
         _state
-            .user_usecase()
+            .usecases
+            .user
             .get_user_by_id(user_id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
@@ -963,7 +963,8 @@ impl UserHandler {
         }
 
         let user_roles = _state
-            .user_usecase()
+            .usecases
+            .user
             .get_user_roles_by_user_id(user_id)
             .await;
 
@@ -979,9 +980,9 @@ impl UserHandler {
         }
     }
 
-    pub async fn assign_permissions<T: AppStateTrait>(
+    pub async fn assign_permissions(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
         Path(user_id): Path<i32>,
         Json(payload): Json<Option<AssignPermissionRequest>>,
     ) -> HandlerResult<Json<i32>> {
@@ -1028,32 +1029,35 @@ impl UserHandler {
         }
 
         _state
-            .user_usecase()
+            .usecases
+            .user
             .get_user_by_id(user_id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
         let incomming_permissions = _state
-            .permission_usecase()
+            .usecases
+            .permission
             .get_permission_by_codes(permission_codes)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
         let existing_assignments = _state
-            .user_usecase()
+            .usecases
+            .user
             .get_user_permissions_by_user_id(user_id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
@@ -1074,7 +1078,8 @@ impl UserHandler {
             .collect::<Vec<UserPermissionCreationDto>>();
 
         _state
-            .user_usecase()
+            .usecases
+            .user
             .assign_permissions(user_id, to_be_assigned_permissons.clone())
             .await
             .ok();
@@ -1090,7 +1095,8 @@ impl UserHandler {
             .collect();
 
         _state
-            .user_usecase()
+            .usecases
+            .user
             .unassign_permissions(user_id, to_be_deleted_permissions)
             .await
             .ok();
@@ -1098,18 +1104,19 @@ impl UserHandler {
         Ok(Json(to_be_assigned_permissons.len() as i32))
     }
 
-    pub async fn get_permissions<T: AppStateTrait>(
+    pub async fn get_permissions(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
         Path(user_id): Path<i32>,
     ) -> HandlerResult<Json<Vec<UserPermissionDto>>> {
         _state
-            .user_usecase()
+            .usecases
+            .user
             .get_user_by_id(user_id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: err.message,
+                message: err.to_string(),
                 ..Default::default()
             })?;
 
@@ -1126,7 +1133,8 @@ impl UserHandler {
         }
 
         let user_permissions = _state
-            .user_usecase()
+            .usecases
+            .user
             .get_user_permissions_by_user_id(user_id)
             .await;
 

@@ -1,5 +1,5 @@
 use crate::{
-    app_state::AppStateTrait,
+    app_state::AppState,
     helpers::http_helper::HttpHelper,
     validators::{validate_content_type, validate_file_size, validation_helper::ValidationHelper},
     view_models::{
@@ -14,16 +14,12 @@ use axum::{
     response::Response,
     Extension, Json,
 };
-use rex_game_application::{
-    flashcard_types::flashcard_type_usecase_trait::FlashcardTypeUseCaseTrait,
-    flashcards::{
-        flashcard_creation_dto::FlashcardCreationDto, flashcard_detail_dto::FlashcardDetailDto,
-        flashcard_dto::FlashcardDto, flashcard_updation_dto::FlashcardUpdationDto,
-        flashcard_usecase_trait::FlashcardUseCaseTrait,
-    },
-    page_list_dto::PageListDto,
-    roles::roles::ROLE_ROOT_ADMIN,
+use rex_game_shared::domain::models::PageListModel;
+use rex_game_games::{
+    FlashcardCreationDto, FlashcardDetailDto, FlashcardDto, FlashcardUpdationDto,
+    FlashcardTypeUseCaseTrait, FlashcardUseCaseTrait,
 };
+use rex_game_identity::application::usecases::roles::*;
 use serde::Deserialize;
 use std::sync::Arc;
 use validator::{Validate, ValidationErrors};
@@ -36,29 +32,26 @@ pub struct FlashcardQuery {
 }
 
 impl FlashcardHandler {
-    pub async fn get_flashcards<T: AppStateTrait>(
-        State(_state): State<T>,
+    pub async fn get_flashcards(
+        State(_state): State<AppState>,
         Query(params): Query<FlashcardQuery>,
-    ) -> HandlerResult<Json<PageListDto<FlashcardDto>>> {
+    ) -> Result<Json<PageListModel<FlashcardDto>>, StatusCode> {
         let page = params.page.unwrap_or(1);
         let page_size = params.page_size.unwrap_or(10);
         let flashcards = _state
-            .flashcard_usecase()
+            .usecases
+            .flashcard
             .get_paged_list(params.type_name, page, page_size)
             .await
-            .map_err(|_| HandlerError {
-                status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: "Failed to fetch flashcards".to_string(),
-                ..Default::default()
-            })?;
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
         return Ok(Json(flashcards));
     }
 
-    pub async fn get_flashcard_by_id<T: AppStateTrait>(
+    pub async fn get_flashcard_by_id(
         Path(id): Path<i32>,
-        State(_state): State<T>,
+        State(_state): State<AppState>,
     ) -> HandlerResult<Json<FlashcardDetailDto>> {
-        let flashcard = match _state.flashcard_usecase().get_flashcard_by_id(id).await {
+        let flashcard = match _state.usecases.flashcard.get_flashcard_by_id(id).await {
             Some(flashcard) => flashcard,
             None => {
                 return Err(HandlerError {
@@ -70,7 +63,8 @@ impl FlashcardHandler {
         };
 
         let flashcard_types = match _state
-            .flashcard_type_usecase()
+            .usecases
+            .flashcard_type
             .get_flashcard_type_by_flashcard_id(id)
             .await
         {
@@ -90,17 +84,18 @@ impl FlashcardHandler {
         }))
     }
 
-    pub async fn get_flashcard_image<T: AppStateTrait>(
+    pub async fn get_flashcard_image(
         Path(file_id): Path<i32>,
-        State(_state): State<T>,
+        State(_state): State<AppState>,
     ) -> HandlerResult<Response<Body>> {
         let flashcard_file = _state
-            .flashcard_usecase()
+            .usecases
+            .flashcard
             .get_image_by_file_id(file_id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: format!("Failed to fetch flashcard image: {}", err.message),
+                message: format!("Failed to fetch flashcard image: {}", err),
                 ..Default::default()
             })?;
 
@@ -108,16 +103,16 @@ impl FlashcardHandler {
             HttpHelper::build_file_respone(flashcard_file.data, &flashcard_file.content_type)
                 .map_err(|err| HandlerError {
                     status: StatusCode::INTERNAL_SERVER_ERROR,
-                    message: format!("Failed to build response: {}", err.message),
+                    message: format!("Failed to build response: {}", err),
                     ..Default::default()
                 })?;
 
         Ok(response)
     }
 
-    pub async fn create_flashcard<T: AppStateTrait>(
+    pub async fn create_flashcard(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
         mut multipart: Multipart,
     ) -> HandlerResult<Json<i32>> {
         // Debug: Check current user ID
@@ -214,21 +209,22 @@ impl FlashcardHandler {
         };
 
         let id = _state
-            .flashcard_usecase()
+            .usecases
+            .flashcard
             .create_flashcard(new_flashcard)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: format!("Failed to create flashcard: {}", err.message),
+                message: format!("Failed to create flashcard: {}", err),
 
                 ..Default::default()
             })?;
         Ok(Json(id))
     }
 
-    pub async fn update_flashcard<T: AppStateTrait>(
+    pub async fn update_flashcard(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
         Path(id): Path<i32>,
         mut multipart: Multipart,
     ) -> HandlerResult<Json<bool>> {
@@ -325,20 +321,21 @@ impl FlashcardHandler {
         }
 
         _state
-            .flashcard_usecase()
+            .usecases
+            .flashcard
             .update_flashcard(id, flashcard)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: format!("Failed to update flashcard: {}", err.message),
+                message: format!("Failed to update flashcard: {}", err),
                 ..Default::default()
             })?;
         Ok(Json(true))
     }
 
-    pub async fn delete_flashcard<T: AppStateTrait>(
+    pub async fn delete_flashcard(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
         Path(id): Path<i32>,
     ) -> HandlerResult<Json<u64>> {
         if !current_user
@@ -354,12 +351,13 @@ impl FlashcardHandler {
         }
 
         let deleted_numbers = _state
-            .flashcard_usecase()
+            .usecases
+            .flashcard
             .delete_flashcard_by_id(id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: format!("Failed to delete flashcard: {}", err.message),
+                message: format!("Failed to delete flashcard: {}", err),
                 ..Default::default()
             })?;
 

@@ -9,7 +9,8 @@
     <div class="welcome-section text-center mb-5">
       <h1 class="display-4 mb-3">Chào mừng đến với Rex Game</h1>
       <p class="lead text-muted">
-        Khám phá và học tập qua các flashcard thú vị. Nâng cao kiến thức của bạn mỗi ngày!
+        Khám phá và học tập qua các flashcard thú vị. Nâng cao kiến thức của bạn
+        mỗi ngày!
       </p>
     </div>
 
@@ -26,21 +27,21 @@
       </div>
       <div
         class="tab-pane"
-        id="pills-animals"
+        id="pills-quiz"
         role="tabpanel"
-        aria-labelledby="pills-animals-tab"
+        aria-labelledby="pills-quiz-tab"
         tabindex="0"
       >
-        Animals
+        Trắc nghiệm
       </div>
       <div
         class="tab-pane"
-        id="pills-numbers"
+        id="pills-spelling"
         role="tabpanel"
-        aria-labelledby="pills-numbers-tab"
+        aria-labelledby="pills-spelling-tab"
         tabindex="0"
       >
-        Numbers
+        Đánh Vần
       </div>
       <div
         class="tab-pane"
@@ -49,7 +50,7 @@
         aria-labelledby="pills-alphabet-tab"
         tabindex="0"
       >
-        Alphabet
+        Chữ cái
       </div>
     </div>
   </div>
@@ -87,5 +88,41 @@
     padding: 5px 0px;
     border-radius: 3px;
     background-color: var(--background-color);
+  }
+
+  /* Responsive for tablets */
+  @media (max-width: 768px) {
+    .welcome-section h1 {
+      font-size: 2rem;
+    }
+
+    .welcome-section .lead {
+      font-size: 1rem;
+      padding: 0 15px;
+    }
+  }
+
+  /* Responsive for mobile */
+  @media (max-width: 480px) {
+    .home-wrapper {
+      min-height: auto;
+    }
+
+    .welcome-section {
+      margin-bottom: 20px !important;
+    }
+
+    .welcome-section h1 {
+      font-size: 1.5rem;
+      margin-bottom: 10px !important;
+    }
+
+    .welcome-section .lead {
+      font-size: 0.9rem;
+    }
+
+    .tab-content {
+      min-height: 300px;
+    }
   }
 </style>

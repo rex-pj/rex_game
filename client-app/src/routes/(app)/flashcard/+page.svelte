@@ -9,7 +9,8 @@
     <div class="welcome-section text-center mb-5">
       <h1 class="display-4 mb-3">Chào mừng đến với Rex Game</h1>
       <p class="lead text-muted">
-        Khám phá và học tập qua các flashcard thú vị. Nâng cao kiến thức của bạn mỗi ngày!
+        Khám phá và học tập qua các flashcard thú vị. Nâng cao kiến thức của bạn
+        mỗi ngày!
       </p>
     </div>
     <FlashcardCategoryTab></FlashcardCategoryTab>
@@ -25,21 +26,21 @@
       </div>
       <div
         class="tab-pane"
-        id="pills-animals"
+        id="pills-quiz"
         role="tabpanel"
-        aria-labelledby="pills-animals-tab"
+        aria-labelledby="pills-quiz-tab"
         tabindex="0"
       >
-        Animals
+        Trac nghiệm
       </div>
       <div
         class="tab-pane"
-        id="pills-numbers"
+        id="pills-spelling"
         role="tabpanel"
-        aria-labelledby="pills-numbers-tab"
+        aria-labelledby="pills-spelling-tab"
         tabindex="0"
       >
-        Numbers
+        Đánh Vần
       </div>
       <div
         class="tab-pane"

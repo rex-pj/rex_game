@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
+  import { goto, invalidateAll } from "$app/navigation";
   import { APP_URLS } from "$lib/common/contants";
   import type { CurrentUser } from "$lib/models/current-user";
   import * as accessService from "$lib/services/accessService";
@@ -10,9 +10,9 @@
   ];
   const { currentUser }: { currentUser: CurrentUser } = $props();
   async function logout() {
-    await accessService.logout().then(() => {
-      goto(APP_URLS.HOME);
-    });
+    await accessService.logout();
+    await invalidateAll();
+    goto(APP_URLS.HOME);
   }
 </script>
 
@@ -52,10 +52,21 @@
               aria-expanded="false"
             >
               <i class="fa-solid fa-user-circle fa-lg me-2"></i>
-              <span>{currentUser.display_name}</span>
+              <span>{currentUser.display_name || currentUser.name || currentUser.email}</span>
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="navbarDropdown">
-              <li><button class="dropdown-item text-danger" onclick={logout}>Đăng xuất</button></li>
+              <li>
+                <a class="dropdown-item" href="/leaderboard">
+                  <i class="fa-solid fa-trophy me-2 text-warning"></i>Bảng xếp hạng
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="/achievements">
+                  <i class="fa-solid fa-medal me-2 text-info"></i>Thành tựu
+                </a>
+              </li>
+              <li><hr class="dropdown-divider" /></li>
+              <li><button class="dropdown-item text-danger" onclick={logout}><i class="fa-solid fa-sign-out-alt me-2"></i>Đăng xuất</button></li>
             </ul>
           </li>
         {:else}

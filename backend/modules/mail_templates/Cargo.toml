@@ -1,0 +1,14 @@
+[package]
+name = "rex-game-mail-templates"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+rex-game-shared = { path = "../../shared" }
+rex-game-entities = { path = "../../entities" }
+chrono = "0.4.38"
+sea-orm = { version = "2.0.0-rc.28", features = ["sqlx-postgres", "runtime-tokio-native-tls", "macros"] }
+serde = { version = "1.0", features = ["derive"] }
+async-trait = "0.1"
+uuid = { version = "1.18", features = ["v4"] }

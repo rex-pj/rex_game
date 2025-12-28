@@ -1,91 +1,75 @@
 <script lang="ts">
   import type { UserRequest } from "$lib/models/user";
   import { writable, type Writable } from "svelte/store";
+  import Modal from "../../../../components/molecules/modal/Modal.svelte";
+  import Button from "../../../../components/atoms/button/Button.svelte";
+  import Alert from "../../../../components/atoms/alert/Alert.svelte";
+  import FormField from "../../../../components/atoms/form/FormField.svelte";
+  import TextArea from "../../../../components/atoms/form/TextArea.svelte";
 
-  const {
+  interface Props {
+    showModal?: Writable<boolean>;
+    isSubmitting?: Writable<boolean>;
+    closeModal: () => void;
+    submit: (data: UserRequest) => Promise<void>;
+    creationError?: Writable<string>;
+    initialData?: Writable<UserRequest>;
+  }
+
+  let {
     showModal = writable(false),
     isSubmitting = writable(false),
     closeModal,
     submit,
     creationError = writable(""),
-    initialData = writable({ id: 0, name: "", description: "" }),
-  }: {
-    showModal: Writable<boolean>;
-    closeModal: () => void;
-    isSubmitting: Writable<boolean>;
-    submit: (data: UserRequest) => Promise<void>;
-    creationError: Writable<string>;
-    initialData: Writable<UserRequest>;
-  } = $props();
-  // Submit handler
+    initialData = writable({ id: 0, name: "", display_name: "" }),
+  }: Props = $props();
+
+  const modalTitle = $derived($initialData.id ? "Update User" : "Create User");
+  const submitText = $derived($initialData.id ? "Update" : "Create");
+  const loadingText = $derived($initialData.id ? "Updating..." : "Creating...");
+
   async function handleSubmit(event: Event) {
     event.preventDefault();
     creationError.set("");
-    submit($initialData);
+    await submit($initialData);
   }
 </script>
 
-{#if $showModal}
-  <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,0.5)">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <form onsubmit={handleSubmit}>
-          <div class="modal-header">
-            {#if $initialData.id}
-              <h5 class="modal-title">Update user</h5>
-              <button
-                type="button"
-                class="btn-close"
-                aria-label="Close update user"
-                onclick={closeModal}
-              ></button>
-            {:else}
-              <h5 class="modal-title">Create user</h5>
-              <button
-                type="button"
-                class="btn-close"
-                aria-label="Close create user"
-                onclick={closeModal}
-              ></button>
-            {/if}
-          </div>
-          <div class="modal-body">
-            {#if $creationError}
-              <div class="alert alert-danger">{$creationError}</div>
-            {/if}
-            <div class="mb-3">
-              <label class="form-label" for="name">Name</label>
-              <input class="form-control" bind:value={$initialData.id} required type="hidden" />
-              <input class="form-control" bind:value={$initialData.name} required />
-            </div>
-            <div class="mb-3">
-              <label class="form-label" for="display_name">Display Name</label>
-              <textarea class="form-control" bind:value={$initialData.display_name}></textarea>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              onclick={closeModal}
-              disabled={$isSubmitting}>Cancel</button
-            >
-            <button type="submit" class="btn btn-primary" disabled={$isSubmitting}>
-              {#if $isSubmitting}
-                {#if !$initialData.id}
-                  <span>Creating...</span>
-                {:else}
-                  <span>Updating...</span>
-                {/if}
-              {:else if !$initialData.id}
-                <span>Create</span>
-              {:else}
-                <span>Update</span>
-              {/if}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-{/if}
+<Modal show={$showModal} title={modalTitle} onclose={closeModal}>
+  <form id="user-form" onsubmit={handleSubmit}>
+    {#if $creationError}
+      <Alert variant="danger">{$creationError}</Alert>
+    {/if}
+
+    <input type="hidden" bind:value={$initialData.id} />
+
+    <FormField
+      id="user-name"
+      label="Name"
+      bind:value={$initialData.name}
+      required
+    />
+
+    <TextArea
+      id="user-display-name"
+      label="Display Name"
+      bind:value={$initialData.display_name}
+    />
+  </form>
+
+  {#snippet footer()}
+    <Button variant="secondary" onclick={closeModal} disabled={$isSubmitting}>
+      Cancel
+    </Button>
+    <Button
+      type="submit"
+      variant="primary"
+      loading={$isSubmitting}
+      loadingText={loadingText}
+      onclick={handleSubmit}
+    >
+      {submitText}
+    </Button>
+  {/snippet}
+</Modal>

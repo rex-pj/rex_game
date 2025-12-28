@@ -13,23 +13,23 @@
   <li class="nav-item" role="presentation">
     <span
       class="nav-link cloud-button"
-      id="pills-animals-tab"
+      id="pills-quiz-tab"
       data-bs-toggle="pill"
-      data-bs-target="#pills-animals"
+      data-bs-target="#pills-quiz"
       role="tab"
-      aria-controls="pills-animals"
-      aria-selected="true"><span>Động vật</span></span
+      aria-controls="pills-quiz"
+      aria-selected="true"><span>Trắc nghiệm</span></span
     >
   </li>
   <li class="nav-item" role="presentation">
     <span
       class="nav-link cloud-button"
-      id="pills-numbers-tab"
+      id="pills-spelling-tab"
       data-bs-toggle="pill"
-      data-bs-target="#pills-numbers"
+      data-bs-target="#pills-spelling"
       role="tab"
-      aria-controls="pills-numbers"
-      aria-selected="false"><span>Những con số</span></span
+      aria-controls="pills-spelling"
+      aria-selected="false"><span>Đánh Vần</span></span
     >
   </li>
   <li class="nav-item" role="presentation">
@@ -151,5 +151,77 @@
 
   .cloud-button {
     animation: float 3s ease-in-out infinite;
+  }
+
+  /* Responsive for tablets */
+  @media (max-width: 992px) {
+    .nav-pills {
+      margin: 30px 0 10px 0;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .nav-pills .nav-item {
+      margin: 0 5px;
+    }
+
+    .cloud-button {
+      padding: 15px 30px;
+      height: 60px;
+    }
+
+    .nav-pills .nav-item .nav-link span {
+      font-size: 1.2rem;
+    }
+
+    .cloud-button::before {
+      width: 50px;
+      height: 50px;
+      top: -12px;
+      left: 30px;
+      box-shadow: 30px -18px 0 0 var(--primary-light);
+    }
+
+    .cloud-button::after {
+      width: 45px;
+      height: 45px;
+      top: -15px;
+      left: 100px;
+    }
+  }
+
+  /* Responsive for mobile */
+  @media (max-width: 576px) {
+    .nav-pills {
+      margin: 20px 0 10px 0;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .nav-pills .nav-item {
+      margin: 0;
+      flex: 0 0 calc(50% - 10px);
+    }
+
+    .cloud-button {
+      padding: 12px 15px;
+      height: 50px;
+      font-size: 1rem;
+      border-radius: 30px;
+    }
+
+    .nav-pills .nav-item .nav-link span {
+      font-size: 0.9rem;
+    }
+
+    /* Hide cloud decorations on mobile */
+    .cloud-button::before,
+    .cloud-button::after {
+      display: none;
+    }
+
+    .cloud-button {
+      animation: none;
+    }
   }
 </style>

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
-  import { goto } from "$app/navigation";
+  import { goto, invalidateAll } from "$app/navigation";
   import { APP_URLS } from "$lib/common/contants.js";
   import type { SubmitFunction } from "@sveltejs/kit";
   let { data } = $props();
@@ -19,6 +19,7 @@
       if (result.type === "failure") {
         await update();
       } else if (result.type === "redirect") {
+        await invalidateAll();
         goto(result.location);
       }
     };

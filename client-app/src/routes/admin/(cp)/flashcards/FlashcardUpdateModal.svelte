@@ -4,8 +4,23 @@
   import type { SelectOption } from "$lib/models/select-option";
   import Select from "svelte-select";
   import { writable, type Writable } from "svelte/store";
+  import Modal from "../../../../components/molecules/modal/Modal.svelte";
+  import Button from "../../../../components/atoms/button/Button.svelte";
+  import Alert from "../../../../components/atoms/alert/Alert.svelte";
+  import FormField from "../../../../components/atoms/form/FormField.svelte";
+  import TextArea from "../../../../components/atoms/form/TextArea.svelte";
 
-  const {
+  interface Props {
+    showModal?: Writable<boolean>;
+    isSubmitting?: Writable<boolean>;
+    closeModal: () => void;
+    submit: (data: FlashcardRequest) => Promise<void>;
+    creationError?: Writable<string>;
+    initialData?: Writable<FlashcardRequest>;
+    flashcardTypeOptions?: SelectOption[];
+  }
+
+  let {
     showModal = writable(false),
     isSubmitting = writable(false),
     closeModal,
@@ -19,188 +34,157 @@
       type_ids: [],
     }),
     flashcardTypeOptions = [],
-  }: {
-    showModal: Writable<boolean>;
-    closeModal: () => void;
-    isSubmitting: Writable<boolean>;
-    submit: (data: FlashcardRequest) => Promise<void>;
-    creationError: Writable<string>;
-    initialData: Writable<FlashcardRequest>;
-    flashcardTypeOptions: SelectOption[];
-  } = $props();
+  }: Props = $props();
 
-  // Submit handler
+  // Derived values
+  const modalTitle = $derived($initialData.id ? "Update Flashcard" : "Create Flashcard");
+  const submitText = $derived($initialData.id ? "Update" : "Create");
+  const loadingText = $derived($initialData.id ? "Updating..." : "Creating...");
+
   async function handleSubmit(event: Event) {
     event.preventDefault();
     creationError.set("");
-    submit($initialData);
+    await submit($initialData);
   }
 
-  async function onImageChange(e: Event, data: Writable<FlashcardRequest>) {
-    const target = e.target as any;
-    const fileData = target.files[0];
-    if (!fileData) {
-      return;
-    }
-    const imageUrl = await setImageBase64Url(fileData);
-    if (!imageUrl) {
-      return;
-    }
+  async function onImageChange(e: Event) {
+    const target = e.target as HTMLInputElement;
+    const fileData = target.files?.[0];
+    if (!fileData) return;
 
-    data.update((currentData) => {
-      const updatedData = { ...currentData };
-      updatedData.image_data = fileData;
-      updatedData.image_url = imageUrl;
-      return updatedData;
-    });
+    const imageUrl = await setImageBase64Url(fileData);
+    if (!imageUrl) return;
+
+    initialData.update((data) => ({
+      ...data,
+      image_data: fileData,
+      image_url: imageUrl,
+    }));
+  }
+
+  function removeImage() {
+    initialData.update((data) => ({
+      ...data,
+      image_data: undefined,
+      image_url: undefined,
+    }));
   }
 </script>
 
-{#if $showModal}
-  <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,0.5)">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <form onsubmit={handleSubmit}>
-          <div class="modal-header">
-            {#if $initialData.id}
-              <h5 class="modal-title">Update Flashcard</h5>
-              <button
-                type="button"
-                class="btn-close"
-                aria-label="Close update flashcard"
-                onclick={closeModal}
-              ></button>
-            {:else}
-              <h5 class="modal-title">Create Flashcard</h5>
-              <button
-                type="button"
-                class="btn-close"
-                aria-label="Close create flashcard"
-                onclick={closeModal}
-              ></button>
-            {/if}
-          </div>
-          <div class="modal-body">
-            {#if $creationError}
-              <div class="alert alert-danger">{$creationError}</div>
-            {/if}
-            <div class="mb-3">
-              <label class="form-label" for="name">Name</label>
-              <input class="form-control" bind:value={$initialData.id} required type="hidden" />
-              <input class="form-control" bind:value={$initialData.name} required />
-            </div>
-            <div class="mb-3">
-              <label class="form-label" for="description">Description</label>
-              <textarea class="form-control" bind:value={$initialData.description}></textarea>
-            </div>
-            <div class="mb-3">
-              <label class="form-label" for="description">Sub Description</label>
-              <textarea class="form-control" bind:value={$initialData.sub_description}></textarea>
-            </div>
-            <div class="mb-3">
-              <label class="form-label" for="type_ids">Types</label>
-              <Select
-                id="type_ids"
-                class="form-select"
-                items={flashcardTypeOptions}
-                multiple={true}
-                bind:value={$initialData.types}
-                bind:justValue={$initialData.type_ids}
-                placeholder="Select types"
-              ></Select>
-            </div>
-            <div class="mb-3">
-              <label class="form-label" for="image_data">Image</label>
-              <input
-                accept="image/*"
-                type="file"
-                id="image_data"
-                class="form-control"
-                onchange={async (e) => {
-                  onImageChange(e, initialData);
-                }}
-              />
-              {#if !$initialData.image_url && $initialData.original_image_url}
-                <p>Current Image:</p>
-                <div class="mt-2 thumbnail">
-                  <img
-                    src={$initialData.original_image_url}
-                    alt="Flashcard"
-                    class="img-fluid"
-                    width="50%"
-                  />
-                </div>
-              {:else if $initialData.image_url}
-                <p>Updated Image:</p>
-                <div class="mt-2 thumbnail">
-                  <faUser></faUser>
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-outline-secondary"
-                    aria-label="Remove image"
-                    onclick={() => {
-                      initialData.update((data) => ({
-                        ...data,
-                        image_data: undefined,
-                        image_url: undefined,
-                      }));
-                    }}
-                  >
-                    <i class="fa-solid fa-xmark"></i>
-                  </button>
+<Modal show={$showModal} title={modalTitle} onclose={closeModal}>
+  <form id="flashcard-form" onsubmit={handleSubmit}>
+    {#if $creationError}
+      <Alert variant="danger">{$creationError}</Alert>
+    {/if}
 
-                  <img src={$initialData.image_url} alt="Flashcard" class="img-fluid" width="50%" />
-                </div>
-              {:else}
-                <span>No Image Choosen</span>
-              {/if}
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              onclick={closeModal}
-              disabled={$isSubmitting}>Cancel</button
-            >
-            <button type="submit" class="btn btn-primary" disabled={$isSubmitting}>
-              {#if $isSubmitting}
-                {#if !$initialData.id}
-                  <span>Creating...</span>
-                {:else}
-                  <span>Updating...</span>
-                {/if}
-              {:else if !$initialData.id}
-                <span>Create</span>
-              {:else}
-                <span>Update</span>
-              {/if}
-            </button>
-          </div>
-        </form>
-      </div>
+    <input type="hidden" bind:value={$initialData.id} />
+
+    <FormField
+      id="flashcard-name"
+      label="Name"
+      bind:value={$initialData.name}
+      required
+    />
+
+    <TextArea
+      id="flashcard-description"
+      label="Description"
+      bind:value={$initialData.description}
+    />
+
+    <TextArea
+      id="flashcard-sub-description"
+      label="Sub Description"
+      bind:value={$initialData.sub_description}
+    />
+
+    <div class="mb-3">
+      <label class="form-label" for="type_ids">Types</label>
+      <Select
+        id="type_ids"
+        class="form-select"
+        items={flashcardTypeOptions}
+        multiple={true}
+        bind:value={$initialData.types}
+        bind:justValue={$initialData.type_ids}
+        placeholder="Select types"
+      />
     </div>
-  </div>
-{/if}
+
+    <div class="mb-3">
+      <label class="form-label" for="image_data">Image</label>
+      <input
+        accept="image/*"
+        type="file"
+        id="image_data"
+        class="form-control"
+        onchange={onImageChange}
+      />
+
+      {#if !$initialData.image_url && $initialData.original_image_url}
+        <p class="mt-2 mb-1 text-muted small">Current Image:</p>
+        <div class="thumbnail">
+          <img
+            src={$initialData.original_image_url}
+            alt="Flashcard"
+            class="img-fluid"
+          />
+        </div>
+      {:else if $initialData.image_url}
+        <p class="mt-2 mb-1 text-muted small">New Image:</p>
+        <div class="thumbnail">
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-danger remove-btn"
+            aria-label="Remove image"
+            onclick={removeImage}
+          >
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+          <img src={$initialData.image_url} alt="Flashcard" class="img-fluid" />
+        </div>
+      {:else}
+        <p class="text-muted small mt-2">No image selected</p>
+      {/if}
+    </div>
+  </form>
+
+  {#snippet footer()}
+    <Button variant="secondary" onclick={closeModal} disabled={$isSubmitting}>
+      Cancel
+    </Button>
+    <Button
+      type="submit"
+      variant="primary"
+      loading={$isSubmitting}
+      loadingText={loadingText}
+      onclick={handleSubmit}
+    >
+      {submitText}
+    </Button>
+  {/snippet}
+</Modal>
 
 <style>
   .thumbnail {
     position: relative;
-    background-color: #f0f0f0;
+    display: inline-block;
+    background-color: #f8f9fa;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
     text-align: center;
-    padding-top: 20px;
-    padding-bottom: 20px;
   }
 
   .thumbnail img {
-    max-width: 100%;
-    height: auto;
+    max-width: 200px;
+    max-height: 200px;
+    object-fit: contain;
   }
 
-  .thumbnail button {
+  .remove-btn {
     position: absolute;
-    top: 0;
-    right: 0;
+    top: 0.25rem;
+    right: 0.25rem;
     z-index: 1;
   }
 </style>

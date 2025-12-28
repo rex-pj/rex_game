@@ -13,21 +13,72 @@
     resetGame,
     cleanup,
     setError,
+    newAchievements,
+    comboCount,
+    clearNewAchievements,
+    getGameProgress,
+    continueFromProgress,
+    startNewGame,
   } from "$lib/stores/flashcard-game.store";
+  import type { GameProgress } from "$lib/api/scoringApi";
   import Cookies from "js-cookie";
 
-  // Props
-  export let initialLevel: number = 1;
-  export let flashcardTypeId: number | undefined = undefined;
-  export let onLevelComplete: ((stats: any) => void) | undefined = undefined;
+  // Props (Svelte 5 runes)
+  interface Props {
+    initialLevel?: number;
+    flashcardTypeId?: number;
+    onLevelComplete?: (stats: any) => void;
+    onGameEnd?: (result: any) => void;
+  }
 
-  // Local state
-  let errorMessage = "";
+  let {
+    initialLevel = 1,
+    flashcardTypeId = undefined,
+    onLevelComplete = undefined,
+    onGameEnd = undefined,
+  }: Props = $props();
+
+  // Local state (Svelte 5 runes)
+  let errorMessage = $state("");
+  let showContinueDialog = $state(false);
+  let pendingProgress: GameProgress | null = $state(null);
+
+  /**
+   * Check for saved progress and show dialog if exists
+   */
+  async function checkSavedProgress() {
+    const progress = await getGameProgress();
+    if (progress && progress.current_level > 1) {
+      pendingProgress = progress;
+      showContinueDialog = true;
+    } else {
+      await loadFlashcards(initialLevel);
+    }
+  }
+
+  /**
+   * Handle continue from saved progress
+   */
+  async function handleContinue() {
+    if (pendingProgress) {
+      showContinueDialog = false;
+      await loadFlashcards(pendingProgress.current_level, pendingProgress.total_score);
+    }
+  }
+
+  /**
+   * Handle start new game
+   */
+  async function handleStartNew() {
+    showContinueDialog = false;
+    await startNewGame();
+    await loadFlashcards(1);
+  }
 
   /**
    * Load flashcards from API
    */
-  async function loadFlashcards() {
+  async function loadFlashcards(startLevel: number = 1, startScore: number = 0) {
     try {
       const api = new FlashcardApi({
         cookies: Cookies,
@@ -54,10 +105,19 @@
       }
 
       // Initialize game with loaded flashcards
-      initializeGame(filteredFlashcards, { initialLevel });
+      await initializeGame(filteredFlashcards, {
+        initialLevel: startLevel,
+        flashcardTypeId,
+      });
+
+      // If continuing, restore the score
+      if (startScore > 0) {
+        await continueFromProgress({ current_level: startLevel, total_score: startScore } as GameProgress);
+      }
     } catch (error) {
       console.error("Failed to load flashcards:", error);
-      errorMessage = error instanceof Error ? error.message : "Không thể tải flashcards";
+      errorMessage =
+        error instanceof Error ? error.message : "Không thể tải flashcards";
       setError();
     }
   }
@@ -72,24 +132,46 @@
   /**
    * Handle reset button
    */
-  function handleReset() {
-    resetGame();
+  async function handleReset() {
+    await resetGame();
   }
 
   // Lifecycle
   onMount(() => {
-    loadFlashcards();
+    checkSavedProgress();
   });
 
   onDestroy(() => {
     cleanup();
   });
 
-  // Reactive statements for level complete callback
-  $: if ($gameState === "completed" && onLevelComplete) {
-    onLevelComplete($gameStats);
-  }
+  // Effect for level complete callback (Svelte 5)
+  $effect(() => {
+    if ($gameState === "completed" && onLevelComplete) {
+      onLevelComplete($gameStats);
+    }
+  });
 </script>
+
+<!-- Continue Dialog -->
+{#if showContinueDialog && pendingProgress}
+  <div class="continue-dialog-overlay">
+    <div class="continue-dialog">
+      <h2>🎮 Tiếp tục chơi?</h2>
+      <p>Bạn đang ở <strong>Màn {pendingProgress.current_level}</strong></p>
+      <p class="score-info">Điểm: <strong>{pendingProgress.total_score.toLocaleString()}</strong></p>
+      <p class="highest-info">Màn cao nhất: <strong>{pendingProgress.highest_level}</strong></p>
+      <div class="dialog-actions">
+        <button class="btn-continue" onclick={handleContinue}>
+          Tiếp tục
+        </button>
+        <button class="btn-new-game" onclick={handleStartNew}>
+          Chơi mới
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <div class="game-container">
   {#if $gameState === "loading"}
@@ -104,35 +186,58 @@
       <div class="error-icon">⚠️</div>
       <h3>Không thể tải game</h3>
       <p>{errorMessage}</p>
-      <button class="btn btn-primary" on:click={loadFlashcards}>Thử lại</button>
+      <button class="btn btn-primary" onclick={() => loadFlashcards()}>Thử lại</button>
     </div>
   {:else}
-    <!-- Level Display -->
-    <div class="level-display">
-      <span class="level-label">Màn</span>
-      <span class="level-number">{$gameStats.level}</span>
-      <span class="level-grid-info">({$gameStats.level + 2}x{$gameStats.level + 2})</span>
+    <!-- Game Header with Stats -->
+    <div class="game-header">
+      <!-- Level Display -->
+      <div class="level-display">
+        <span class="level-label">Màn</span>
+        <span class="level-number">{$gameStats.level}</span>
+        <span class="level-grid-info"
+          >({$gameStats.level + 2}x{$gameStats.level + 2})</span
+        >
+      </div>
+
+      <!-- Stats Display -->
+      <div class="stats-display">
+        <div class="stat-item">
+          <span class="stat-icon">⭐</span>
+          <span class="stat-value">{$gameStats.score}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon">🔥</span>
+          <span class="stat-value">{$comboCount}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon">⏱️</span>
+          <span class="stat-value">{$gameStats.timeElapsed}s</span>
+        </div>
+      </div>
     </div>
 
     <!-- Game Grid -->
     <div class="container-sm card-container px-0">
       <div
         class="grid"
-        style="grid-template-columns: repeat({$gameStats.level + 2}, minmax(80px, 1fr));"
+        style="grid-template-columns: repeat({$gameStats.level + 2}, 1fr);"
       >
         {#each $gameCards as card (card.id)}
           <div
-            class="flip-box card-holder {card.flipped ? 'flipped' : ''} {card.matched
-              ? 'matched'
-              : ''}"
+            class="flip-box card-holder {card.flipped
+              ? 'flipped'
+              : ''} {card.matched ? 'matched' : ''}"
           >
             <div class="flip-box-inner">
               <!-- Card Back (door with question mark) -->
               <button
                 type="button"
                 class="card flip-box-front {card.flipped ? 'hidden' : ''}"
-                on:click={() => handleCardClick(card)}
-                disabled={card.matched || card.flipped || $gameState === "checking"}
+                onclick={() => handleCardClick(card)}
+                disabled={card.matched ||
+                  card.flipped ||
+                  $gameState === "checking"}
                 aria-label="Flip card {card.name}"
               >
                 <span class="question-mark">?</span>
@@ -161,6 +266,22 @@
       <div class="level-complete-message">
         <h2>🎉 Hoàn thành Màn {$gameStats.level}!</h2>
         <p>Chuẩn bị màn tiếp theo...</p>
+      </div>
+    {/if}
+
+    <!-- New Achievements Toast -->
+    {#if $newAchievements.length > 0}
+      <div class="achievements-toast">
+        <h4>🏆 Thành tựu mới!</h4>
+        {#each $newAchievements as achievement}
+          <div class="achievement-item">
+            <span class="achievement-icon">{achievement.icon || "🎖️"}</span>
+            <span class="achievement-name">{achievement.name}</span>
+          </div>
+        {/each}
+        <button class="btn-dismiss" onclick={() => clearNewAchievements()}
+          >✕</button
+        >
       </div>
     {/if}
   {/if}
@@ -193,7 +314,15 @@
     left: -3px;
     right: -3px;
     bottom: -3px;
-    background: linear-gradient(45deg, #3b82f6, #f59e0b, #10b981, #a855f7, #ef4444, #3b82f6);
+    background: linear-gradient(
+      45deg,
+      #3b82f6,
+      #f59e0b,
+      #10b981,
+      #a855f7,
+      #ef4444,
+      #3b82f6
+    );
     border-radius: 24px;
     z-index: -1;
     animation: rotateBorder 6s linear infinite;
@@ -281,8 +410,9 @@
   /* Card Container */
   .card-container {
     width: 100%;
-    max-width: 600px;
+    max-width: 700px;
     margin: 0 auto;
+    padding: 10px;
   }
 
   .grid {
@@ -290,10 +420,14 @@
     gap: 12px;
     perspective: 1500px;
     padding: 0;
+    justify-content: center;
+    justify-items: center;
   }
 
   .card-holder {
     width: 100%;
+    min-width: 90px;
+    max-width: 120px;
     aspect-ratio: 3 / 4;
     position: relative;
     cursor: pointer;
@@ -546,20 +680,56 @@
     display: none;
   }
 
+  /* Game Header */
+  .game-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  /* Stats Display */
+  .stats-display {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 12px;
+  }
+
+  .stat-icon {
+    font-size: 18px;
+  }
+
+  .stat-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e40af;
+  }
+
   /* Level Display */
   .level-display {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 12px;
-    margin-bottom: 20px;
     padding: 12px 24px;
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover-color) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--primary-color) 0%,
+      var(--primary-hover-color) 100%
+    );
     border-radius: 16px;
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-    width: fit-content;
-    margin-left: auto;
-    margin-right: auto;
   }
 
   .level-label {
@@ -687,25 +857,79 @@
     }
   }
 
-  /* Responsive */
+  /* Large screens - bigger cards */
+  @media (min-width: 1200px) {
+    .grid {
+      gap: 15px;
+    }
+
+    .card-holder {
+      min-width: 110px;
+      max-width: 140px;
+    }
+
+    .question-mark {
+      font-size: 5rem;
+    }
+  }
+
+  /* Extra large screens */
+  @media (min-width: 1600px) {
+    .card-container {
+      max-width: 950px;
+    }
+
+    .grid {
+      gap: 16px;
+    }
+
+    .card-holder {
+      min-width: 120px;
+      max-width: 150px;
+    }
+
+    .question-mark {
+      font-size: 5.5rem;
+    }
+  }
+
+  /* Responsive - Tablets */
   @media (max-width: 768px) {
     .game-container {
       padding: 20px;
     }
 
     .card-container {
-      max-height: calc(100vh - 200px);
-      max-width: 95vw;
+      max-width: 100%;
+      padding: 5px;
+    }
+
+    .grid {
+      gap: 8px;
     }
 
     .card-holder {
-      max-width: min(140px, 18vw);
+      min-width: 50px;
+      max-width: 90px;
+    }
+
+    .question-mark {
+      font-size: 3rem;
+    }
+
+    .card {
+      border-radius: 12px;
+      border-width: 3px;
+    }
+
+    .card-image {
+      border-radius: 12px;
     }
   }
 
   @media (max-width: 480px) {
     .game-container {
-      padding: 15px;
+      padding: 10px;
       border-radius: 16px;
     }
 
@@ -714,24 +938,38 @@
     }
 
     .game-container::after {
-      top: 10px;
-      left: 10px;
-      right: 10px;
-      bottom: 10px;
+      top: 8px;
+      left: 8px;
+      right: 8px;
+      bottom: 8px;
       border-radius: 12px;
     }
 
     .card-container {
-      max-height: calc(100vh - 180px);
-      max-width: 98vw;
+      max-width: 100%;
+      padding: 0;
+    }
+
+    .grid {
+      gap: 6px;
     }
 
     .card-holder {
-      max-width: min(100px, 15vw);
+      min-width: 45px;
+      max-width: 70px;
     }
 
     .question-mark {
-      font-size: 2.5rem;
+      font-size: 2rem;
+    }
+
+    .card {
+      border-radius: 10px;
+      border-width: 2px;
+    }
+
+    .card-image {
+      border-radius: 10px;
     }
 
     /* Reduce animation intensity on mobile */
@@ -739,8 +977,322 @@
       animation: none;
     }
 
+    .card-holder::before {
+      display: none;
+    }
+
     .card:hover:not(:disabled) {
-      transform: scale(1.05) translateY(-5px);
+      transform: scale(1.03) translateY(-3px);
+    }
+
+    /* Disable floating animation on mobile for performance */
+    .card-holder:not(.matched) {
+      animation: none;
+    }
+
+    .game-header {
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .level-display {
+      padding: 6px 12px;
+      gap: 6px;
+    }
+
+    .level-label {
+      font-size: 12px;
+    }
+
+    .level-number {
+      font-size: 18px;
+      padding: 2px 6px;
+    }
+
+    .level-grid-info {
+      font-size: 11px;
+    }
+
+    .stats-display {
+      justify-content: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .stat-item {
+      padding: 4px 8px;
+    }
+
+    .stat-icon {
+      font-size: 12px;
+    }
+
+    .stat-value {
+      font-size: 12px;
+    }
+  }
+
+  /* Extra small screens */
+  @media (max-width: 360px) {
+    .game-container {
+      padding: 8px;
+    }
+
+    .grid {
+      gap: 4px;
+    }
+
+    .card-holder {
+      min-width: 40px;
+      max-width: 55px;
+    }
+
+    .question-mark {
+      font-size: 1.5rem;
+    }
+
+    .card {
+      border-radius: 8px;
+      border-width: 2px;
+    }
+
+    .card-image {
+      border-radius: 8px;
+    }
+
+    .level-complete-message {
+      padding: 20px 30px;
+    }
+
+    .level-complete-message h2 {
+      font-size: 1.2rem;
+    }
+  }
+
+  /* Achievement Toast */
+  .achievements-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    padding: 16px 20px;
+    padding-right: 40px;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
+    z-index: 1002;
+    animation: slideInRight 0.5s ease-out;
+  }
+
+  .achievements-toast h4 {
+    margin: 0 0 12px 0;
+    color: white;
+    font-size: 16px;
+  }
+
+  .achievement-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    color: white;
+  }
+
+  .achievement-icon {
+    font-size: 20px;
+  }
+
+  .achievement-name {
+    font-weight: 600;
+  }
+
+  .btn-dismiss {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(255, 255, 255, 0.3);
+    border: none;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+  }
+
+  .btn-dismiss:hover {
+    background: rgba(255, 255, 255, 0.5);
+  }
+
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  /* Achievement toast responsive */
+  @media (max-width: 480px) {
+    .achievements-toast {
+      top: 10px;
+      right: 10px;
+      left: 10px;
+      padding: 12px 15px;
+      padding-right: 35px;
+      border-radius: 12px;
+    }
+
+    .achievements-toast h4 {
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .achievement-item {
+      padding: 4px 0;
+    }
+
+    .achievement-icon {
+      font-size: 16px;
+    }
+
+    .achievement-name {
+      font-size: 14px;
+    }
+  }
+
+  /* Continue Dialog */
+  .continue-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .continue-dialog {
+    background: white;
+    border-radius: 24px;
+    padding: 32px 40px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.4s ease-out;
+    max-width: 400px;
+    width: 90%;
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(30px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .continue-dialog h2 {
+    margin: 0 0 16px 0;
+    font-size: 24px;
+    color: #1e40af;
+  }
+
+  .continue-dialog p {
+    margin: 8px 0;
+    color: #64748b;
+    font-size: 16px;
+  }
+
+  .continue-dialog .score-info {
+    color: #f59e0b;
+    font-size: 18px;
+  }
+
+  .continue-dialog .highest-info {
+    color: #10b981;
+  }
+
+  .dialog-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    justify-content: center;
+  }
+
+  .btn-continue {
+    padding: 14px 28px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .btn-continue:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+  }
+
+  .btn-new-game {
+    padding: 14px 28px;
+    background: white;
+    color: #64748b;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .btn-new-game:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+  }
+
+  @media (max-width: 480px) {
+    .continue-dialog {
+      padding: 24px 20px;
+    }
+
+    .continue-dialog h2 {
+      font-size: 20px;
+    }
+
+    .dialog-actions {
+      flex-direction: column;
+    }
+
+    .btn-continue,
+    .btn-new-game {
+      width: 100%;
     }
   }
 </style>

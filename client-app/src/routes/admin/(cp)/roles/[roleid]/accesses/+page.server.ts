@@ -13,7 +13,7 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
     return { rolePermissions: [], permissions: [] };
   }
 
-  const roleService: RoleApi = new RoleApi(cookies);
+  const roleService: RoleApi = new RoleApi(new AdminServerApiOptions(cookies));
   const permissionService: PermissionApi = new PermissionApi(new AdminServerApiOptions(cookies));
 
   const rolePermissions = await roleService.getPermissionList(fetch, roleId);
@@ -50,7 +50,7 @@ export const actions = {
       return { success: false, error: "No permissions selected" };
     }
 
-    const roleService = new RoleApi(cookies);
+    const roleService = new RoleApi(new AdminServerApiOptions(cookies));
     try {
       // Assign each permission to the user
       await roleService.assignPermissions(fetch, roleId, {

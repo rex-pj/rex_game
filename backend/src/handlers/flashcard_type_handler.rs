@@ -5,21 +5,21 @@ use axum::{
     Extension, Json,
 };
 use hyper::StatusCode;
-use rex_game_application::{
-    flashcard_types::{
+use rex_game_shared::domain::models::PageListModel;
+use rex_game_games::{
+    FlashcardTypeUseCaseTrait,
+    flashcard::application::usecases::{
         flashcard_type_creation_dto::FlashcardTypeCreationDto,
         flashcard_type_dto::FlashcardTypeDto,
         flashcard_type_updation_dto::FlashcardTypeUpdationDto,
-        flashcard_type_usecase_trait::FlashcardTypeUseCaseTrait,
     },
-    page_list_dto::PageListDto,
-    roles::roles::ROLE_ROOT_ADMIN,
 };
+use rex_game_identity::application::usecases::roles::*;
 use serde::Deserialize;
 use validator::{Validate, ValidationErrors};
 
 use crate::{
-    app_state::AppStateTrait,
+    app_state::AppState,
     validators::validation_helper::ValidationHelper,
     view_models::{
         flashcard_types::flashcard_type_create_request::FlashcardTypeCreateRequest,
@@ -35,34 +35,30 @@ pub struct FlashcardQuery {
 }
 
 impl FlashcardTypeHandler {
-    pub async fn get_flashcard_types<T: AppStateTrait>(
-        State(_state): State<T>,
+    pub async fn get_flashcard_types(
+        State(_state): State<AppState>,
         Query(params): Query<FlashcardQuery>,
-    ) -> HandlerResult<Json<PageListDto<FlashcardTypeDto>>> {
+    ) -> Result<Json<PageListModel<FlashcardTypeDto>>, StatusCode> {
         let page = params.page.unwrap_or(1);
         let page_size = params.page_size.unwrap_or(10);
         let flashcard_types = _state
-            .flashcard_type_usecase()
+            .usecases
+            .flashcard_type
             .get_flashcard_types(params.name, page, page_size)
             .await;
         return match flashcard_types {
             Ok(data) => Ok(Json(data)),
-            Err(_) => {
-                return Err(HandlerError {
-                    status: StatusCode::INTERNAL_SERVER_ERROR,
-                    message: "Failed to fetch flashcard types".to_string(),
-                    ..Default::default()
-                })
-            }
+            Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
         };
     }
 
-    pub async fn get_flashcard_type_by_id<T: AppStateTrait>(
+    pub async fn get_flashcard_type_by_id(
         Path(id): Path<i32>,
-        State(_state): State<T>,
+        State(_state): State<AppState>,
     ) -> HandlerResult<Json<FlashcardTypeDto>> {
         let flashcard = _state
-            .flashcard_type_usecase()
+            .usecases
+            .flashcard_type
             .get_flashcard_type_by_id(id)
             .await;
         return match flashcard {
@@ -75,9 +71,9 @@ impl FlashcardTypeHandler {
         };
     }
 
-    pub async fn create_flashcard_type<T: AppStateTrait>(
+    pub async fn create_flashcard_type(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
         Json(payload): Json<Option<FlashcardTypeCreateRequest>>,
     ) -> HandlerResult<Json<i32>> {
         let req = match payload {
@@ -138,7 +134,8 @@ impl FlashcardTypeHandler {
             updated_by_id: current_user.id,
         };
         let inserted_id = _state
-            .flashcard_type_usecase()
+            .usecases
+            .flashcard_type
             .create_flashcard_type(creation_request)
             .await;
 
@@ -154,9 +151,9 @@ impl FlashcardTypeHandler {
         }
     }
 
-    pub async fn update_flashcard_type<T: AppStateTrait>(
+    pub async fn update_flashcard_type(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
         Path(id): Path<i32>,
         Json(payload): Json<Option<HashMap<String, String>>>,
     ) -> HandlerResult<Json<bool>> {
@@ -220,7 +217,8 @@ impl FlashcardTypeHandler {
         }
 
         let updated = _state
-            .flashcard_type_usecase()
+            .usecases
+            .flashcard_type
             .update_flashcard_type(id, updating)
             .await;
 
@@ -236,9 +234,9 @@ impl FlashcardTypeHandler {
         }
     }
 
-    pub async fn delete_flashcard_type<T: AppStateTrait>(
+    pub async fn delete_flashcard_type(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
         Path(id): Path<i32>,
     ) -> HandlerResult<Json<u64>> {
         if !current_user
@@ -253,7 +251,8 @@ impl FlashcardTypeHandler {
             });
         }
         let deleted_numbers = _state
-            .flashcard_type_usecase()
+            .usecases
+            .flashcard_type
             .delete_flashcard_type_by_id(id)
             .await;
 

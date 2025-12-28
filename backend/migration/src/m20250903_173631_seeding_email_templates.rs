@@ -1,5 +1,5 @@
 use crate::enums::mail_template::MailTemplate;
-use rex_game_shared::enums::mail_template_names::MailTemplateNames;
+use rex_game_shared::domain::enums::mail_template_names::MailTemplateNames;
 use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]

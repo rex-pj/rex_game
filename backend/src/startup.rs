@@ -1,44 +1,37 @@
 use crate::app_state;
+use crate::middlewares::rate_limit_middleware::{
+    api_rate_limiter, auth_rate_limiter, strict_rate_limiter,
+};
 use crate::routings::app_routing::AppRouting;
-use app_state::RegularAppState;
+use app_state::{AppState, Helpers, RateLimiters, UseCases};
 use axum::http::request::Parts;
 use axum::http::HeaderValue;
 use axum::Router;
 use hyper::{header, Method};
-use rex_game_application::identities::identity_authenticate_usecase::IdentityAuthenticateUseCase;
-use rex_game_application::identities::identity_authorize_usecase::IdentityAuthorizeUseCase;
-use rex_game_application::identities::identity_user_token_usecase::IdentityUserTokenUseCase;
-use rex_game_application::identities::identity_user_usecase::IdentityUserUseCase;
-use rex_game_application::mail_templates::mail_template_usecase::MailTemplateUseCase;
-use rex_game_application::permissions::permission_usecase::PermissionUseCase;
-use rex_game_application::roles::role_usecase::RoleUseCase;
-use rex_game_application::{
-    flashcard_types::flashcard_type_usecase::FlashcardTypeUseCase,
-    flashcards::flashcard_usecase::FlashcardUseCase, users::user_usecase::UserUseCase,
+// New modular imports
+use rex_game_games::{
+    FlashcardFileRepository, FlashcardRepository, FlashcardTypeRelationRepository,
+    FlashcardTypeRepository, ScoringRepository, ScoringRepositoryTrait, ScoringUseCase,
 };
-use rex_game_infrastructure::helpers::configuration_helper::ConfigurationHelper;
-use rex_game_infrastructure::helpers::datetime_helper::DateTimeHelper;
-use rex_game_infrastructure::helpers::email_helper::EmailHelper;
-use rex_game_infrastructure::helpers::file_helper::FileHelper;
-use rex_game_infrastructure::helpers::html_helper;
-use rex_game_infrastructure::identities::identity_password_hasher::IdentityPasswordHasher;
-use rex_game_infrastructure::identities::identity_token_helper::IdentityTokenHelper;
-use rex_game_infrastructure::repositories::mail_template_repository::MailTemplateRepository;
-use rex_game_infrastructure::repositories::permission_repository::PermissionRepository;
-use rex_game_infrastructure::repositories::role_permission_repository::RolePermissionRepository;
-use rex_game_infrastructure::repositories::role_repository::RoleRepository;
-use rex_game_infrastructure::repositories::user_permission_repository::UserPermissionRepository;
-use rex_game_infrastructure::repositories::user_role_repository::UserRoleRepository;
-use rex_game_infrastructure::repositories::user_token_repository::UserTokenRepository;
-use rex_game_infrastructure::transaction_manager::TransactionManager;
-use rex_game_infrastructure::{
-    repositories::{
-        flashcard_file_repository::FlashcardFileRepository,
-        flashcard_repository::FlashcardRepository,
-        flashcard_type_relation_repository::FlashcardTypeRelationRepository,
-        flashcard_type_repository::FlashcardTypeRepository, user_repository::UserRepository,
+use rex_game_games::{FlashcardTypeUseCase, FlashcardUseCase};
+use rex_game_identity::{
+    IdentityAuthenticateUseCase, IdentityAuthorizeUseCase, IdentityUserTokenUseCase,
+    IdentityUserUseCase, PermissionUseCase, RoleUseCase, UserUseCase,
+};
+use rex_game_identity::{
+    IdentityPasswordHasher, IdentityTokenHelper, PermissionRepository, RolePermissionRepository,
+    RoleRepository, UserPermissionRepository, UserRepository, UserRoleRepository,
+    UserTokenRepository,
+};
+use rex_game_mail_templates::application::MailTemplateUseCase;
+use rex_game_mail_templates::MailTemplateRepository;
+use rex_game_shared::infrastructure::database::SeaOrmConnection;
+use rex_game_shared::infrastructure::{
+    database::transaction_manager::TransactionManager,
+    helpers::{
+        configuration_helper::ConfigurationHelper, datetime_helper::DateTimeHelper,
+        email_helper::EmailHelper, html_helper,
     },
-    seaorm_connection::SeaOrmConnection,
 };
 use std::sync::Arc;
 use tokio::net::TcpListener;
@@ -46,14 +39,37 @@ use tower_http::cors::{AllowOrigin, CorsLayer};
 
 #[tokio::main]
 pub async fn start() {
+    // Load environment variables from .env file
+    ConfigurationHelper::init();
+
+    // Initialize structured logging
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "info,rex_game=debug,sqlx=warn".into()),
+        )
+        .with_target(true)
+        .with_thread_ids(true)
+        .with_file(true)
+        .with_line_number(true)
+        .json()
+        .init();
+
+    tracing::info!("Starting Rex Game Backend Server");
+
     let configuration_helper = Arc::new(ConfigurationHelper::new());
-    let connection_str = configuration_helper.get_value("database.url");
+    let connection_str = configuration_helper.get("DATABASE_URL");
+
+    tracing::info!("Connecting to database...");
     let db_connection = match SeaOrmConnection::new(&connection_str).await {
         Ok(connection) => {
-            println!("Successfully connected to the database.");
+            tracing::info!("Successfully connected to database");
             connection
         }
-        Err(err) => return eprintln!("Failed to connect to the database: {:?}", err),
+        Err(err) => {
+            tracing::error!(error = ?err, "Failed to connect to database");
+            return;
+        }
     };
 
     let flashcard_repository = FlashcardRepository::new(Arc::clone(&db_connection.pool));
@@ -81,13 +97,11 @@ pub async fn start() {
         user_repository,
         role_repository.clone(),
         user_role_repository.clone(),
-        permission_repository.clone(),
         user_permission_repository.clone(),
         identity_password_hasher.clone(),
     );
     let role_usecase = RoleUseCase::new(
         role_repository,
-        permission_repository.clone(),
         role_permission_repository.clone(),
         user_role_repository.clone(),
     );
@@ -110,7 +124,6 @@ pub async fn start() {
         user_permission_repository,
         role_permission_repository,
     );
-    let file_helper = FileHelper::new();
     let date_time_helper = DateTimeHelper::new();
     let transaction_manager = TransactionManager::new(Arc::clone(&db_connection.pool));
     let email_helper = EmailHelper::new();
@@ -118,25 +131,50 @@ pub async fn start() {
     let mail_template_repository = MailTemplateRepository::new(Arc::clone(&db_connection.pool));
     let mail_template_usecase = MailTemplateUseCase::new(mail_template_repository);
     let html_helper = html_helper::HtmlHelper::new();
-    let app_state = RegularAppState {
-        transaction_manager,
-        flashcard_usecase,
-        flashcard_type_usecase,
-        user_usecase,
-        identity_user_usecase,
-        identity_authenticate_usecase,
-        file_helper,
-        email_helper,
-        date_time_helper,
-        html_helper,
+
+    // Scoring module
+    let scoring_repository: Arc<dyn ScoringRepositoryTrait> =
+        Arc::new(ScoringRepository::new(Arc::clone(&db_connection.pool)));
+    let scoring_usecase = ScoringUseCase::new(scoring_repository);
+
+    // Create use cases group
+    let usecases = UseCases {
+        flashcard: flashcard_usecase,
+        flashcard_type: flashcard_type_usecase,
+        user: user_usecase,
+        identity_user: identity_user_usecase,
+        identity_authenticate: identity_authenticate_usecase,
+        role: role_usecase,
+        permission: permission_usecase,
+        identity_authorize: identity_authorize_usecase,
+        identity_user_token: identity_user_token_usecase,
+        mail_template: mail_template_usecase,
+        scoring: scoring_usecase,
+    };
+
+    // Create helpers group
+    let helpers = Helpers {
+        email: email_helper,
+        date_time: date_time_helper,
+        html: html_helper,
+        configuration: configuration_helper.clone(),
+        token: identity_token_helper,
+    };
+
+    // Create rate limiters
+    let rate_limiters = RateLimiters {
+        auth: auth_rate_limiter(),
+        api: api_rate_limiter(),
+        strict: strict_rate_limiter(),
+    };
+
+    // Create the main application state
+    let app_state = AppState {
+        usecases,
+        helpers,
         db_connection: Arc::clone(&db_connection.pool),
-        role_usecase: role_usecase,
-        identity_authorize_usecase: identity_authorize_usecase,
-        permission_usecase: permission_usecase,
-        identity_user_token_usecase: identity_user_token_usecase,
-        itentity_token_helper: identity_token_helper,
-        mail_template_usecase: mail_template_usecase,
-        configuration_helper: configuration_helper.clone(),
+        transaction_manager,
+        rate_limiters,
     };
 
     let authenticated_routes = AppRouting {
@@ -168,7 +206,8 @@ pub async fn start() {
             move |origin: &HeaderValue, _parts: &Parts| {
                 // fetch list of origins that are allowed for this path
                 let allow_origins = configuration_helper
-                    .get_array("cors.allow_origin")
+                    .clone()
+                    .get_array("CORS_ALLOW_ORIGINS")
                     .into_iter()
                     .map(|f| HeaderValue::from_str(&f))
                     .collect::<Result<Vec<_>, _>>()
@@ -179,7 +218,33 @@ pub async fn start() {
         .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE]);
     let app_routes = Router::new().nest("/api", public_routes).layer(cors);
     let stated_routes = app_routes.with_state(app_state);
-    let listener = TcpListener::bind("0.0.0.0:3400").await.unwrap();
-    println!("The application is running at: http://localhost:3400");
-    axum::serve(listener, stated_routes).await.unwrap();
+
+    // Get server configuration from environment
+    let config = ConfigurationHelper::new();
+    let server_host = config.get_optional("SERVER_HOST");
+    let server_host = if server_host.is_empty() {
+        "0.0.0.0".to_string()
+    } else {
+        server_host
+    };
+    let server_port = config.get_optional("SERVER_PORT");
+    let server_port = if server_port.is_empty() {
+        "3400".to_string()
+    } else {
+        server_port
+    };
+    let bind_addr = format!("{}:{}", server_host, server_port);
+
+    tracing::info!("Binding server to {}", bind_addr);
+    let listener = TcpListener::bind(&bind_addr).await.unwrap();
+    println!(
+        "The application is running at: http://{}:{}",
+        server_host, server_port
+    );
+    tracing::info!("🛡️  Rate limiting enabled: Auth (5/sec), API (30/sec), Password (3/min)");
+    tracing::info!("📊 Logging level: INFO (set RUST_LOG env var to change)");
+
+    if let Err(err) = axum::serve(listener, stated_routes).await {
+        tracing::error!(error = ?err, "Server error");
+    }
 }

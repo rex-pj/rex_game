@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    app_state::AppStateTrait,
+    app_state::AppState,
     validators::validation_helper::ValidationHelper,
     view_models::{
         permissions::permission_create_request::PermissionCreateRequest,
@@ -13,20 +13,14 @@ use axum::{
     Extension, Json,
 };
 use hyper::StatusCode;
-use rex_game_application::{
-    page_list_dto::PageListDto,
-    permissions::{
-        permission_creation_dto::PermissionCreationDto,
-        permission_deletion_dto::PermissionDeletionDto, permission_dto::PermissionDto,
-        permission_updation_dto::PermissionUpdationDto,
-        permission_usecase_trait::PermissionUseCaseTrait,
-    },
-    roles::{
-        role_permission_dto::RolePermissionDto, role_usecase_trait::RoleUseCaseTrait,
-        roles::ROLE_ROOT_ADMIN,
-    },
-    users::{user_permission_dto::UserPermissionDto, user_usecase_trait::UserUseCaseTrait},
+use rex_game_identity::application::usecases::{
+    permission_creation_dto::PermissionCreationDto, permission_deletion_dto::PermissionDeletionDto,
+    permission_dto::PermissionDto, permission_updation_dto::PermissionUpdationDto,
+    role_permission_dto::RolePermissionDto, roles::ROLE_ROOT_ADMIN,
+    user_permission_dto::UserPermissionDto, PermissionUseCaseTrait, RoleUseCaseTrait,
+    UserUseCaseTrait,
 };
+use rex_game_shared::domain::models::PageListModel;
 use serde::Deserialize;
 use validator::{Validate, ValidationErrors};
 
@@ -39,59 +33,51 @@ pub struct PermissionQuery {
 }
 
 impl PermissionHandler {
-    pub async fn get_permissions<T: AppStateTrait>(
+    pub async fn get_permissions(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
         Query(params): Query<PermissionQuery>,
-    ) -> HandlerResult<Json<PageListDto<PermissionDto>>> {
+    ) -> Result<Json<PageListModel<PermissionDto>>, StatusCode> {
         if !current_user
             .roles
             .iter()
             .any(|role| role == ROLE_ROOT_ADMIN)
         {
-            return Err(HandlerError {
-                status: StatusCode::FORBIDDEN,
-                message: "You do not have permission to view permissions".to_string(),
-                ..Default::default()
-            });
+            return Err(StatusCode::FORBIDDEN);
         }
 
         let page = params.page.unwrap_or(1);
         let permissions = _state
-            .permission_usecase()
+            .usecases
+            .permission
             .get_permissions(params.name, params.description, page, params.page_size)
             .await;
         return match permissions {
             Ok(data) => Ok(Json(data)),
-            Err(_) => {
-                return Err(HandlerError {
-                    status: StatusCode::INTERNAL_SERVER_ERROR,
-                    message: "Failed to fetch permissions".to_string(),
-                    ..Default::default()
-                })
-            }
+            Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
         };
     }
 
-    pub async fn get_permission_by_id<T: AppStateTrait>(
+    pub async fn get_permission_by_id(
         Path(id): Path<i32>,
-        State(_state): State<T>,
+        State(_state): State<AppState>,
     ) -> HandlerResult<Json<PermissionDto>> {
         let permission = _state
-            .permission_usecase()
+            .usecases
+            .permission
             .get_permission_by_id(id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: format!("Permission not found: {}", err.message),
+                message: format!("Permission not found: {}", err),
                 ..Default::default()
             })?;
         Ok(Json(permission))
     }
 
-    pub async fn create_permission<T: AppStateTrait>(
+    pub async fn create_permission(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
         Json(payload): Json<Option<PermissionCreateRequest>>,
     ) -> HandlerResult<Json<i32>> {
         let req = match payload {
@@ -127,12 +113,13 @@ impl PermissionHandler {
         }
 
         let existing_permission: Option<PermissionDto> = _state
-            .permission_usecase()
+            .usecases
+            .permission
             .get_permission_by_code(&req.code)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: format!("Failed to check existing permission: {}", err.message),
+                message: format!("Failed to check existing permission: {}", err),
                 ..Default::default()
             })?;
 
@@ -145,12 +132,13 @@ impl PermissionHandler {
         }
 
         let existing_permission_by_name: Option<PermissionDto> = _state
-            .permission_usecase()
+            .usecases
+            .permission
             .get_permission_by_name(&req.name)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
-                message: format!("Failed to check existing permission: {}", err.message),
+                message: format!("Failed to check existing permission: {}", err),
                 ..Default::default()
             })?;
 
@@ -172,7 +160,8 @@ impl PermissionHandler {
             ..Default::default()
         };
         let created_result = _state
-            .permission_usecase()
+            .usecases
+            .permission
             .create_permission(new_permission)
             .await;
         match created_result {
@@ -185,9 +174,9 @@ impl PermissionHandler {
         }
     }
 
-    pub async fn update_permission<T: AppStateTrait>(
+    pub async fn update_permission(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
         Path(id): Path<i32>,
         Json(payload): Json<Option<HashMap<String, String>>>,
     ) -> HandlerResult<Json<bool>> {
@@ -230,12 +219,13 @@ impl PermissionHandler {
         }
 
         let existing = _state
-            .permission_usecase()
+            .usecases
+            .permission
             .get_permission_by_id(id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: format!("Permission not found: {}", err.message),
+                message: format!("Permission not found: {}", err),
                 ..Default::default()
             })?;
 
@@ -292,7 +282,8 @@ impl PermissionHandler {
         }
 
         let result = _state
-            .permission_usecase()
+            .usecases
+            .permission
             .update_permission(id, updating)
             .await;
         return match result {
@@ -305,9 +296,9 @@ impl PermissionHandler {
         };
     }
 
-    pub async fn delete_permission<T: AppStateTrait>(
+    pub async fn delete_permission(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
         Path(id): Path<i32>,
     ) -> HandlerResult<Json<bool>> {
         let deletion_req = PermissionDeletionDto {
@@ -315,12 +306,13 @@ impl PermissionHandler {
         };
 
         let existing = _state
-            .permission_usecase()
+            .usecases
+            .permission
             .get_permission_by_id(id)
             .await
             .map_err(|err| HandlerError {
                 status: StatusCode::NOT_FOUND,
-                message: format!("Permission not found: {}", err.message),
+                message: format!("Permission not found: {}", err),
                 ..Default::default()
             })?;
 
@@ -345,7 +337,8 @@ impl PermissionHandler {
         }
 
         let is_succeed = _state
-            .permission_usecase()
+            .usecases
+            .permission
             .delete_permission_by_id(id, deletion_req)
             .await;
 
@@ -361,9 +354,9 @@ impl PermissionHandler {
         }
     }
 
-    pub async fn get_user_permissions<T: AppStateTrait>(
+    pub async fn get_user_permissions(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
     ) -> HandlerResult<Json<Vec<UserPermissionDto>>> {
         if !current_user
             .roles
@@ -377,7 +370,7 @@ impl PermissionHandler {
             });
         }
 
-        let user_permissions = _state.user_usecase().get_user_permissions().await;
+        let user_permissions = _state.usecases.user.get_user_permissions().await;
 
         match user_permissions {
             Ok(u) => Ok(Json(u)),
@@ -391,9 +384,9 @@ impl PermissionHandler {
         }
     }
 
-    pub async fn get_role_permissions<T: AppStateTrait>(
+    pub async fn get_role_permissions(
+        State(_state): State<AppState>,
         Extension(current_user): Extension<Arc<CurrentUser>>,
-        State(_state): State<T>,
     ) -> HandlerResult<Json<Vec<RolePermissionDto>>> {
         if !current_user
             .roles
@@ -407,7 +400,7 @@ impl PermissionHandler {
             });
         }
 
-        let role_permissions = _state.role_usecase().get_role_permissions().await;
+        let role_permissions = _state.usecases.role.get_role_permissions().await;
 
         match role_permissions {
             Ok(u) => Ok(Json(u)),

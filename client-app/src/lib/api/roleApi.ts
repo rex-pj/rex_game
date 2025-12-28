@@ -1,4 +1,5 @@
-import { BaseApi, type BaseApiOptions } from "./baseApi";
+import { BaseApi } from "./baseApi";
+import type { BaseApiOptions } from "./apiOptions";
 import type { Role } from "$lib/models/role";
 import type { RolePermission } from "$lib/models/role-permission";
 
