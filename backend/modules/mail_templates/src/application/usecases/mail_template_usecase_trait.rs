@@ -1,5 +1,5 @@
 use super::{MailTemplateCreationDto, MailTemplateDeletionDto, MailTemplateDto, MailTemplateUpdationDto};
-use rex_game_shared_kernel::{InfraError, domain::models::page_list_model::PageListModel};
+use rex_game_shared::{InfraError, domain::models::page_list_model::PageListModel};
 use std::future::Future;
 
 pub trait MailTemplateUseCaseTrait {

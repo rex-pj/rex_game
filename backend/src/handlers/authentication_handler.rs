@@ -13,7 +13,7 @@ use axum_extra::extract::{
 };
 use hyper::StatusCode;
 use rex_game_identity::application::usecases::auth::IdentityAuthenticateUseCaseTrait;
-use rex_game_shared_kernel::infrastructure::helpers::datetime_helper_trait::DateTimeHelperTrait;
+use rex_game_shared::infrastructure::helpers::datetime_helper_trait::DateTimeHelperTrait;
 use validator::{Validate, ValidationErrors};
 
 impl AuthenticationHandler {

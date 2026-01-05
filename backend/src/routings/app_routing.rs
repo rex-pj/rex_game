@@ -4,8 +4,9 @@ use axum::{
     routing::{delete, get, patch, post},
     Router,
 };
+
+use rex_game_shared::domain::enums::permission_codes::PermissionCodes;
 use rex_game_identity::roles::ROLE_ROOT_ADMIN;
-use rex_game_shared_kernel::domain::enums::permission_codes::PermissionCodes;
 use tower::ServiceBuilder;
 
 use crate::{
@@ -68,6 +69,7 @@ impl AppRouting {
             .route("/users/confirmations", post(UserHandler::confirm_user))
             .route("/users/{id}", get(UserHandler::get_user_by_id))
             .route("/setup", post(SetupHandler::setup))
+            .route("/setup/status", get(SetupHandler::get_status))
     }
 
     pub fn build_admin_routes(&self, router: Router<AppState>) -> Router<AppState> {
@@ -111,18 +113,14 @@ impl AppRouting {
                 "/roles/{role_id}/permissions",
                 post(RoleHandler::assign_permissions).layer(AuthorizeByPermissionLayer {
                     app_state: self.app_state.clone(),
-                    permissions: vec![PermissionCodes::RolePermissionCreate
-                        .as_str()
-                        .to_string()],
+                    permissions: vec![PermissionCodes::RolePermissionCreate.as_str().to_string()],
                 }),
             )
             .route(
                 "/roles/{role_id}/permissions",
                 get(RoleHandler::get_permissions).layer(AuthorizeByPermissionLayer {
                     app_state: self.app_state.clone(),
-                    permissions: vec![PermissionCodes::RolePermissionRead
-                        .as_str()
-                        .to_string()],
+                    permissions: vec![PermissionCodes::RolePermissionRead.as_str().to_string()],
                 }),
             )
             .route(
@@ -185,18 +183,14 @@ impl AppRouting {
                 "/users/{user_id}/permissions",
                 post(UserHandler::assign_permissions).layer(AuthorizeByPermissionLayer {
                     app_state: self.app_state.clone(),
-                    permissions: vec![PermissionCodes::UserPermissionCreate
-                        .as_str()
-                        .to_string()],
+                    permissions: vec![PermissionCodes::UserPermissionCreate.as_str().to_string()],
                 }),
             )
             .route(
                 "/users/{user_id}/permissions",
                 get(UserHandler::get_permissions).layer(AuthorizeByPermissionLayer {
                     app_state: self.app_state.clone(),
-                    permissions: vec![PermissionCodes::UserPermissionRead
-                        .as_str()
-                        .to_string()],
+                    permissions: vec![PermissionCodes::UserPermissionRead.as_str().to_string()],
                 }),
             )
             .route(
@@ -222,47 +216,49 @@ impl AppRouting {
             )
             .route(
                 "/flashcard-types",
-                post(FlashcardTypeHandler::create_flashcard_type).layer(AuthorizeByPermissionLayer {
-                    app_state: self.app_state.clone(),
-                    permissions: vec![PermissionCodes::FlashcardTypeCreate
-                        .as_str()
-                        .to_string()],
-                }),
+                post(FlashcardTypeHandler::create_flashcard_type).layer(
+                    AuthorizeByPermissionLayer {
+                        app_state: self.app_state.clone(),
+                        permissions: vec![PermissionCodes::FlashcardTypeCreate
+                            .as_str()
+                            .to_string()],
+                    },
+                ),
             )
             .route(
                 "/flashcard-types/{id}",
-                patch(FlashcardTypeHandler::update_flashcard_type).layer(AuthorizeByPermissionLayer {
-                    app_state: self.app_state.clone(),
-                    permissions: vec![PermissionCodes::FlashcardTypeUpdate
-                        .as_str()
-                        .to_string()],
-                }),
+                patch(FlashcardTypeHandler::update_flashcard_type).layer(
+                    AuthorizeByPermissionLayer {
+                        app_state: self.app_state.clone(),
+                        permissions: vec![PermissionCodes::FlashcardTypeUpdate
+                            .as_str()
+                            .to_string()],
+                    },
+                ),
             )
             .route(
                 "/flashcard-types/{id}",
-                delete(FlashcardTypeHandler::delete_flashcard_type).layer(AuthorizeByPermissionLayer {
-                    app_state: self.app_state.clone(),
-                    permissions: vec![PermissionCodes::FlashcardTypeDelete
-                        .as_str()
-                        .to_string()],
-                }),
+                delete(FlashcardTypeHandler::delete_flashcard_type).layer(
+                    AuthorizeByPermissionLayer {
+                        app_state: self.app_state.clone(),
+                        permissions: vec![PermissionCodes::FlashcardTypeDelete
+                            .as_str()
+                            .to_string()],
+                    },
+                ),
             )
             .route(
                 "/user-permissions",
                 get(PermissionHandler::get_user_permissions).layer(AuthorizeByPermissionLayer {
                     app_state: self.app_state.clone(),
-                    permissions: vec![PermissionCodes::UserPermissionRead
-                        .as_str()
-                        .to_string()],
+                    permissions: vec![PermissionCodes::UserPermissionRead.as_str().to_string()],
                 }),
             )
             .route(
                 "/role-permissions",
                 get(PermissionHandler::get_role_permissions).layer(AuthorizeByPermissionLayer {
                     app_state: self.app_state.clone(),
-                    permissions: vec![PermissionCodes::RolePermissionRead
-                        .as_str()
-                        .to_string()],
+                    permissions: vec![PermissionCodes::RolePermissionRead.as_str().to_string()],
                 }),
             )
             .route(
@@ -281,37 +277,37 @@ impl AppRouting {
             )
             .route(
                 "/mail-templates/{id}",
-                get(MailTemplateHandler::get_mail_template_by_id).layer(AuthorizeByPermissionLayer {
-                    app_state: self.app_state.clone(),
-                    permissions: vec![PermissionCodes::MailTemplateRead.as_str().to_string()],
-                }),
+                get(MailTemplateHandler::get_mail_template_by_id).layer(
+                    AuthorizeByPermissionLayer {
+                        app_state: self.app_state.clone(),
+                        permissions: vec![PermissionCodes::MailTemplateRead.as_str().to_string()],
+                    },
+                ),
             )
             .route(
                 "/mail-templates/{id}",
-                delete(MailTemplateHandler::delete_mail_template).layer(AuthorizeByPermissionLayer {
-                    app_state: self.app_state.clone(),
-                    permissions: vec![PermissionCodes::MailTemplateDelete
-                        .as_str()
-                        .to_string()],
-                }),
+                delete(MailTemplateHandler::delete_mail_template).layer(
+                    AuthorizeByPermissionLayer {
+                        app_state: self.app_state.clone(),
+                        permissions: vec![PermissionCodes::MailTemplateDelete.as_str().to_string()],
+                    },
+                ),
             )
             .route(
                 "/mail-templates",
                 post(MailTemplateHandler::create_mail_template).layer(AuthorizeByPermissionLayer {
                     app_state: self.app_state.clone(),
-                    permissions: vec![PermissionCodes::MailTemplateCreate
-                        .as_str()
-                        .to_string()],
+                    permissions: vec![PermissionCodes::MailTemplateCreate.as_str().to_string()],
                 }),
             )
             .route(
                 "/mail-templates/{id}",
-                patch(MailTemplateHandler::update_mail_template).layer(AuthorizeByPermissionLayer {
-                    app_state: self.app_state.clone(),
-                    permissions: vec![PermissionCodes::MailTemplateUpdate
-                        .as_str()
-                        .to_string()],
-                }),
+                patch(MailTemplateHandler::update_mail_template).layer(
+                    AuthorizeByPermissionLayer {
+                        app_state: self.app_state.clone(),
+                        permissions: vec![PermissionCodes::MailTemplateUpdate.as_str().to_string()],
+                    },
+                ),
             )
             .layer(ServiceBuilder::new().layer(AuthorizeByRoleLayer {
                 app_state: self.app_state.clone(),

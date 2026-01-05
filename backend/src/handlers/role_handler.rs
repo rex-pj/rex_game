@@ -18,7 +18,7 @@ use rex_game_identity::application::usecases::{
     role_permission_dto::RolePermissionDto, role_updation_dto::RoleUpdationDto,
     roles::ROLE_ROOT_ADMIN, user_role_dto::UserRoleDto, PermissionUseCaseTrait, RoleUseCaseTrait,
 };
-use rex_game_shared_kernel::domain::models::PageListModel;
+use rex_game_shared::domain::models::PageListModel;
 use serde::Deserialize;
 use std::{collections::HashMap, sync::Arc};
 use validator::{Validate, ValidationErrors};

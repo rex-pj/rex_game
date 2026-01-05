@@ -416,18 +416,18 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // Replace the sample below with your own migration scripts
-
-        manager
-            .drop_table(Table::drop().table(UserRole::Table).to_owned())
-            .await?;
-        // Replace the sample below with your own migration scripts
-        manager
-            .drop_table(Table::drop().table(Role::Table).to_owned())
-            .await?;
+        // Drop tables in reverse order to avoid foreign key constraint violations
 
         manager
             .drop_table(Table::drop().table(FlashcardTypeRelation::Table).to_owned())
+            .await?;
+
+        manager
+            .drop_table(Table::drop().table(Flashcard::Table).to_owned())
+            .await?;
+
+        manager
+            .drop_table(Table::drop().table(FlashcardFile::Table).to_owned())
             .await?;
 
         manager
@@ -435,7 +435,11 @@ impl MigrationTrait for Migration {
             .await?;
 
         manager
-            .drop_table(Table::drop().table(Flashcard::Table).to_owned())
+            .drop_table(Table::drop().table(UserRole::Table).to_owned())
+            .await?;
+
+        manager
+            .drop_table(Table::drop().table(Role::Table).to_owned())
             .await?;
 
         manager

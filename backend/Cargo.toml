@@ -14,7 +14,8 @@ tower-http = { version = "0.6.1", features = ["cors"] }
 tower = { version = "0.5.2", features = ["full"] }
 tokio = { version = "1.42.0", features = ["full"] }
 rex-game-migration = { path = "./migration" }
-rex-game-shared-kernel = { path = "./shared_kernel" }
+rex-game-shared = { path = "./shared" }
+rex-game-entities = { path = "./entities" }
 rex-game-identity = { path = "./modules/identity" }
 rex-game-games = { path = "./modules/games" }
 rex-game-mail-templates = { path = "./modules/mail_templates" }
@@ -46,8 +47,8 @@ features = [
 members = [
     ".",
     "migration",
-    "shared_kernel",
+    "shared",
     "modules/identity",
     "modules/games",
-    "modules/mail_templates",
+    "modules/mail_templates", "entities",
 ]

@@ -1,6 +1,6 @@
 use crate::flashcard::domain::models::flashcard_type_model::FlashcardTypeModel;
-use rex_game_shared_kernel::domain::models::page_list_model::PageListModel;
-use rex_game_shared_kernel::InfraError;
+use rex_game_shared::domain::models::page_list_model::PageListModel;
+use rex_game_shared::InfraError;
 use std::future::Future;
 
 pub trait FlashcardTypeRepositoryTrait {

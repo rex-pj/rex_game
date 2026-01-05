@@ -1,5 +1,5 @@
 use crate::domain::models::MailTemplateModel;
-use rex_game_shared_kernel::{
+use rex_game_shared::{
     InfraError,
     domain::models::page_list_model::PageListModel,
 };

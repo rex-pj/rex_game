@@ -3,11 +3,13 @@ use crate::flashcard::domain::{
     repositories::flashcard_file_repository_trait::FlashcardFileRepositoryTrait,
 };
 use chrono::Utc;
-use rex_game_shared_kernel::InfraError;
+use rex_game_shared::InfraError;
 use sea_orm::{DatabaseConnection, EntityTrait, Set};
 use std::sync::Arc;
 
-use crate::flashcard::infrastructure::entities::{flashcard_file, prelude::FlashcardFile};
+use rex_game_entities::entities::flashcard_file::{
+    self, Entity as FlashcardFile,
+};
 
 #[derive(Clone)]
 pub struct FlashcardFileRepository {

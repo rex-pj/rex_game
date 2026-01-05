@@ -2,7 +2,7 @@ use crate::flashcard::domain::{
     models::flashcard_model::FlashcardModel,
     repositories::flashcard_repository_trait::FlashcardRepositoryTrait,
 };
-use crate::flashcard::infrastructure::entities::{
+use rex_game_entities::entities::{
     flashcard::{self, Entity as Flashcard, Relation as FlashcardRelation},
     flashcard_type,
     flashcard_type_relation::{
@@ -10,8 +10,8 @@ use crate::flashcard::infrastructure::entities::{
     },
 };
 use chrono::Utc;
-use rex_game_shared_kernel::domain::models::page_list_model::PageListModel;
-use rex_game_shared_kernel::InfraError;
+use rex_game_shared::domain::models::page_list_model::PageListModel;
+use rex_game_shared::InfraError;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, Condition, DatabaseConnection, EntityTrait, JoinType,
     PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set,

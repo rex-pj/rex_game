@@ -8,21 +8,26 @@ use hyper::{header, Method};
 // New modular imports
 use rex_game_games::{
     FlashcardFileRepository, FlashcardRepository, FlashcardTypeRelationRepository,
-    FlashcardTypeRepository, FlashcardTypeUseCase, FlashcardUseCase,
+    FlashcardTypeRepository,
+};
+use rex_game_games::{FlashcardTypeUseCase, FlashcardUseCase};
+use rex_game_identity::{
+    IdentityAuthenticateUseCase, IdentityAuthorizeUseCase, IdentityUserTokenUseCase,
+    IdentityUserUseCase, PermissionUseCase, RoleUseCase, UserUseCase,
 };
 use rex_game_identity::{
-    IdentityAuthenticateUseCase, IdentityAuthorizeUseCase, IdentityPasswordHasher,
-    IdentityTokenHelper, IdentityUserTokenUseCase, IdentityUserUseCase, PermissionRepository,
-    PermissionUseCase, RolePermissionRepository, RoleRepository, RoleUseCase,
-    UserPermissionRepository, UserRepository, UserRoleRepository, UserTokenRepository, UserUseCase,
+    IdentityPasswordHasher, IdentityTokenHelper, PermissionRepository, RolePermissionRepository,
+    RoleRepository, UserPermissionRepository, UserRepository, UserRoleRepository,
+    UserTokenRepository,
 };
-use rex_game_mail_templates::{MailTemplateRepository, MailTemplateUseCase};
-use rex_game_shared_kernel::infrastructure::database::SeaOrmConnection;
-use rex_game_shared_kernel::infrastructure::{
+use rex_game_mail_templates::application::MailTemplateUseCase;
+use rex_game_mail_templates::MailTemplateRepository;
+use rex_game_shared::infrastructure::database::SeaOrmConnection;
+use rex_game_shared::infrastructure::{
     database::transaction_manager::TransactionManager,
     helpers::{
         configuration_helper::ConfigurationHelper, datetime_helper::DateTimeHelper,
-        email_helper::EmailHelper, file_helper::FileHelper, html_helper,
+        email_helper::EmailHelper, html_helper,
     },
 };
 use std::sync::Arc;
@@ -93,7 +98,6 @@ pub async fn start() {
         user_permission_repository,
         role_permission_repository,
     );
-    let file_helper = FileHelper::new();
     let date_time_helper = DateTimeHelper::new();
     let transaction_manager = TransactionManager::new(Arc::clone(&db_connection.pool));
     let email_helper = EmailHelper::new();
@@ -118,7 +122,6 @@ pub async fn start() {
 
     // Create helpers group
     let helpers = Helpers {
-        file: file_helper,
         email: email_helper,
         date_time: date_time_helper,
         html: html_helper,

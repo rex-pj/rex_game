@@ -1,8 +1,8 @@
-use rex_game_shared_kernel::InfraError;
+use rex_game_shared::InfraError;
 use std::{future::Future, pin::Pin};
 
 use crate::domain::models::user_model::UserModel;
-use rex_game_shared_kernel::domain::{
+use rex_game_shared::domain::{
     models::page_list_model::PageListModel, transaction_manager_trait::TransactionWrapperTrait,
 };
 

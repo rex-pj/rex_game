@@ -1,6 +1,6 @@
 use std::{collections::HashSet, future::Future, pin::Pin};
 
-use rex_game_shared_kernel::ApplicationError;
+use rex_game_shared::ApplicationError;
 
 use super::identity_authorize_usecase_trait::IdentityAuthorizeUseCaseTrait;
 use crate::domain::repositories::{

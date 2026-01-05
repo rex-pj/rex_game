@@ -1,6 +1,6 @@
 use std::future::Future;
 
-use rex_game_shared_kernel::{domain::models::page_list_model::PageListModel, ApplicationError};
+use rex_game_shared::{domain::models::page_list_model::PageListModel, ApplicationError};
 
 use super::{
     flashcard_type_creation_dto::FlashcardTypeCreationDto, flashcard_type_dto::FlashcardTypeDto,

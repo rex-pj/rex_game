@@ -12,7 +12,7 @@ use jsonwebtoken::{
     errors::{Error, ErrorKind},
     Header, Validation,
 };
-use rex_game_shared_kernel::{
+use rex_game_shared::{
     domain::{
         enums::user_token_porposes::UserTokenPurposes,
         helpers::configuration_helper_trait::ConfigurationHelperTrait,

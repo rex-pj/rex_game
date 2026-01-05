@@ -1,4 +1,4 @@
-use rex_game_shared_kernel::ApplicationError;
+use rex_game_shared::ApplicationError;
 
 use super::{
     identity_user_token_usecase_trait::IdentityUserTokenUseCaseTrait,

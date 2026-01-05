@@ -8,6 +8,7 @@ mod m20250630_171738_seeding_default_permission;
 mod m20250817_075950_add_user_token;
 mod m20250819_164038_add_mail_template;
 mod m20250903_173631_seeding_email_templates;
+mod m20260101_190000_add_system_settings;
 
 pub struct Migrator;
 
@@ -22,6 +23,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250817_075950_add_user_token::Migration),
             Box::new(m20250819_164038_add_mail_template::Migration),
             Box::new(m20250903_173631_seeding_email_templates::Migration),
+            Box::new(m20260101_190000_add_system_settings::Migration),
         ]
     }
 }

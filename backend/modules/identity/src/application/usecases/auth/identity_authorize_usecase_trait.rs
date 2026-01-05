@@ -1,6 +1,6 @@
 use std::{collections::HashSet, future::Future, pin::Pin};
 
-use rex_game_shared_kernel::ApplicationError;
+use rex_game_shared::ApplicationError;
 
 pub trait IdentityAuthorizeUseCaseTrait {
     fn is_user_in_role(

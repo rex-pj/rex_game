@@ -1,4 +1,4 @@
-use rex_game_shared_kernel::ApplicationError;
+use rex_game_shared::ApplicationError;
 
 use crate::domain::services::TokenValidationResult;
 

@@ -12,12 +12,13 @@ use axum::{
 };
 use hyper::StatusCode;
 use rex_game_identity::application::usecases::roles::*;
-use rex_game_mail_templates::{
+use rex_game_shared::domain::models::PageListModel;
+use rex_game_shared::infrastructure::helpers::html_helper_trait::HtmlHelperTrait;
+
+use rex_game_mail_templates::application::{
     MailTemplateCreationDto, MailTemplateDeletionDto, MailTemplateDto, MailTemplateUpdationDto,
     MailTemplateUseCaseTrait,
 };
-use rex_game_shared_kernel::domain::models::PageListModel;
-use rex_game_shared_kernel::infrastructure::helpers::html_helper_trait::HtmlHelperTrait;
 use serde::Deserialize;
 use std::{collections::HashMap, sync::Arc};
 use validator::{Validate, ValidationErrors};

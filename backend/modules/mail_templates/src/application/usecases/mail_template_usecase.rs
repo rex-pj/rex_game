@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{domain::models::MailTemplateModel, infrastructure::repositories::MailTemplateRepository};
 use chrono::Utc;
-use rex_game_shared_kernel::{
+use rex_game_shared::{
     InfraError,
     domain::models::page_list_model::PageListModel,
 };

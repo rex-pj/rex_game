@@ -10,9 +10,9 @@ use crate::flashcard::domain::{
     },
 };
 use chrono::Utc;
-use rex_game_shared_kernel::ApplicationError;
+use rex_game_shared::ApplicationError;
 
-use rex_game_shared_kernel::domain::models::page_list_model::PageListModel;
+use rex_game_shared::domain::models::page_list_model::PageListModel;
 
 use super::{
     flashcard_creation_dto::FlashcardCreationDto, flashcard_dto::FlashcardDto,

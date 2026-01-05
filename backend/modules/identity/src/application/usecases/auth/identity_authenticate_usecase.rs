@@ -11,9 +11,9 @@ use crate::domain::services::{
     token_types::{TokenGenerationOptions, TokenValidationResult},
 };
 use chrono::{Duration, Utc};
-use rex_game_shared_kernel::domain::configuration_helper_trait::ConfigurationHelperTrait;
-use rex_game_shared_kernel::domain::enums::user_token_porposes::UserTokenPurposes;
-use rex_game_shared_kernel::ApplicationError;
+use rex_game_shared::domain::configuration_helper_trait::ConfigurationHelperTrait;
+use rex_game_shared::domain::enums::user_token_porposes::UserTokenPurposes;
+use rex_game_shared::ApplicationError;
 
 #[derive(Clone)]
 pub struct IdentityAuthenticateUseCase<CF, PH, US, TH>

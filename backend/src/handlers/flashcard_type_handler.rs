@@ -5,13 +5,16 @@ use axum::{
     Extension, Json,
 };
 use hyper::StatusCode;
-use rex_game_games::flashcard::application::usecases::{
-    flashcard_type_creation_dto::FlashcardTypeCreationDto, flashcard_type_dto::FlashcardTypeDto,
-    flashcard_type_updation_dto::FlashcardTypeUpdationDto,
+use rex_game_shared::domain::models::PageListModel;
+use rex_game_games::{
+    FlashcardTypeUseCaseTrait,
+    flashcard::application::usecases::{
+        flashcard_type_creation_dto::FlashcardTypeCreationDto,
+        flashcard_type_dto::FlashcardTypeDto,
+        flashcard_type_updation_dto::FlashcardTypeUpdationDto,
+    },
 };
-use rex_game_games::FlashcardTypeUseCaseTrait;
 use rex_game_identity::application::usecases::roles::*;
-use rex_game_shared_kernel::domain::models::PageListModel;
 use serde::Deserialize;
 use validator::{Validate, ValidationErrors};
 

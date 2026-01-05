@@ -9,8 +9,8 @@ use crate::application::usecases::user_creation_dto::UserCreationDto;
 use crate::application::usecases::user_usecase_trait::UserUseCaseTrait;
 use crate::domain::services::password_hasher_trait::PasswordHasherTrait;
 use crate::domain::services::token_helper_trait::TokenHelperTrait;
-use rex_game_shared_kernel::domain::transaction_manager_trait::TransactionWrapperTrait;
-use rex_game_shared_kernel::ApplicationError;
+use rex_game_shared::domain::transaction_manager_trait::TransactionWrapperTrait;
+use rex_game_shared::ApplicationError;
 use std::future::Future;
 use std::pin::Pin;
 

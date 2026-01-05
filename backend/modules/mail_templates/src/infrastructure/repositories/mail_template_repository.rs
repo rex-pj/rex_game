@@ -1,10 +1,8 @@
-use crate::{
-    domain::models::MailTemplateModel,
-    infrastructure::entities::mail_template::{self, Entity as MailTemplate},
-};
+use crate::domain::models::MailTemplateModel;
 use chrono::Utc;
-use rex_game_shared_kernel::domain::models::page_list_model::PageListModel;
-use rex_game_shared_kernel::InfraError;
+use rex_game_entities::entities::mail_template::{self, Entity as MailTemplate};
+use rex_game_shared::domain::models::page_list_model::PageListModel;
+use rex_game_shared::InfraError;
 use sea_orm::{
     ColumnTrait, Condition, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
     QueryOrder, Set,

@@ -13,7 +13,7 @@ use crate::domain::{
     },
 };
 use chrono::Utc;
-use rex_game_shared_kernel::{domain::models::page_list_model::PageListModel, ApplicationError};
+use rex_game_shared::{domain::models::page_list_model::PageListModel, ApplicationError};
 use std::{future::Future, pin::Pin};
 
 #[derive(Clone)]

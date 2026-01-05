@@ -1,6 +1,6 @@
 use crate::domain::models::user_role_model::UserRoleModel;
-use rex_game_shared_kernel::domain::transaction_manager_trait::TransactionWrapperTrait;
-use rex_game_shared_kernel::InfraError;
+use rex_game_shared::domain::transaction_manager_trait::TransactionWrapperTrait;
+use rex_game_shared::InfraError;
 use std::{collections::HashSet, future::Future, pin::Pin};
 
 pub trait UserRoleRepositoryTrait {

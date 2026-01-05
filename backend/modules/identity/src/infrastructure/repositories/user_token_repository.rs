@@ -1,10 +1,10 @@
-use super::super::entities::user_token::{self, Entity as UserToken};
+use rex_game_entities::entities::user_token::{self, Entity as UserToken};
 use crate::domain::{
     models::user_token_model::UserTokenModel,
     repositories::user_token_repository_trait::UserTokenRepositoryTrait,
 };
 use chrono::Utc;
-use rex_game_shared_kernel::InfraError;
+use rex_game_shared::InfraError;
 use sea_orm::{ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use std::sync::Arc;
 

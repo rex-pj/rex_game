@@ -1,4 +1,4 @@
-use super::super::entities::{
+use rex_game_entities::entities::{
     permission, user,
     user_permission::{self, Entity as UserPermission},
 };
@@ -7,7 +7,7 @@ use crate::domain::{
     repositories::user_permission_repository_trait::UserPermissionRepositoryTrait,
 };
 use chrono::{DateTime, Utc};
-use rex_game_shared_kernel::InfraError;
+use rex_game_shared::InfraError;
 use sea_orm::{
     ColumnTrait, Condition, DatabaseConnection, EntityTrait, FromQueryResult, JoinType,
     QueryFilter, QuerySelect, RelationTrait, Set,

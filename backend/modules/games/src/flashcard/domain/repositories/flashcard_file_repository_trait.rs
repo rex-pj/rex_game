@@ -1,5 +1,5 @@
 use std::future::Future;
-use rex_game_shared_kernel::InfraError;
+use rex_game_shared::InfraError;
 use crate::flashcard::domain::models::flashcard_file_model::FlashcardFileModel;
 
 pub trait FlashcardFileRepositoryTrait {

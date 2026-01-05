@@ -1,5 +1,5 @@
 use crate::domain::models::user_token_model::UserTokenModel;
-use rex_game_shared_kernel::InfraError;
+use rex_game_shared::InfraError;
 use std::future::Future;
 
 pub trait UserTokenRepositoryTrait {

@@ -1,8 +1,8 @@
-use rex_game_shared_kernel::InfraError;
+use rex_game_shared::InfraError;
 use std::future::Future;
 
 use crate::domain::models::permission_model::PermissionModel;
-use rex_game_shared_kernel::domain::models::page_list_model::PageListModel;
+use rex_game_shared::domain::models::page_list_model::PageListModel;
 
 pub trait PermissionRepositoryTrait {
     fn create(&self, permission: PermissionModel) -> impl Future<Output = Result<i32, InfraError>>;

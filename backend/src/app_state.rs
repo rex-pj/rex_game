@@ -1,19 +1,22 @@
 // New modular imports
 use rex_game_games::{
     FlashcardFileRepository, FlashcardRepository, FlashcardTypeRelationRepository,
-    FlashcardTypeRepository, FlashcardTypeUseCase, FlashcardUseCase,
+    FlashcardTypeRepository, {FlashcardTypeUseCase, FlashcardUseCase},
 };
 use rex_game_identity::{
-    IdentityAuthenticateUseCase, IdentityAuthorizeUseCase, IdentityPasswordHasher,
-    IdentityTokenHelper, IdentityUserTokenUseCase, IdentityUserUseCase, PermissionRepository,
-    PermissionUseCase, RolePermissionRepository, RoleRepository, RoleUseCase,
-    UserPermissionRepository, UserRepository, UserRoleRepository, UserTokenRepository, UserUseCase,
+    IdentityPasswordHasher, IdentityTokenHelper, PermissionRepository, RolePermissionRepository,
+    RoleRepository, UserPermissionRepository, UserRepository, UserRoleRepository,
+    UserTokenRepository,
+    {
+        IdentityAuthenticateUseCase, IdentityAuthorizeUseCase, IdentityUserTokenUseCase,
+        IdentityUserUseCase, PermissionUseCase, RoleUseCase, UserUseCase,
+    },
 };
-use rex_game_mail_templates::MailTemplateUseCase;
-use rex_game_shared_kernel::infrastructure::{
+use rex_game_mail_templates::application::MailTemplateUseCase;
+use rex_game_shared::infrastructure::{
     helpers::{
         configuration_helper::ConfigurationHelper, datetime_helper::DateTimeHelper,
-        email_helper::EmailHelper, file_helper::FileHelper, html_helper::HtmlHelper,
+        email_helper::EmailHelper, html_helper::HtmlHelper,
     },
     transaction_manager::TransactionManager,
 };
@@ -74,7 +77,6 @@ pub struct UseCases {
 /// Group for all helper utilities
 #[derive(Clone)]
 pub struct Helpers {
-    pub file: FileHelper,
     pub email: EmailHelper,
     pub date_time: DateTimeHelper,
     pub html: HtmlHelper,

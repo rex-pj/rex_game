@@ -29,7 +29,11 @@
       "Bash(tree:*)",
       "Bash(cargo test:*)",
       "Bash(cmd /c \"del /f REFACTORING_COMPLETE_SUMMARY.md 2>nul && echo Deleted successfully || echo File is locked\")",
-      "Bash(powershell -Command \"Remove-Item -Force ''REFACTORING_COMPLETE_SUMMARY.md'' -ErrorAction SilentlyContinue; if \\(-not \\(Test-Path ''REFACTORING_COMPLETE_SUMMARY.md''\\)\\) { Write-Host ''Deleted successfully'' } else { Write-Host ''Still exists'' }\")"
+      "Bash(powershell -Command \"Remove-Item -Force ''REFACTORING_COMPLETE_SUMMARY.md'' -ErrorAction SilentlyContinue; if \\(-not \\(Test-Path ''REFACTORING_COMPLETE_SUMMARY.md''\\)\\) { Write-Host ''Deleted successfully'' } else { Write-Host ''Still exists'' }\")",
+      "Bash(cargo run:*)",
+      "Bash(ls:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)"
     ]
   }
 }

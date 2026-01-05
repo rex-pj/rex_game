@@ -1,11 +1,11 @@
-use super::super::entities::permission::{self, Entity as Permission};
+use rex_game_entities::entities::permission::{self, Entity as Permission};
 use crate::domain::{
     models::permission_model::PermissionModel,
     repositories::permission_repository_trait::PermissionRepositoryTrait,
 };
 use chrono::Utc;
-use rex_game_shared_kernel::domain::models::page_list_model::PageListModel;
-use rex_game_shared_kernel::InfraError;
+use rex_game_shared::domain::models::page_list_model::PageListModel;
+use rex_game_shared::InfraError;
 use sea_orm::{
     sea_query::{Expr, Func},
     ColumnTrait, Condition, DatabaseConnection, EntityTrait, ExprTrait, PaginatorTrait,

@@ -1,4 +1,4 @@
-use super::super::entities::{
+use rex_game_entities::entities::{
     role, user,
     user_role::{self, Entity as UserRole},
 };
@@ -6,11 +6,11 @@ use crate::domain::{
     models::user_role_model::UserRoleModel,
     repositories::user_role_repository_trait::UserRoleRepositoryTrait,
 };
-use rex_game_shared_kernel::domain::transaction_manager_trait::TransactionWrapperTrait;
-use rex_game_shared_kernel::infrastructure::database::SeaOrmTransactionWrapper;
+use rex_game_shared::domain::transaction_manager_trait::TransactionWrapperTrait;
+use rex_game_shared::infrastructure::database::SeaOrmTransactionWrapper;
 
 use chrono::{DateTime, Utc};
-use rex_game_shared_kernel::InfraError;
+use rex_game_shared::InfraError;
 use sea_orm::{
     ColumnTrait, Condition, DatabaseConnection, EntityTrait, FromQueryResult, JoinType,
     QueryFilter, QuerySelect, RelationTrait, Set,

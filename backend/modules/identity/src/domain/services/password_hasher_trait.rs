@@ -1,4 +1,4 @@
-use rex_game_shared_kernel::ApplicationError;
+use rex_game_shared::ApplicationError;
 
 pub trait PasswordHasherTrait {
     fn hash(&self, password: &str, salt: String) -> String;

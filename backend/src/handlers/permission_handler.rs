@@ -20,7 +20,7 @@ use rex_game_identity::application::usecases::{
     user_permission_dto::UserPermissionDto, PermissionUseCaseTrait, RoleUseCaseTrait,
     UserUseCaseTrait,
 };
-use rex_game_shared_kernel::domain::models::PageListModel;
+use rex_game_shared::domain::models::PageListModel;
 use serde::Deserialize;
 use validator::{Validate, ValidationErrors};
 

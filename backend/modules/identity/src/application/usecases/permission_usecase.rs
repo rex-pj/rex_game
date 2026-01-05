@@ -8,7 +8,7 @@ use crate::{
     domain::repositories::permission_repository_trait::PermissionRepositoryTrait,
 };
 use chrono::Utc;
-use rex_game_shared_kernel::{domain::models::page_list_model::PageListModel, ApplicationError};
+use rex_game_shared::{domain::models::page_list_model::PageListModel, ApplicationError};
 
 #[derive(Clone)]
 pub struct PermissionUseCase<R>

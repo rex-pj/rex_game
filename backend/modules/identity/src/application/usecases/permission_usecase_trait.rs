@@ -2,7 +2,7 @@ use super::{
     permission_creation_dto::PermissionCreationDto, permission_deletion_dto::PermissionDeletionDto,
     permission_dto::PermissionDto, permission_updation_dto::PermissionUpdationDto,
 };
-use rex_game_shared_kernel::{domain::models::page_list_model::PageListModel, ApplicationError};
+use rex_game_shared::{domain::models::page_list_model::PageListModel, ApplicationError};
 use std::future::Future;
 
 pub trait PermissionUseCaseTrait {

@@ -2,16 +2,16 @@ use crate::domain::{
     models::{user_model::UserModel, user_statuses::UserStatuses},
     repositories::user_repository_trait::UserRepositoryTrait,
 };
-use crate::infrastructure::entities::{
+use rex_game_entities::entities::{
     role,
     user::{self, Entity as User},
     user_role,
 };
 use chrono::Utc;
-use rex_game_shared_kernel::domain::models::page_list_model::PageListModel;
-use rex_game_shared_kernel::domain::transaction_manager_trait::TransactionWrapperTrait;
-use rex_game_shared_kernel::infrastructure::database::SeaOrmTransactionWrapper;
-use rex_game_shared_kernel::InfraError;
+use rex_game_shared::domain::models::page_list_model::PageListModel;
+use rex_game_shared::domain::transaction_manager_trait::TransactionWrapperTrait;
+use rex_game_shared::infrastructure::database::SeaOrmTransactionWrapper;
+use rex_game_shared::InfraError;
 use sea_orm::{
     ColumnTrait, Condition, DatabaseConnection, EntityTrait, JoinType, PaginatorTrait, QueryFilter,
     QueryOrder, QuerySelect, RelationTrait, Set, TransactionTrait,

@@ -1,5 +1,5 @@
 use crate::domain::models::role_permission_model::RolePermissionModel;
-use rex_game_shared_kernel::InfraError;
+use rex_game_shared::InfraError;
 use std::{collections::HashSet, future::Future, pin::Pin};
 
 pub trait RolePermissionRepositoryTrait {

@@ -5,7 +5,7 @@ use argon2::{
     Argon2,
 };
 use argon2::{Algorithm, AssociatedData, KeyId, ParamsBuilder, PasswordHash, Version};
-use rex_game_shared_kernel::ApplicationError;
+use rex_game_shared::ApplicationError;
 
 impl IdentityPasswordHasher {
     pub fn new() -> Self {

@@ -2,11 +2,11 @@ use crate::flashcard::domain::{
     models::flashcard_type_relation_model::FlashcardTypeRelationModel,
     repositories::flashcard_type_relation_repository_trait::FlashcardTypeRelationRepositoryTrait,
 };
-use crate::flashcard::infrastructure::entities::{
-    flashcard_type_relation, prelude::FlashcardTypeRelation,
+use rex_game_entities::entities::flashcard_type_relation::{
+    self, Entity as FlashcardTypeRelation,
 };
 use chrono::Utc;
-use rex_game_shared_kernel::InfraError;
+use rex_game_shared::InfraError;
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use std::sync::Arc;
 

@@ -1,4 +1,4 @@
-use rex_game_shared_kernel::ApplicationError;
+use rex_game_shared::ApplicationError;
 
 use super::{
     user_token_creation_dto::UserTokenCreationDto, user_token_dto::UserTokenDto,

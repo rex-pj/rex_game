@@ -31,12 +31,12 @@ use rex_game_identity::application::usecases::{
 use rex_game_identity::domain::models::user_statuses::UserStatuses;
 use rex_game_identity::domain::services::token_helper_trait::TokenHelperTrait;
 use rex_game_identity::domain::services::TokenGenerationOptions;
-use rex_game_mail_templates::MailTemplateUseCaseTrait;
-use rex_game_shared_kernel::domain::enums::mail_template_names::MailTemplateNames;
-use rex_game_shared_kernel::domain::enums::user_token_porposes::UserTokenPurposes;
-use rex_game_shared_kernel::domain::helpers::email_helper_trait::{EmailHelperTrait, EmailMessage};
-use rex_game_shared_kernel::domain::models::PageListModel;
-use rex_game_shared_kernel::infrastructure::helpers::configuration_helper::ConfigurationHelper;
+use rex_game_mail_templates::application::MailTemplateUseCaseTrait;
+use rex_game_shared::domain::enums::mail_template_names::MailTemplateNames;
+use rex_game_shared::domain::enums::user_token_porposes::UserTokenPurposes;
+use rex_game_shared::domain::helpers::email_helper_trait::{EmailHelperTrait, EmailMessage};
+use rex_game_shared::domain::models::PageListModel;
+use rex_game_shared::infrastructure::helpers::configuration_helper::ConfigurationHelper;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::Arc;

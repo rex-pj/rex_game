@@ -14,13 +14,13 @@ use axum::{
     response::Response,
     Extension, Json,
 };
-use rex_game_games::flashcard::application::usecases::{
+use rex_game_shared::domain::models::PageListModel;
+use rex_game_games::{
     flashcard_creation_dto::FlashcardCreationDto, flashcard_detail_dto::FlashcardDetailDto,
     flashcard_dto::FlashcardDto, flashcard_updation_dto::FlashcardUpdationDto,
+    FlashcardTypeUseCaseTrait, FlashcardUseCaseTrait,
 };
-use rex_game_games::{FlashcardTypeUseCaseTrait, FlashcardUseCaseTrait};
 use rex_game_identity::application::usecases::roles::*;
-use rex_game_shared_kernel::domain::models::PageListModel;
 use serde::Deserialize;
 use std::sync::Arc;
 use validator::{Validate, ValidationErrors};

@@ -1,5 +1,5 @@
-use rex_game_shared_kernel::domain::transaction_manager_trait::TransactionWrapperTrait;
-use rex_game_shared_kernel::ApplicationError;
+use rex_game_shared::domain::transaction_manager_trait::TransactionWrapperTrait;
+use rex_game_shared::ApplicationError;
 use std::future::Future;
 use std::pin::Pin;
 
