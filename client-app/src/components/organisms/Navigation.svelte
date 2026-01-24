@@ -4,10 +4,7 @@
   import type { CurrentUser } from "$lib/models/current-user";
   import * as accessService from "$lib/services/accessService";
 
-  let navItems = [
-    { name: "Flashcard", href: "/flashcard", actived: true },
-    { name: "Vật phẩm", href: "/items" },
-  ];
+  let navItems = [{ name: "Flashcard", href: "/flashcard", actived: true }];
   const { currentUser }: { currentUser: CurrentUser } = $props();
   async function logout() {
     await accessService.logout();
@@ -19,7 +16,11 @@
 <nav class="navbar navbar-expand-lg navbar-light topbar">
   <div class="container">
     <a class="navbar-brand" href="/"
-      ><enhanced:img src="../../assets/imgs/logo.png" alt="logo" class="navbar-logo" /> Rex Game</a
+      ><enhanced:img
+        src="../../assets/imgs/logo.png"
+        alt="logo"
+        class="navbar-logo"
+      /> Rex Game</a
     >
     <button
       class="navbar-toggler"
@@ -52,12 +53,20 @@
               aria-expanded="false"
             >
               <i class="fa-solid fa-user-circle fa-lg me-2"></i>
-              <span>{currentUser.display_name || currentUser.name || currentUser.email}</span>
+              <span
+                >{currentUser.display_name ||
+                  currentUser.name ||
+                  currentUser.email}</span
+              >
             </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="navbarDropdown">
+            <ul
+              class="dropdown-menu dropdown-menu-end shadow-sm"
+              aria-labelledby="navbarDropdown"
+            >
               <li>
                 <a class="dropdown-item" href="/leaderboard">
-                  <i class="fa-solid fa-trophy me-2 text-warning"></i>Bảng xếp hạng
+                  <i class="fa-solid fa-trophy me-2 text-warning"></i>Bảng xếp
+                  hạng
                 </a>
               </li>
               <li>
@@ -66,12 +75,18 @@
                 </a>
               </li>
               <li><hr class="dropdown-divider" /></li>
-              <li><button class="dropdown-item text-danger" onclick={logout}><i class="fa-solid fa-sign-out-alt me-2"></i>Đăng xuất</button></li>
+              <li>
+                <button class="dropdown-item text-danger" onclick={logout}
+                  ><i class="fa-solid fa-sign-out-alt me-2"></i>Đăng xuất</button
+                >
+              </li>
             </ul>
           </li>
         {:else}
           <li class="nav-item dropdown">
-            <a class="btn btn-primary me-2" href={APP_URLS.LOGIN_URL}>Đăng nhập</a>
+            <a class="btn btn-primary me-2" href={APP_URLS.LOGIN_URL}
+              >Đăng nhập</a
+            >
           </li>
           <li class="nav-item dropdown">
             <a class="btn btn-secondary" href={APP_URLS.SIGNUP_URL}>Ghi danh</a>

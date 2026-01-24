@@ -157,7 +157,7 @@
 {#if showContinueDialog && pendingProgress}
   <div class="continue-dialog-overlay">
     <div class="continue-dialog">
-      <h2>🎮 Tiếp tục chơi?</h2>
+      <h2><i class="fa-solid fa-gamepad"></i> Tiếp tục chơi?</h2>
       <p>Bạn đang ở <strong>Màn {pendingProgress.current_level}</strong></p>
       <p class="score-info">Điểm: <strong>{pendingProgress.total_score.toLocaleString()}</strong></p>
       <p class="highest-info">Màn cao nhất: <strong>{pendingProgress.highest_level}</strong></p>
@@ -183,7 +183,7 @@
   {:else if $gameState === "error"}
     <!-- Error State -->
     <div class="error-container">
-      <div class="error-icon">⚠️</div>
+      <div class="error-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
       <h3>Không thể tải game</h3>
       <p>{errorMessage}</p>
       <button class="btn btn-primary" onclick={() => loadFlashcards()}>Thử lại</button>
@@ -203,15 +203,15 @@
       <!-- Stats Display -->
       <div class="stats-display">
         <div class="stat-item">
-          <span class="stat-icon">⭐</span>
+          <span class="stat-icon"><i class="fa-solid fa-star"></i></span>
           <span class="stat-value">{$gameStats.score}</span>
         </div>
         <div class="stat-item">
-          <span class="stat-icon">🔥</span>
+          <span class="stat-icon"><i class="fa-solid fa-fire"></i></span>
           <span class="stat-value">{$comboCount}</span>
         </div>
         <div class="stat-item">
-          <span class="stat-icon">⏱️</span>
+          <span class="stat-icon"><i class="fa-solid fa-stopwatch"></i></span>
           <span class="stat-value">{$gameStats.timeElapsed}s</span>
         </div>
       </div>
@@ -264,7 +264,7 @@
         <div class="explosion"></div>
       </div>
       <div class="level-complete-message">
-        <h2>🎉 Hoàn thành Màn {$gameStats.level}!</h2>
+        <h2><i class="fa-solid fa-trophy"></i> Hoàn thành Màn {$gameStats.level}!</h2>
         <p>Chuẩn bị màn tiếp theo...</p>
       </div>
     {/if}
@@ -272,16 +272,22 @@
     <!-- New Achievements Toast -->
     {#if $newAchievements.length > 0}
       <div class="achievements-toast">
-        <h4>🏆 Thành tựu mới!</h4>
+        <h4><i class="fa-solid fa-trophy"></i> Thành tựu mới!</h4>
         {#each $newAchievements as achievement}
           <div class="achievement-item">
-            <span class="achievement-icon">{achievement.icon || "🎖️"}</span>
+            <span class="achievement-icon">
+              {#if achievement.icon}
+                <i class="{achievement.icon}"></i>
+              {:else}
+                <i class="fa-solid fa-medal"></i>
+              {/if}
+            </span>
             <span class="achievement-name">{achievement.name}</span>
           </div>
         {/each}
-        <button class="btn-dismiss" onclick={() => clearNewAchievements()}
-          >✕</button
-        >
+        <button class="btn-dismiss" onclick={() => clearNewAchievements()} aria-label="Đóng">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
       </div>
     {/if}
   {/if}
@@ -708,6 +714,35 @@
 
   .stat-icon {
     font-size: 18px;
+  }
+
+  /* Icon colors */
+  .stat-icon .fa-star {
+    color: #fbbf24;
+  }
+
+  .stat-icon .fa-fire {
+    color: #f97316;
+  }
+
+  .stat-icon .fa-stopwatch {
+    color: #3b82f6;
+  }
+
+  .error-icon .fa-triangle-exclamation {
+    color: #f59e0b;
+  }
+
+  .level-complete-message h2 .fa-trophy {
+    color: #fbbf24;
+  }
+
+  .continue-dialog h2 .fa-gamepad {
+    color: #3b82f6;
+  }
+
+  .achievements-toast h4 .fa-trophy {
+    color: white;
   }
 
   .stat-value {

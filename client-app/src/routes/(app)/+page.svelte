@@ -2,6 +2,7 @@
   import FlashcardCategoryTab from "../../components/organisms/flashcards/FlashcardCategoryTab.svelte";
   import PrimaryHeading from "../../components/atoms/heading/PrimaryHeading.svelte";
   import FlashcardMatching from "../../components/organisms/flashcards/FlashcardMatching.svelte";
+  import FlashcardQuiz from "../../components/organisms/flashcards/FlashcardQuiz.svelte";
 </script>
 
 <div class="home-wrapper">
@@ -32,7 +33,7 @@
         aria-labelledby="pills-quiz-tab"
         tabindex="0"
       >
-        Trắc nghiệm
+        <FlashcardQuiz></FlashcardQuiz>
       </div>
       <div
         class="tab-pane"

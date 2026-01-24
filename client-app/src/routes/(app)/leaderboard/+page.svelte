@@ -29,11 +29,11 @@
     return "primary";
   }
 
-  function getRankIcon(rank: number): string {
-    if (rank === 1) return "🥇";
-    if (rank === 2) return "🥈";
-    if (rank === 3) return "🥉";
-    return `#${rank}`;
+  function getRankIcon(rank: number): { type: "icon" | "text"; value: string; colorClass: string } {
+    if (rank === 1) return { type: "icon", value: "fa-medal", colorClass: "rank-gold" };
+    if (rank === 2) return { type: "icon", value: "fa-medal", colorClass: "rank-silver" };
+    if (rank === 3) return { type: "icon", value: "fa-medal", colorClass: "rank-bronze" };
+    return { type: "text", value: `#${rank}`, colorClass: "" };
   }
 </script>
 
@@ -71,7 +71,7 @@
         </div>
         <div class="col-6 col-md-3 mb-3">
           <div class="fs-3 fw-bold text-warning">{data.myStats.current_streak}</div>
-          <small class="text-muted">Day Streak 🔥</small>
+          <small class="text-muted">Day Streak <i class="fa-solid fa-fire text-orange"></i></small>
         </div>
       </div>
     </Card>
@@ -108,7 +108,13 @@
             {#each data.leaderboard as entry}
               <tr class:table-warning={entry.rank === 1} class:table-secondary={entry.rank === 2} class:table-info={entry.rank === 3}>
                 <td class="text-center">
-                  <span class="fs-5">{getRankIcon(entry.rank)}</span>
+                  {#if getRankIcon(entry.rank).type === "icon"}
+                    <span class="fs-5 {getRankIcon(entry.rank).colorClass}">
+                      <i class="fa-solid {getRankIcon(entry.rank).value}"></i>
+                    </span>
+                  {:else}
+                    <span class="fs-5 fw-bold text-muted">{getRankIcon(entry.rank).value}</span>
+                  {/if}
                 </td>
                 <td>
                   <div class="d-flex align-items-center">
@@ -171,5 +177,42 @@
 
   .table-info .avatar-circle {
     background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
+  }
+
+  /* Rank medal colors */
+  .rank-gold {
+    color: #fbbf24;
+    text-shadow: 0 2px 4px rgba(251, 191, 36, 0.4);
+  }
+
+  .rank-silver {
+    color: #9ca3af;
+    text-shadow: 0 2px 4px rgba(156, 163, 175, 0.4);
+  }
+
+  .rank-bronze {
+    color: #cd7f32;
+    text-shadow: 0 2px 4px rgba(205, 127, 50, 0.4);
+  }
+
+  /* Icon colors */
+  .text-orange {
+    color: #f97316;
+  }
+
+  :global(.fa-trophy.text-warning) {
+    color: #fbbf24 !important;
+  }
+
+  :global(.fa-ranking-star) {
+    color: #8b5cf6;
+  }
+
+  :global(.fa-user) {
+    color: #3b82f6;
+  }
+
+  :global(.fa-gamepad.text-muted) {
+    color: #9ca3af !important;
   }
 </style>

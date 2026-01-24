@@ -163,4 +163,46 @@
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
+
+  /* Header icon colors */
+  :global(.fa-medal.text-warning) {
+    color: #fbbf24 !important;
+  }
+
+  :global(.fa-check-circle) {
+    color: #10b981;
+  }
+
+  /* Category icon colors in headers */
+  :global(h5 .fa-baby) {
+    color: #ec4899;
+  }
+
+  :global(h5 .fa-bullseye) {
+    color: #ef4444;
+  }
+
+  :global(h5 .fa-bolt) {
+    color: #f59e0b;
+  }
+
+  :global(h5 .fa-fire) {
+    color: #f97316;
+  }
+
+  :global(h5 .fa-calendar-check) {
+    color: #10b981;
+  }
+
+  :global(h5 .fa-gamepad) {
+    color: #3b82f6;
+  }
+
+  :global(h5 .fa-trophy) {
+    color: #fbbf24;
+  }
+
+  :global(h5 .fa-star) {
+    color: #fbbf24;
+  }
 </style>

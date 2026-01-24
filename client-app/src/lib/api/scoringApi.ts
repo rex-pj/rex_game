@@ -207,8 +207,6 @@ export class ScoringApi extends BaseApi {
     fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
     gameTypeCode: string
   ): Promise<void> {
-    const params = new URLSearchParams();
-    params.set("game_type", gameTypeCode);
-    return await this.delete(fetch, "/games/progress", params);
+    await this.delete(fetch, `/games/progress?game_type=${encodeURIComponent(gameTypeCode)}`, { observe: true });
   }
 }

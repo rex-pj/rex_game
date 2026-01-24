@@ -19,5 +19,6 @@ export { default as Editor } from "./molecules/editor/editor.svelte";
 export { default as Navigation } from "./organisms/Navigation.svelte";
 export { default as Footer } from "./organisms/Footer.svelte";
 export { default as FlashcardMatching } from "./organisms/flashcards/FlashcardMatching.svelte";
+export { default as FlashcardQuiz } from "./organisms/flashcards/FlashcardQuiz.svelte";
 export { default as FlashcardCategoryTab } from "./organisms/flashcards/FlashcardCategoryTab.svelte";
 export { default as GameResults } from "./organisms/game-results/GameResults.svelte";
