@@ -53,7 +53,7 @@ This guide walks you through deploying the Rex Game application to Google Comput
 | Web Server | Nginx (reverse proxy) |
 | SSL | Let's Encrypt (Certbot) |
 | CI/CD | GitHub Actions |
-| Email | Resend / SMTP |
+| Email | Resend |
 
 ---
 
@@ -83,7 +83,7 @@ Before starting, ensure you have:
 | Name | `rex-game-server` |
 | Region | `us-central1` (or `us-east1`, `us-west1`) |
 | Zone | `us-central1-a` |
-| Machine type | `e2-micro` (Free tier) or `e2-small` |
+| Machine type | `e2-micro` (Free tier) |
 | Boot disk | Ubuntu 22.04 LTS, 30GB SSD |
 | Firewall | ✅ Allow HTTP, ✅ Allow HTTPS |
 
@@ -108,10 +108,6 @@ Navigate to **VPC Network** > **Firewall** > **Create Firewall Rule**
 
 ### 1.4 Connect via SSH
 
-**Option 1: Cloud Console**
-- Click the **SSH** button next to your VM instance
-
-**Option 2: gcloud CLI**
 ```bash
 gcloud compute ssh rex-game-server --zone=us-central1-a
 ```
@@ -234,17 +230,9 @@ sudo ufw status
 
 ## Part 3: Email Service Configuration
 
-### Available Free Email Providers
+### 3.1 Setting Up Resend
 
-| Provider | Free Tier | Notes |
-|----------|-----------|-------|
-| **Resend** | 3,000 emails/month, forever | Recommended, simple API |
-| **Brevo (Sendinblue)** | 300 emails/day | Good for low volume (use SMTP) |
-| **Mailjet** | 200 emails/day | Stable (use SMTP) |
-
-### 3.1 Setting Up Resend (Recommended)
-
-1. Sign up at [https://resend.com](https://resend.com)
+1. Sign up at [https://resend.com](https://resend.com) (free tier: 3,000 emails/month)
 2. Verify your domain
 3. Generate API Key
 4. Set environment variables:
@@ -252,22 +240,6 @@ sudo ufw status
 ```bash
 EMAIL_PROVIDER=resend
 RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxx
-EMAIL_FROM_ADDRESS=noreply@yourdomain.com
-EMAIL_FROM_NAME=Rex Game
-```
-
-### 3.2 Setting Up Brevo (Alternative)
-
-1. Sign up at [https://www.brevo.com](https://www.brevo.com)
-2. Get SMTP credentials from Settings > SMTP & API
-3. Set environment variables:
-
-```bash
-EMAIL_PROVIDER=smtp
-SMTP_HOST=smtp-relay.brevo.com
-SMTP_PORT=587
-SMTP_USERNAME=your-email@example.com
-SMTP_PASSWORD=your-smtp-key
 EMAIL_FROM_ADDRESS=noreply@yourdomain.com
 EMAIL_FROM_NAME=Rex Game
 ```
@@ -330,36 +302,19 @@ SERVER_HOST=127.0.0.1
 SERVER_PORT=8080
 ```
 
-### 4.3 Configure Nginx
+### 4.3 Configure Nginx (HTTP)
+
+First, create an HTTP-only config. SSL will be added automatically by Certbot in the next step.
 
 ```bash
 sudo nano /etc/nginx/sites-available/rex-game
 ```
 
-**Nginx Configuration:**
-
 ```nginx
-# HTTP - Redirect to HTTPS
 server {
     listen 80;
     listen [::]:80;
     server_name yourdomain.com www.yourdomain.com;
-
-    # Redirect all HTTP requests to HTTPS
-    return 301 https://$server_name$request_uri;
-}
-
-# HTTPS - Main Configuration
-server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
-    server_name yourdomain.com www.yourdomain.com;
-
-    # SSL Certificates (managed by Certbot)
-    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
-    include /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
     # Security Headers
     add_header X-Frame-Options "SAMEORIGIN" always;
@@ -435,7 +390,7 @@ server {
 # Create symbolic link
 sudo ln -s /etc/nginx/sites-available/rex-game /etc/nginx/sites-enabled/
 
-# Remove default site (optional)
+# Remove default site
 sudo rm /etc/nginx/sites-enabled/default
 
 # Test configuration
@@ -447,11 +402,14 @@ sudo systemctl reload nginx
 
 ### 4.4 SSL Certificate with Let's Encrypt
 
+Certbot will automatically modify the Nginx config to add SSL (HTTPS redirect, certificates, security settings).
+
 ```bash
-# Obtain SSL certificate
+# Obtain SSL certificate (Certbot auto-updates Nginx config)
 sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
 
-# Follow the prompts to complete setup
+# Verify Nginx config after Certbot changes
+sudo nginx -t
 
 # Verify auto-renewal
 sudo certbot renew --dry-run
@@ -516,7 +474,7 @@ WorkingDirectory=/var/www/rex-game/client-app
 Environment="NODE_ENV=production"
 Environment="PORT=3000"
 Environment="HOST=127.0.0.1"
-ExecStart=/usr/bin/node build
+ExecStart=/home/YOUR_USER/.nvm/versions/node/v20.x.x/bin/node build
 Restart=always
 RestartSec=5
 StandardOutput=journal
@@ -526,10 +484,8 @@ StandardError=journal
 WantedBy=multi-user.target
 ```
 
-> **Note:** Update the `ExecStart` path for Node.js if using NVM:
-> ```
-> ExecStart=/home/YOUR_USER/.nvm/versions/node/v20.x.x/bin/node build
-> ```
+> **Note:** Replace `YOUR_USER` and `v20.x.x` with your actual username and Node version.
+> Find the correct path with: `which node`
 
 **Enable and start services:**
 
@@ -840,7 +796,7 @@ sudo systemctl restart postgresql
 | `APP_ENV` | Environment name (`dev`, `prod`) |
 | `DATABASE_URL` | PostgreSQL connection string |
 | `JWT_CLIENT_SECRET` | Secret for JWT signing |
-| `EMAIL_PROVIDER` | Email provider (`smtp`, `resend`) |
+| `EMAIL_PROVIDER` | Email provider (`resend`) |
 | `CORS_ALLOW_ORIGINS` | Allowed origins for CORS |
 
 ---
@@ -853,4 +809,4 @@ For issues or questions:
 
 ---
 
-*Last updated: January 2026*
+*Last updated: February 2026*
