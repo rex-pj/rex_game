@@ -91,7 +91,16 @@ Before starting, ensure you have:
 
 Navigate to **VPC Network** > **Firewall** > **Create Firewall Rule**
 
-**Rule for Backend API:**
+**Rule 1: Allow HTTP/HTTPS (required for SSL certificate)**
+
+| Setting | Value |
+|---------|-------|
+| Name | `allow-http-https` |
+| Targets | All instances in the network |
+| Source IP ranges | `0.0.0.0/0` |
+| Protocols and ports | TCP: `80, 443` |
+
+**Rule 2: Allow Backend API**
 
 | Setting | Value |
 |---------|-------|
@@ -402,7 +411,11 @@ sudo systemctl reload nginx
 
 ### 4.4 SSL Certificate with Let's Encrypt
 
-Certbot will automatically modify the Nginx config to add SSL (HTTPS redirect, certificates, security settings).
+**Note for Cloudflare users:** Before running Certbot, temporarily disable **Always Use HTTPS** on Cloudflare:
+1. Go to **Cloudflare Dashboard** > domain > **SSL/TLS** > **Edge Certificates**
+2. Find **Always Use HTTPS** > turn **OFF**
+
+**Run Certbot:**
 
 ```bash
 # Obtain SSL certificate (Certbot auto-updates Nginx config)
@@ -417,6 +430,10 @@ sudo certbot renew --dry-run
 # Enable auto-renewal timer
 sudo systemctl enable certbot.timer
 ```
+
+**After Certbot succeeds:**
+1. Re-enable **Always Use HTTPS** on Cloudflare
+2. Go to **SSL/TLS** > **Overview** > set mode to **Full (Strict)**
 
 ### 4.5 Create Systemd Services
 
@@ -705,6 +722,8 @@ sudo certbot renew --force-renewal
 
 # Check Nginx SSL configuration
 sudo nginx -t
+
+# If using Cloudflare, verify SSL mode is "Full (Strict)"
 ```
 
 ### Database connection issues

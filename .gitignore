@@ -1,6 +1,5 @@
 /backend/target
 backend/src/config.dev.toml
-.github
 .claude
 
 # Environment files (contain secrets) - DO NOT COMMIT

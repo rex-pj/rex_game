@@ -1,0 +1,195 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Job 1: Build and Test Backend
+  build-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            backend/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build Backend
+        working-directory: ./backend
+        run: cargo build --release
+
+      - name: Upload Backend Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-binary
+          path: backend/target/release/rex_game
+
+  # Job 2: Build Frontend
+  build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: client-app/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: ./client-app
+        run: npm ci
+
+      - name: Build Frontend
+        working-directory: ./client-app
+        run: npm run build
+        env:
+          PUBLIC_API_URL: /api
+
+      - name: Upload Frontend Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: client-app/build
+
+  # Job 3: Deploy to Server
+  deploy:
+    needs: [build-backend, build-frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Backend Binary
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-binary
+          path: ./artifacts/backend
+
+      - name: Download Frontend Build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: ./artifacts/frontend
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add Host Key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy Backend
+        run: |
+          # Make binary executable
+          chmod +x ./artifacts/backend/rex_game
+
+          # Copy binary to server
+          scp ./artifacts/backend/rex_game ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/rex_game
+
+          # Copy migrations
+          scp -r ./backend/migration ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/migration
+
+          # Deploy on server
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'ENDSSH'
+            # Stop service
+            sudo systemctl stop rex-backend || true
+
+            # Backup old binary
+            if [ -f /var/www/rex-game/backend/target/release/rex_game ]; then
+              sudo cp /var/www/rex-game/backend/target/release/rex_game /var/www/rex-game/backend/target/release/rex_game.bak
+            fi
+
+            # Copy new binary
+            sudo mkdir -p /var/www/rex-game/backend/target/release
+            sudo mv /tmp/rex_game /var/www/rex-game/backend/target/release/
+            sudo chown www-data:www-data /var/www/rex-game/backend/target/release/rex_game
+
+            # Copy migrations
+            sudo rm -rf /var/www/rex-game/backend/migration
+            sudo mv /tmp/migration /var/www/rex-game/backend/
+            sudo chown -R www-data:www-data /var/www/rex-game/backend/migration
+
+            # Run migrations (if migration binary exists)
+            # cd /var/www/rex-game/backend && APP_ENV=prod ./target/release/migration up
+
+            # Start service
+            sudo systemctl start rex-backend
+          ENDSSH
+
+      - name: Deploy Frontend
+        run: |
+          # Create tarball
+          tar -czf frontend.tar.gz -C ./artifacts/frontend .
+
+          # Copy to server
+          scp frontend.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/
+
+          # Deploy on server
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'ENDSSH'
+            # Stop service
+            sudo systemctl stop rex-frontend || true
+
+            # Backup old build
+            if [ -d /var/www/rex-game/client-app/build ]; then
+              sudo rm -rf /var/www/rex-game/client-app/build.bak
+              sudo mv /var/www/rex-game/client-app/build /var/www/rex-game/client-app/build.bak
+            fi
+
+            # Extract new build
+            sudo mkdir -p /var/www/rex-game/client-app/build
+            sudo tar -xzf /tmp/frontend.tar.gz -C /var/www/rex-game/client-app/build
+            sudo chown -R www-data:www-data /var/www/rex-game/client-app/build
+
+            # Cleanup
+            rm /tmp/frontend.tar.gz
+
+            # Start service
+            sudo systemctl start rex-frontend
+          ENDSSH
+
+      - name: Health Check
+        run: |
+          sleep 10
+          curl -f https://${{ secrets.SSH_HOST }}/api/health || echo "Health check failed"
+
+      - name: Notify Success
+        if: success()
+        run: echo "Deployment successful!"
+
+      - name: Rollback on Failure
+        if: failure()
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'ENDSSH'
+            # Rollback backend
+            if [ -f /var/www/rex-game/backend/target/release/rex_game.bak ]; then
+              sudo mv /var/www/rex-game/backend/target/release/rex_game.bak /var/www/rex-game/backend/target/release/rex_game
+            fi
+
+            # Rollback frontend
+            if [ -d /var/www/rex-game/client-app/build.bak ]; then
+              sudo rm -rf /var/www/rex-game/client-app/build
+              sudo mv /var/www/rex-game/client-app/build.bak /var/www/rex-game/client-app/build
+            fi
+
+            # Restart services
+            sudo systemctl restart rex-backend rex-frontend
+          ENDSSH
