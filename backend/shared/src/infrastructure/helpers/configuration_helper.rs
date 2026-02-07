@@ -50,16 +50,20 @@ impl ConfigurationHelper {
         // 1. Load environment-specific file from environments/ folder
         let env_file = format!("environments/.env.{}", app_env);
         if Path::new(&env_file).exists() {
-            let _ = dotenvy::from_filename(&env_file);
-            eprintln!("📦 Loaded environment: {} (APP_ENV={})", env_file, app_env);
+            match dotenvy::from_filename(&env_file) {
+                Ok(_) => eprintln!("📦 Loaded environment: {} (APP_ENV={})", env_file, app_env),
+                Err(e) => eprintln!("❌ Failed to load {}: {}", env_file, e),
+            }
         } else {
             eprintln!("⚠️  Environment file not found: {}", env_file);
         }
 
         // 2. Load local overrides (at root, always gitignored)
         if Path::new(".env.local").exists() {
-            let _ = dotenvy::from_filename(".env.local");
-            eprintln!("📦 Loaded local overrides: .env.local");
+            match dotenvy::from_filename(".env.local") {
+                Ok(_) => eprintln!("📦 Loaded local overrides: .env.local"),
+                Err(e) => eprintln!("❌ Failed to load .env.local: {}", e),
+            }
         }
     }
 

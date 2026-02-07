@@ -10,7 +10,7 @@ This guide walks you through deploying the Rex Game application to Google Comput
 4. [Part 2: Server Setup](#part-2-server-setup)
 5. [Part 3: Email Service Configuration](#part-3-email-service-configuration)
 6. [Part 4: Production Configuration](#part-4-production-configuration)
-7. [Part 5: CI/CD with GitHub Actions](#part-5-cicd-with-github-actions)
+7. [Part 5: CI/CD with GitHub Actions](#part-5-cicd-with-github-actions) *(includes passwordless sudo setup)*
 8. [Part 6: Monitoring and Maintenance](#part-6-monitoring-and-maintenance)
 9. [Troubleshooting](#troubleshooting)
 10. [Cost Estimation](#cost-estimation)
@@ -556,7 +556,29 @@ Add the following secrets:
 | `SSH_HOST` | Server IP or hostname | `34.123.45.67` or `yourdomain.com` |
 | `SSH_USER` | SSH username | `your_username` |
 
-### 5.3 GitHub Actions Workflow
+### 5.3 Configure Passwordless Sudo for Deploy User
+
+The CI/CD pipeline uses `sudo` to manage services and files on the server. Configure limited passwordless sudo for the deploy user:
+
+```bash
+# On the server, run:
+sudo visudo -f /etc/sudoers.d/deploy-user
+```
+
+Add the following (replace `your_username` with the SSH_USER):
+
+```
+your_username ALL=(ALL) NOPASSWD: /usr/bin/systemctl, /usr/bin/mkdir, /usr/bin/mv, /usr/bin/cp, /usr/bin/rm, /usr/bin/chown, /usr/bin/chmod, /usr/bin/tar
+```
+
+```bash
+# Verify it works
+sudo -n systemctl status nginx
+```
+
+> **Security note:** This only grants passwordless sudo for specific commands needed by the deploy pipeline, not full root access.
+
+### 5.4 GitHub Actions Workflow
 
 The workflow file is already created at `.github/workflows/deploy.yml`. It includes:
 
@@ -578,7 +600,7 @@ The workflow file is already created at `.github/workflows/deploy.yml`. It inclu
    - Runs health check
    - Automatic rollback on failure
 
-### 5.4 Trigger Deployment
+### 5.5 Trigger Deployment
 
 Deployment is triggered automatically when:
 - Code is pushed to `main` or `master` branch

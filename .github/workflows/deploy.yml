@@ -66,7 +66,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
-          path: client-app/build
+          path: |
+            client-app/build
+            client-app/package.json
+            client-app/package-lock.json
 
   # Job 3: Deploy to Server
   deploy:
@@ -137,11 +140,13 @@ jobs:
 
       - name: Deploy Frontend
         run: |
-          # Create tarball
-          tar -czf frontend.tar.gz -C ./artifacts/frontend .
+          # Create tarball from build output
+          tar -czf frontend.tar.gz -C ./artifacts/frontend/client-app/build .
 
-          # Copy to server
+          # Copy files to server
           scp frontend.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/
+          scp ./artifacts/frontend/client-app/package.json ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/frontend-package.json
+          scp ./artifacts/frontend/client-app/package-lock.json ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/frontend-package-lock.json
 
           # Deploy on server
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'ENDSSH'
@@ -157,10 +162,20 @@ jobs:
             # Extract new build
             sudo mkdir -p /var/www/rex-game/client-app/build
             sudo tar -xzf /tmp/frontend.tar.gz -C /var/www/rex-game/client-app/build
+
+            # Install production dependencies
+            sudo cp /tmp/frontend-package.json /var/www/rex-game/client-app/package.json
+            sudo cp /tmp/frontend-package-lock.json /var/www/rex-game/client-app/package-lock.json
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+            cd /var/www/rex-game/client-app && npm ci --production
+
+            # Set ownership
             sudo chown -R www-data:www-data /var/www/rex-game/client-app/build
+            sudo chown -R www-data:www-data /var/www/rex-game/client-app/node_modules
 
             # Cleanup
-            rm /tmp/frontend.tar.gz
+            rm /tmp/frontend.tar.gz /tmp/frontend-package.json /tmp/frontend-package-lock.json
 
             # Start service
             sudo systemctl start rex-frontend
