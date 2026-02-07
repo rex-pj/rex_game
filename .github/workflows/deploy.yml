@@ -141,12 +141,12 @@ jobs:
       - name: Deploy Frontend
         run: |
           # Create tarball from build output
-          tar -czf frontend.tar.gz -C ./artifacts/frontend/client-app/build .
+          tar -czf frontend.tar.gz -C ./artifacts/frontend/build .
 
           # Copy files to server
           scp frontend.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/
-          scp ./artifacts/frontend/client-app/package.json ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/frontend-package.json
-          scp ./artifacts/frontend/client-app/package-lock.json ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/frontend-package-lock.json
+          scp ./artifacts/frontend/package.json ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/frontend-package.json
+          scp ./artifacts/frontend/package-lock.json ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/frontend-package-lock.json
 
           # Deploy on server
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'ENDSSH'
