@@ -9,8 +9,10 @@ export const load: LayoutLoad = () => {
     return {};
   }
 
+  // Token expiration is handled server-side via automatic refresh.
+  // Client-side only needs to check if the token exists.
   const access_token = accessService.getAccessToken(ACCESS_TOKEN.ADMIN_ACCESS_TOKEN);
-  if (!access_token || accessService.isTokenExpired(access_token)) {
+  if (!access_token) {
     redirect(302, ADMIN_URLS.LOGIN_URL);
   }
 };

@@ -42,6 +42,17 @@
   let errorMessage = $state("");
   let showContinueDialog = $state(false);
   let pendingProgress: GameProgress | null = $state(null);
+  let innerWidth = $state(typeof window !== "undefined" ? window.innerWidth : 1200);
+
+  // Cap grid columns based on screen width to prevent horizontal overflow
+  let gridColumns = $derived.by(() => {
+    const baseCols = $gameStats.level + 2;
+    if (innerWidth <= 360) return Math.min(baseCols, 3);
+    if (innerWidth <= 480) return Math.min(baseCols, 4);
+    if (innerWidth <= 768) return Math.min(baseCols, 5);
+    if (innerWidth <= 992) return Math.min(baseCols, 6);
+    return Math.min(baseCols, 8);
+  });
 
   /**
    * Check for saved progress and show dialog if exists
@@ -137,11 +148,19 @@
   }
 
   // Lifecycle
+  function handleResize() {
+    innerWidth = window.innerWidth;
+  }
+
   onMount(() => {
+    window.addEventListener("resize", handleResize);
     checkSavedProgress();
   });
 
   onDestroy(() => {
+    if (typeof window !== "undefined") {
+      window.removeEventListener("resize", handleResize);
+    }
     cleanup();
   });
 
@@ -221,7 +240,7 @@
     <div class="container-sm card-container px-0">
       <div
         class="grid"
-        style="grid-template-columns: repeat({$gameStats.level + 2}, 1fr);"
+        style="grid-template-columns: repeat({gridColumns}, minmax(0, 110px));"
       >
         {#each $gameCards as card (card.id)}
           <div
@@ -416,23 +435,22 @@
   /* Card Container */
   .card-container {
     width: 100%;
-    max-width: 700px;
+    max-width: 900px;
     margin: 0 auto;
     padding: 10px;
   }
 
   .grid {
     display: grid;
-    gap: 12px;
+    gap: 6px;
     perspective: 1500px;
     padding: 0;
     justify-content: center;
-    justify-items: center;
   }
 
   .card-holder {
     width: 100%;
-    min-width: 90px;
+    min-width: 0;
     max-width: 120px;
     aspect-ratio: 3 / 4;
     position: relative;
@@ -869,6 +887,9 @@
     text-align: center;
     z-index: 1001;
     animation: fadeInScale 0.5s ease-out;
+    max-width: 500px;
+    width: 90%;
+    box-sizing: border-box;
   }
 
   .level-complete-message h2 {
@@ -895,12 +916,7 @@
   /* Large screens - bigger cards */
   @media (min-width: 1200px) {
     .grid {
-      gap: 15px;
-    }
-
-    .card-holder {
-      min-width: 110px;
-      max-width: 140px;
+      gap: 8px;
     }
 
     .question-mark {
@@ -910,21 +926,27 @@
 
   /* Extra large screens */
   @media (min-width: 1600px) {
-    .card-container {
-      max-width: 950px;
-    }
-
     .grid {
-      gap: 16px;
-    }
-
-    .card-holder {
-      min-width: 120px;
-      max-width: 150px;
+      gap: 10px;
     }
 
     .question-mark {
       font-size: 5.5rem;
+    }
+  }
+
+  /* Responsive - Small desktops / large tablets */
+  @media (max-width: 992px) {
+    .card-container {
+      max-width: 100%;
+    }
+
+    .grid {
+      gap: 5px;
+    }
+
+    .question-mark {
+      font-size: 3.5rem;
     }
   }
 
@@ -940,12 +962,7 @@
     }
 
     .grid {
-      gap: 8px;
-    }
-
-    .card-holder {
-      min-width: 50px;
-      max-width: 90px;
+      gap: 5px;
     }
 
     .question-mark {
@@ -959,6 +976,14 @@
 
     .card-image {
       border-radius: 12px;
+    }
+
+    .level-complete-message {
+      padding: 30px 36px;
+    }
+
+    .level-complete-message h2 {
+      font-size: 1.4rem;
     }
   }
 
@@ -986,11 +1011,10 @@
     }
 
     .grid {
-      gap: 6px;
+      gap: 4px;
     }
 
     .card-holder {
-      min-width: 45px;
       max-width: 70px;
     }
 
@@ -1067,6 +1091,18 @@
     .stat-value {
       font-size: 12px;
     }
+
+    .level-complete-message {
+      padding: 24px 20px;
+    }
+
+    .level-complete-message h2 {
+      font-size: 1.25rem;
+    }
+
+    .level-complete-message p {
+      font-size: 0.9rem;
+    }
   }
 
   /* Extra small screens */
@@ -1076,11 +1112,10 @@
     }
 
     .grid {
-      gap: 4px;
+      gap: 3px;
     }
 
     .card-holder {
-      min-width: 40px;
       max-width: 55px;
     }
 
@@ -1098,11 +1133,16 @@
     }
 
     .level-complete-message {
-      padding: 20px 30px;
+      padding: 18px 16px;
+      border-radius: 16px;
     }
 
     .level-complete-message h2 {
-      font-size: 1.2rem;
+      font-size: 1.1rem;
+    }
+
+    .level-complete-message p {
+      font-size: 0.85rem;
     }
   }
 

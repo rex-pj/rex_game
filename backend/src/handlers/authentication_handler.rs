@@ -140,7 +140,16 @@ impl AuthenticationHandler {
             }
         };
 
-        let access_token = access_token.strip_prefix("Bearer ").unwrap();
+        let access_token = match access_token.strip_prefix("Bearer ") {
+            Some(token) => token,
+            None => {
+                return Err(HandlerError {
+                    status: StatusCode::BAD_REQUEST,
+                    message: "Invalid authorization format".to_string(),
+                    ..Default::default()
+                })
+            }
+        };
         let req_refresh_token = match jar.get("refresh_token") {
             Some(refresh_token) => refresh_token.value().to_string(),
             None => {

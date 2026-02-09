@@ -77,6 +77,29 @@ impl<CF: ConfigurationHelperTrait> IdentityTokenHelper<CF> {
 
         Ok(token_claims)
     }
+
+    /// Decode JWT claims without validating the `exp` field.
+    /// Used during token refresh where the access token is expected to be expired.
+    /// Still validates: signature, audience, and issuer.
+    fn get_token_claims_without_exp_validation<T>(&self, access_token: &str) -> Result<T, Error>
+    where
+        T: DeserializeOwned + HasExpiryTokenClaimTrait,
+    {
+        if access_token.is_empty() {
+            return Err(Error::from(ErrorKind::InvalidToken));
+        }
+        let mut validation = Validation::new(Algorithm::HS256);
+        validation.validate_exp = false;
+        validation.set_audience(&[self._client_id.to_string()]);
+        validation.set_issuer(&[self._client_id.to_string()]);
+        let secret_decoding = DecodingKey::from_secret(self._client_secret.as_bytes());
+        let token_claims = match decode::<T>(access_token, &secret_decoding, &validation) {
+            Ok(token_data) => token_data.claims,
+            Err(err) => return Err(err),
+        };
+
+        Ok(token_claims)
+    }
 }
 
 impl<CF: ConfigurationHelperTrait> TokenHelperTrait for IdentityTokenHelper<CF> {
@@ -156,9 +179,12 @@ impl<CF: ConfigurationHelperTrait> TokenHelperTrait for IdentityTokenHelper<CF> 
 
         match refresh_claims {
             Ok(rf_token_claims) => {
-                let access_claims = self
-                    .get_token_claims::<AccessTokenClaims>(access_token)
-                    .unwrap();
+                let access_claims = match self
+                    .get_token_claims_without_exp_validation::<AccessTokenClaims>(access_token)
+                {
+                    Ok(claims) => claims,
+                    Err(_) => return None,
+                };
 
                 if access_claims.sub != rf_token_claims.sub {
                     return None;

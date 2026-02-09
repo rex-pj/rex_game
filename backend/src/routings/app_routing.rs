@@ -31,10 +31,6 @@ pub struct AppRouting {
 impl AppRouting {
     pub fn build_authenticated_routes(&self, router: Router<AppState>) -> Router<AppState> {
         router
-            .route(
-                "/auth/refresh",
-                post(AuthenticationHandler::refresh_access_token),
-            )
             .route("/auth/logout", delete(AuthenticationHandler::logout))
             .route("/users/me", get(UserHandler::get_current_user))
             .route("/users", get(UserHandler::get_users))
@@ -62,6 +58,10 @@ impl AppRouting {
         // Authentication routes with strict rate limiting (5 req/sec)
         let auth_routes = Router::new()
             .route("/auth/login", post(AuthenticationHandler::login))
+            .route(
+                "/auth/refresh",
+                post(AuthenticationHandler::refresh_access_token),
+            )
             .route("/users", post(UserHandler::create_user))
             .route("/users/confirmations", post(UserHandler::confirm_user))
             .route("/setup", post(SetupHandler::setup))

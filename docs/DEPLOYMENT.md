@@ -250,7 +250,7 @@ sudo ufw status
 EMAIL_PROVIDER=resend
 RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxx
 EMAIL_FROM_ADDRESS=noreply@yourdomain.com
-EMAIL_FROM_NAME=Rex Game
+EMAIL_FROM_NAME="Rex Game"
 ```
 
 ---
@@ -299,7 +299,7 @@ CORS_ALLOW_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
 EMAIL_PROVIDER=resend
 RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxx
 EMAIL_FROM_ADDRESS=noreply@yourdomain.com
-EMAIL_FROM_NAME=Rex Game
+EMAIL_FROM_NAME="Rex Game"
 
 # Platform URLs
 PLATFORM_URL=https://yourdomain.com
@@ -310,6 +310,8 @@ RESET_PASSWORD_URL=https://yourdomain.com/account/reset-password?token=[token]
 SERVER_HOST=127.0.0.1
 SERVER_PORT=8080
 ```
+
+> **Important:** The backend reads this file based on `APP_ENV`. The systemd service sets `APP_ENV=prod`, so the backend loads `environments/.env.prod` relative to its working directory (`/var/www/rex-game/backend/`). If `SERVER_PORT` is missing, the backend defaults to port `3400`. Make sure this file on the server matches your Nginx proxy configuration.
 
 ### 4.3 Configure Nginx (HTTP)
 
@@ -351,9 +353,9 @@ server {
         proxy_connect_timeout 60s;
     }
 
-    # Backend API
+    # Backend API (no trailing slash — preserves /api/ prefix for backend routing)
     location /api/ {
-        proxy_pass http://127.0.0.1:8080/;
+        proxy_pass http://127.0.0.1:8080;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -504,6 +506,8 @@ WantedBy=multi-user.target
 > **Note:** Replace `YOUR_USER` and `v20.x.x` with your actual username and Node version.
 > Find the correct path with: `which node`
 
+> **Important:** SvelteKit with `adapter-node` requires `node_modules` at runtime for production dependencies (e.g., `jwt-decode`, `date-fns`). The CI/CD pipeline handles this automatically by running `npm ci --production` on the server during deployment.
+
 **Enable and start services:**
 
 ```bash
@@ -529,17 +533,21 @@ sudo systemctl status rex-backend rex-frontend
 **On your server:**
 
 ```bash
+# Ensure .ssh directory exists
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+
 # Generate SSH key pair
 ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/github_deploy -N ""
 
 # Add public key to authorized_keys
 cat ~/.ssh/github_deploy.pub >> ~/.ssh/authorized_keys
-
-# Set correct permissions
 chmod 600 ~/.ssh/authorized_keys
-chmod 700 ~/.ssh
 
-# Display private key (you'll need this for GitHub)
+# Test the key locally
+ssh -i ~/.ssh/github_deploy localhost whoami
+
+# Display private key (copy this to GitHub secret)
 cat ~/.ssh/github_deploy
 ```
 
@@ -715,8 +723,19 @@ sudo journalctl -u rex-frontend -n 50
 # Verify build exists
 ls -la /var/www/rex-game/client-app/build/
 
+# Verify node_modules exists (required by adapter-node)
+ls -la /var/www/rex-game/client-app/node_modules/
+
 # Check Node.js path in service file
 which node
+```
+
+**Common error: `Cannot find package 'jwt-decode'`** — This means `node_modules` is missing. Install production dependencies:
+
+```bash
+cd /var/www/rex-game/client-app && npm ci --production
+sudo chown -R www-data:www-data node_modules
+sudo systemctl restart rex-frontend
 ```
 
 ### Nginx errors
@@ -746,6 +765,40 @@ sudo certbot renew --force-renewal
 sudo nginx -t
 
 # If using Cloudflare, verify SSL mode is "Full (Strict)"
+```
+
+### CI/CD SSH connection fails
+
+```bash
+# On the server, verify the deploy key works
+ssh -i ~/.ssh/github_deploy localhost whoami
+
+# Check authorized_keys exists and has the public key
+cat ~/.ssh/authorized_keys
+
+# If missing, recreate:
+mkdir -p ~/.ssh && chmod 700 ~/.ssh
+cat ~/.ssh/github_deploy.pub >> ~/.ssh/authorized_keys
+chmod 600 ~/.ssh/authorized_keys
+
+# Verify PubkeyAuthentication is enabled
+sudo grep PubkeyAuthentication /etc/ssh/sshd_config
+```
+
+### Backend running on wrong port
+
+If the backend binds to port `3400` instead of `8080`:
+
+```bash
+# Check if .env.prod has SERVER_PORT
+grep SERVER_PORT /var/www/rex-game/backend/environments/.env.prod
+
+# Check backend logs for config loading
+sudo journalctl -u rex-backend -n 30 | grep -E "Loaded|Failed|Binding"
+
+# If missing, add it
+echo "SERVER_PORT=8080" | sudo tee -a /var/www/rex-game/backend/environments/.env.prod
+sudo systemctl restart rex-backend
 ```
 
 ### Database connection issues

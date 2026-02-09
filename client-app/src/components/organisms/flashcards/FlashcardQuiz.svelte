@@ -729,6 +729,9 @@
     background: white;
     border-radius: 20px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    max-width: 500px;
+    width: 90%;
+    box-sizing: border-box;
   }
 
   .results-card h2 {
@@ -973,6 +976,18 @@
     .options-grid {
       grid-template-columns: 1fr;
     }
+
+    .results-card {
+      padding: 28px 24px;
+    }
+
+    .results-card h2 {
+      font-size: 24px;
+    }
+
+    .continue-dialog {
+      padding: 28px 24px;
+    }
   }
 
   @media (max-width: 480px) {
@@ -994,8 +1009,25 @@
       font-size: 14px;
     }
 
+    .results-card {
+      padding: 24px 16px;
+    }
+
+    .results-card h2 {
+      font-size: 20px;
+    }
+
     .results-stats {
       grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .result-item {
+      padding: 12px;
+    }
+
+    .result-value {
+      font-size: 18px;
     }
 
     .results-actions {
@@ -1005,6 +1037,45 @@
     .btn-next-level,
     .btn-restart {
       width: 100%;
+    }
+
+    .continue-dialog {
+      padding: 24px 16px;
+    }
+
+    .continue-dialog h2 {
+      font-size: 20px;
+    }
+
+    .dialog-actions {
+      flex-direction: column;
+    }
+
+    .btn-continue,
+    .btn-new-game {
+      width: 100%;
+    }
+
+    .achievements-toast {
+      top: 10px;
+      right: 10px;
+      left: 10px;
+      padding: 12px 15px;
+      padding-right: 35px;
+      border-radius: 12px;
+    }
+
+    .achievements-toast h4 {
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .achievement-icon {
+      font-size: 16px;
+    }
+
+    .achievement-name {
+      font-size: 14px;
     }
   }
 </style>
