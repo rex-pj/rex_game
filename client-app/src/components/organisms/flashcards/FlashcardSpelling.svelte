@@ -4,25 +4,31 @@
   import { ACCESS_TOKEN, GAME_FLASHCARD_TYPES } from "$lib/common/contants";
   import type { Flashcard } from "$lib/models/flashcard";
   import {
-    quizGameState,
-    quizStats,
-    currentQuestion,
-    quizComboCount,
-    quizNewAchievements,
-    quizProgress,
-    initializeQuiz,
-    answerQuestion,
-    resetQuiz,
-    cleanupQuiz,
-    setQuizError,
-    clearQuizAchievements,
-    getQuizProgress,
-    continueQuizFromProgress,
-    startNewQuizGame,
-    nextLevel,
-  } from "$lib/stores/quiz-game.store";
+    spellingState,
+    spellingStats,
+    spellingQuestions,
+    currentSpellingQuestion,
+    currentSpellingIndex,
+    spellingComboCount,
+    spellingNewAchievements,
+    spellingSavedProgress,
+    spellingProgress,
+    hintsRevealed,
+    initializeSpelling,
+    submitSpellingAnswer,
+    useHint,
+    resetSpelling,
+    cleanupSpelling,
+    setSpellingError,
+    clearSpellingAchievements,
+    getSpellingProgress,
+    continueSpellingFromProgress,
+    startNewSpellingGame,
+    nextSpellingLevel,
+  } from "$lib/stores/spelling-game.store";
   import type { GameProgress } from "$lib/api/scoringApi";
-  import { formatTime, getAccuracy } from "$lib/helpers/quizHelpers";
+  import { getHint, getAccuracy, scrambleLetters } from "$lib/helpers/spellingHelpers";
+  import { formatTime } from "$lib/helpers/quizHelpers";
   import Cookies from "js-cookie";
 
   // Props
@@ -31,19 +37,45 @@
     flashcardTypeId?: number;
   }
 
-  let { initialLevel = 1, flashcardTypeId = undefined }: Props = $props();
+  let {
+    initialLevel = 1,
+    flashcardTypeId = undefined,
+  }: Props = $props();
 
   // Local state
   let errorMessage = $state("");
   let showContinueDialog = $state(false);
   let pendingProgress: GameProgress | null = $state(null);
-  let selectedOption: string | null = $state(null);
+  let userInput = $state("");
+  let lastAnswerCorrect: boolean | null = $state(null);
+  let lastCorrectAnswer = $state("");
+  let letterBank: string[] = $state([]);
+
+  // Regenerate letter bank when question changes
+  let currentQuestionId = $derived($currentSpellingQuestion?.id ?? "");
+
+  $effect(() => {
+    if (currentQuestionId && $currentSpellingQuestion) {
+      letterBank = scrambleLetters($currentSpellingQuestion.correctAnswer);
+      userInput = "";
+      lastAnswerCorrect = null;
+      lastCorrectAnswer = "";
+    }
+  });
+
+  /**
+   * Get current hint text
+   */
+  let currentHint = $derived.by(() => {
+    if (!$currentSpellingQuestion) return "";
+    return getHint($currentSpellingQuestion.correctAnswer, $hintsRevealed + 1);
+  });
 
   /**
    * Check for saved progress
    */
   async function checkSavedProgress() {
-    const progress = await getQuizProgress();
+    const progress = await getSpellingProgress();
     if (progress && progress.current_level > 1) {
       pendingProgress = progress;
       showContinueDialog = true;
@@ -58,10 +90,7 @@
   async function handleContinue() {
     if (pendingProgress) {
       showContinueDialog = false;
-      await loadFlashcards(
-        pendingProgress.current_level,
-        pendingProgress.total_score,
-      );
+      await loadFlashcards(pendingProgress.current_level, pendingProgress.total_score);
     }
   }
 
@@ -70,109 +99,116 @@
    */
   async function handleStartNew() {
     showContinueDialog = false;
-    await startNewQuizGame();
+    await startNewSpellingGame();
     await loadFlashcards(1);
   }
 
   /**
    * Load flashcards from API
    */
-  async function loadFlashcards(
-    startLevel: number = 1,
-    startScore: number = 0,
-  ) {
+  async function loadFlashcards(startLevel: number = 1, startScore: number = 0) {
     try {
       const api = new FlashcardApi({
         cookies: Cookies,
         tokenKey: ACCESS_TOKEN.USER_ACCESS_TOKEN,
       });
 
-      const response = await api.getList(
-        fetch,
-        1,
-        50,
-        GAME_FLASHCARD_TYPES.QUIZ,
-      );
+      const response = await api.getList(fetch, 1, 50, GAME_FLASHCARD_TYPES.SPELLING);
       const flashcards: Flashcard[] = response.items || response.data || [];
 
-      if (!flashcards || flashcards.length < 4) {
-        throw new Error("Cần ít nhất 4 flashcards để chơi quiz");
+      if (!flashcards || flashcards.length < 1) {
+        throw new Error("Cần ít nhất 1 flashcard để chơi Đánh Vần");
       }
 
       const filteredFlashcards = flashcardTypeId
         ? flashcards.filter((f) => f.flashcard_type_id === flashcardTypeId)
         : flashcards;
 
-      if (filteredFlashcards.length < 4) {
+      if (filteredFlashcards.length < 1) {
         throw new Error("Không đủ flashcards cho loại này");
       }
 
-      await initializeQuiz(filteredFlashcards, {
+      await initializeSpelling(filteredFlashcards, {
         flashcardTypeId,
       });
 
       if (startScore > 0) {
-        await continueQuizFromProgress({
+        await continueSpellingFromProgress({
           current_level: startLevel,
           total_score: startScore,
         } as GameProgress);
       }
     } catch (error) {
       console.error("Failed to load flashcards:", error);
-      errorMessage =
-        error instanceof Error ? error.message : "Không thể tải flashcards";
-      setQuizError();
+      errorMessage = error instanceof Error ? error.message : "Không thể tải flashcards";
+      setSpellingError();
     }
   }
 
   /**
-   * Handle option click
+   * Handle letter click from bank
    */
-  function handleOptionClick(option: string) {
-    if ($quizGameState !== "idle" || selectedOption) return;
-    selectedOption = option;
-    answerQuestion(option);
+  function handleLetterClick(letter: string, index: number) {
+    if ($spellingState !== "idle") return;
+    userInput += letter;
+    // Remove used letter from bank
+    letterBank = letterBank.filter((_, i) => i !== index);
+  }
 
-    // Reset selected option after delay
-    setTimeout(() => {
-      selectedOption = null;
-    }, 1500);
+  /**
+   * Handle backspace / remove last letter
+   */
+  function handleBackspace() {
+    if (userInput.length === 0) return;
+    const removedLetter = userInput[userInput.length - 1];
+    userInput = userInput.slice(0, -1);
+    letterBank = [...letterBank, removedLetter];
+  }
+
+  /**
+   * Handle submit answer
+   */
+  function handleSubmit() {
+    if ($spellingState !== "idle" || !userInput.trim()) return;
+
+    const question = $currentSpellingQuestion;
+    if (!question) return;
+
+    const isCorrect = userInput.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase();
+    lastAnswerCorrect = isCorrect;
+    lastCorrectAnswer = question.correctAnswer;
+
+    submitSpellingAnswer(userInput);
+  }
+
+  /**
+   * Handle keyboard enter
+   */
+  function handleKeydown(event: KeyboardEvent) {
+    if (event.key === "Enter") {
+      handleSubmit();
+    }
+  }
+
+  /**
+   * Handle hint usage
+   */
+  function handleUseHint() {
+    useHint();
   }
 
   /**
    * Handle next level
    */
   async function handleNextLevel() {
-    await nextLevel();
+    await nextSpellingLevel();
   }
 
   /**
    * Handle reset
    */
   async function handleReset() {
-    await resetQuiz();
-  }
-
-  /**
-   * Get option class based on state
-   */
-  function getOptionClass(option: string): string {
-    if ($quizGameState !== "answered" && $quizGameState !== "completed") {
-      return selectedOption === option ? "selected" : "";
-    }
-
-    const question = $currentQuestion;
-    if (!question) return "";
-
-    if (option === question.correctAnswer) {
-      return "correct";
-    }
-
-    if (option === question.selectedAnswer && !question.isCorrect) {
-      return "incorrect";
-    }
-
-    return "disabled";
+    await resetSpelling();
   }
 
   // Lifecycle
@@ -181,7 +217,7 @@
   });
 
   onDestroy(() => {
-    cleanupQuiz();
+    cleanupSpelling();
   });
 </script>
 
@@ -191,12 +227,8 @@
     <div class="continue-dialog">
       <h2><i class="fa-solid fa-clipboard-question"></i> Tiếp tục chơi?</h2>
       <p>Bạn đang ở <strong>Màn {pendingProgress.current_level}</strong></p>
-      <p class="score-info">
-        Điểm: <strong>{pendingProgress.total_score.toLocaleString()}</strong>
-      </p>
-      <p class="highest-info">
-        Màn cao nhất: <strong>{pendingProgress.highest_level}</strong>
-      </p>
+      <p class="score-info">Điểm: <strong>{pendingProgress.total_score.toLocaleString()}</strong></p>
+      <p class="highest-info">Màn cao nhất: <strong>{pendingProgress.highest_level}</strong></p>
       <div class="dialog-actions">
         <button class="btn-continue" onclick={handleContinue}>
           Tiếp tục
@@ -209,69 +241,57 @@
   </div>
 {/if}
 
-<div class="quiz-container">
-  {#if $quizGameState === "loading"}
+<div class="spelling-container">
+  {#if $spellingState === "loading"}
     <!-- Loading State -->
     <div class="loading-container">
       <div class="spinner"></div>
       <p>Đang tải câu hỏi...</p>
     </div>
-  {:else if $quizGameState === "error"}
+  {:else if $spellingState === "error"}
     <!-- Error State -->
     <div class="error-container">
-      <div class="error-icon">
-        <i class="fa-solid fa-triangle-exclamation"></i>
-      </div>
+      <div class="error-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
       <h3>Không thể tải game</h3>
       <p>{errorMessage}</p>
-      <button class="btn btn-primary" onclick={() => loadFlashcards()}
-        >Thử lại</button
-      >
+      <button class="btn btn-primary" onclick={() => loadFlashcards()}>Thử lại</button>
     </div>
-  {:else if $quizGameState === "completed"}
+  {:else if $spellingState === "completed"}
     <!-- Results State -->
     <div class="results-container">
       <div class="results-card">
-        <h2>
-          <i class="fa-solid fa-trophy"></i> Hoàn thành Màn {$quizStats.level}!
-        </h2>
+        <h2><i class="fa-solid fa-trophy"></i> Hoàn thành Màn {$spellingStats.level}!</h2>
 
         <div class="results-stats">
           <div class="result-item">
             <span class="result-icon"><i class="fa-solid fa-star"></i></span>
             <span class="result-label">Điểm</span>
-            <span class="result-value">{$quizStats.score.toLocaleString()}</span
-            >
+            <span class="result-value">{$spellingStats.score.toLocaleString()}</span>
           </div>
           <div class="result-item">
-            <span class="result-icon"
-              ><i class="fa-solid fa-circle-check"></i></span
-            >
+            <span class="result-icon"><i class="fa-solid fa-circle-check"></i></span>
             <span class="result-label">Đúng</span>
-            <span class="result-value correct"
-              >{$quizStats.correctAnswers}/{$quizStats.totalQuestions}</span
-            >
+            <span class="result-value correct">{$spellingStats.correct}/{$spellingStats.totalQuestions}</span>
           </div>
           <div class="result-item">
-            <span class="result-icon"
-              ><i class="fa-solid fa-chart-simple"></i></span
-            >
+            <span class="result-icon"><i class="fa-solid fa-chart-simple"></i></span>
             <span class="result-label">Độ chính xác</span>
-            <span class="result-value"
-              >{getAccuracy(
-                $quizStats.correctAnswers,
-                $quizStats.totalQuestions,
-              )}%</span
-            >
+            <span class="result-value">{getAccuracy($spellingStats.correct, $spellingStats.totalQuestions)}%</span>
           </div>
           <div class="result-item">
-            <span class="result-icon"
-              ><i class="fa-solid fa-stopwatch"></i></span
-            >
+            <span class="result-icon"><i class="fa-solid fa-stopwatch"></i></span>
             <span class="result-label">Thời gian</span>
-            <span class="result-value"
-              >{formatTime($quizStats.timeElapsed)}</span
-            >
+            <span class="result-value">{formatTime($spellingStats.timeElapsed)}</span>
+          </div>
+          <div class="result-item">
+            <span class="result-icon"><i class="fa-solid fa-lightbulb"></i></span>
+            <span class="result-label">Gợi ý đã dùng</span>
+            <span class="result-value hints">{$spellingStats.hintsUsed}</span>
+          </div>
+          <div class="result-item">
+            <span class="result-icon"><i class="fa-solid fa-fire"></i></span>
+            <span class="result-label">Combo</span>
+            <span class="result-value streak">{$spellingComboCount}</span>
           </div>
         </div>
 
@@ -279,93 +299,129 @@
           <button class="btn-next-level" onclick={handleNextLevel}>
             Màn tiếp theo →
           </button>
-          <button class="btn-restart" onclick={handleReset}> Chơi lại </button>
+          <button class="btn-restart" onclick={handleReset}>
+            Chơi lại
+          </button>
         </div>
       </div>
     </div>
   {:else}
     <!-- Game Header -->
-    <div class="quiz-header">
+    <div class="game-header">
       <div class="level-display">
         <span class="level-label">Màn</span>
-        <span class="level-number">{$quizStats.level}</span>
+        <span class="level-number">{$spellingStats.level}</span>
       </div>
 
       <div class="progress-display">
         <span class="progress-text">
-          Câu {$quizStats.currentQuestion}/{$quizStats.totalQuestions}
+          Câu {$spellingStats.currentQuestion}/{$spellingStats.totalQuestions}
         </span>
         <div class="progress-bar">
-          <div class="progress-fill" style="width: {$quizProgress}%"></div>
+          <div class="progress-fill" style="width: {$spellingProgress}%"></div>
         </div>
       </div>
 
       <div class="stats-display">
         <div class="stat-item">
           <span class="stat-icon"><i class="fa-solid fa-star"></i></span>
-          <span class="stat-value">{$quizStats.score}</span>
+          <span class="stat-value">{$spellingStats.score}</span>
         </div>
         <div class="stat-item">
           <span class="stat-icon"><i class="fa-solid fa-fire"></i></span>
-          <span class="stat-value">{$quizComboCount}</span>
+          <span class="stat-value">{$spellingComboCount}</span>
         </div>
         <div class="stat-item">
           <span class="stat-icon"><i class="fa-solid fa-stopwatch"></i></span>
-          <span class="stat-value">{formatTime($quizStats.timeElapsed)}</span>
+          <span class="stat-value">{formatTime($spellingStats.timeElapsed)}</span>
         </div>
       </div>
     </div>
 
     <!-- Question Area -->
-    {#if $currentQuestion}
+    {#if $currentSpellingQuestion}
       <div class="question-area">
         <!-- Image -->
         <div class="question-image-container">
           <div
             class="question-image"
-            style="background-image: url({$currentQuestion.imageUrl});"
+            style="background-image: url({$currentSpellingQuestion.imageUrl});"
           ></div>
         </div>
 
         <!-- Question Text -->
         <div class="question-text">
-          <h3>Đây là hình ảnh gì?</h3>
+          <h3>Đánh vần tên hình ảnh này</h3>
         </div>
 
-        <!-- Answer Options -->
-        <div class="options-grid">
-          {#each $currentQuestion.options as option}
+        <!-- Hint Section -->
+        <div class="hint-section">
+          <button
+            class="btn-hint"
+            onclick={handleUseHint}
+            disabled={$spellingState !== "idle" || $hintsRevealed >= ($currentSpellingQuestion?.correctAnswer.length ?? 1) - 1}
+          >
+            <i class="fa-solid fa-lightbulb"></i> Gợi ý (-{$spellingStats.level > 1 ? 50 : 50} điểm)
+          </button>
+          {#if $hintsRevealed > 0}
+            <span class="hint-text">{currentHint}</span>
+          {/if}
+        </div>
+
+        <!-- Input Area -->
+        <div class="input-area">
+          <div class="input-display">
+            <span class="input-text">{userInput || "\u00A0"}</span>
+            {#if userInput.length > 0}
+              <button class="btn-backspace" onclick={handleBackspace} disabled={$spellingState !== "idle"} aria-label="Xóa ký tự">
+                <i class="fa-solid fa-delete-left"></i>
+              </button>
+            {/if}
+          </div>
+
+          <!-- Letter Bank -->
+          <div class="letter-bank">
+            {#each letterBank as letter, index}
+              <button
+                class="letter-btn"
+                onclick={() => handleLetterClick(letter, index)}
+                disabled={$spellingState !== "idle"}
+              >
+                {letter}
+              </button>
+            {/each}
+          </div>
+
+          <!-- Text Input (alternative) -->
+          <div class="text-input-row">
+            <input
+              type="text"
+              class="text-input"
+              placeholder="Hoặc gõ câu trả lời..."
+              bind:value={userInput}
+              onkeydown={handleKeydown}
+              disabled={$spellingState !== "idle"}
+            />
             <button
-              class="option-btn {getOptionClass(option)}"
-              onclick={() => handleOptionClick(option)}
-              disabled={$quizGameState !== "idle"}
+              class="btn-submit"
+              onclick={handleSubmit}
+              disabled={$spellingState !== "idle" || !userInput.trim()}
+              aria-label="Gửi câu trả lời"
             >
-              {option}
+              <i class="fa-solid fa-paper-plane"></i>
             </button>
-          {/each}
+          </div>
         </div>
 
         <!-- Feedback -->
-        {#if $quizGameState === "answered" && $currentQuestion.answered}
-          <div
-            class="feedback {$currentQuestion.isCorrect
-              ? 'correct'
-              : 'incorrect'}"
-          >
-            {#if $currentQuestion.isCorrect}
-              <span class="feedback-icon"
-                ><i class="fa-solid fa-circle-check"></i></span
-              >
+        {#if $spellingState === "answered" && lastAnswerCorrect !== null}
+          <div class="feedback {lastAnswerCorrect ? 'correct' : 'incorrect'}">
+            {#if lastAnswerCorrect}
+              <span class="feedback-icon"><i class="fa-solid fa-circle-check"></i></span>
               <span>Chính xác!</span>
             {:else}
-              <span class="feedback-icon"
-                ><i class="fa-solid fa-circle-xmark"></i></span
-              >
-              <span
-                >Sai rồi! Đáp án đúng: <strong
-                  >{$currentQuestion.correctAnswer}</strong
-                ></span
-              >
+              <span class="feedback-icon"><i class="fa-solid fa-circle-xmark"></i></span>
+              <span>Sai rồi! Đáp án đúng: <strong>{lastCorrectAnswer}</strong></span>
             {/if}
           </div>
         {/if}
@@ -374,10 +430,10 @@
   {/if}
 
   <!-- Achievement Toast -->
-  {#if $quizNewAchievements.length > 0}
+  {#if $spellingNewAchievements.length > 0}
     <div class="achievements-toast">
       <h4><i class="fa-solid fa-trophy"></i> Thành tựu mới!</h4>
-      {#each $quizNewAchievements as achievement}
+      {#each $spellingNewAchievements as achievement}
         <div class="achievement-item">
           <span class="achievement-icon">
             {#if achievement.icon}
@@ -389,17 +445,13 @@
           <span class="achievement-name">{achievement.name}</span>
         </div>
       {/each}
-      <button
-        class="btn-dismiss"
-        onclick={() => clearQuizAchievements()}
-        aria-label="Đóng"><i class="fa-solid fa-xmark"></i></button
-      >
+      <button class="btn-dismiss" onclick={() => clearSpellingAchievements()} aria-label="Đóng"><i class="fa-solid fa-xmark"></i></button>
     </div>
   {/if}
 </div>
 
 <style>
-  .quiz-container {
+  .spelling-container {
     width: 100%;
     max-width: 800px;
     margin: 0 auto;
@@ -407,16 +459,16 @@
     background: linear-gradient(
       135deg,
       rgba(255, 255, 255, 0.95) 0%,
-      rgba(240, 249, 255, 0.95) 100%
+      rgba(240, 255, 244, 0.95) 100%
     );
     border-radius: 24px;
     position: relative;
     box-shadow:
-      0 10px 40px rgba(59, 130, 246, 0.15),
+      0 10px 40px rgba(16, 185, 129, 0.15),
       0 4px 12px rgba(0, 0, 0, 0.08);
   }
 
-  .quiz-container::before {
+  .spelling-container::before {
     content: "";
     position: absolute;
     top: -3px;
@@ -425,11 +477,11 @@
     bottom: -3px;
     background: linear-gradient(
       45deg,
-      #8b5cf6,
-      #3b82f6,
       #10b981,
-      #f59e0b,
-      #8b5cf6
+      #059669,
+      #3b82f6,
+      #8b5cf6,
+      #10b981
     );
     border-radius: 24px;
     z-index: -1;
@@ -438,15 +490,9 @@
   }
 
   @keyframes rotateBorder {
-    0% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
-    100% {
-      background-position: 0% 50%;
-    }
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
   }
 
   /* Loading */
@@ -463,18 +509,14 @@
     width: 50px;
     height: 50px;
     border: 5px solid #f3f3f3;
-    border-top: 5px solid #8b5cf6;
+    border-top: 5px solid #10b981;
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
 
   @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg);
-    }
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
   }
 
   /* Error */
@@ -498,7 +540,7 @@
   }
 
   /* Header */
-  .quiz-header {
+  .game-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -506,7 +548,7 @@
     gap: 16px;
     margin-bottom: 24px;
     padding-bottom: 16px;
-    border-bottom: 2px solid rgba(139, 92, 246, 0.2);
+    border-bottom: 2px solid rgba(16, 185, 129, 0.2);
   }
 
   .level-display {
@@ -514,9 +556,9 @@
     align-items: center;
     gap: 8px;
     padding: 8px 16px;
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
   }
 
   .level-label {
@@ -556,7 +598,7 @@
 
   .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #8b5cf6, #3b82f6);
+    background: linear-gradient(90deg, #10b981, #059669);
     border-radius: 4px;
     transition: width 0.3s ease;
   }
@@ -571,7 +613,7 @@
     align-items: center;
     gap: 6px;
     padding: 8px 12px;
-    background: rgba(139, 92, 246, 0.1);
+    background: rgba(16, 185, 129, 0.1);
     border-radius: 10px;
   }
 
@@ -579,7 +621,6 @@
     font-size: 16px;
   }
 
-  /* Icon colors */
   .stat-icon .fa-star {
     color: #fbbf24;
   }
@@ -592,50 +633,10 @@
     color: #3b82f6;
   }
 
-  .result-icon .fa-star {
-    color: #fbbf24;
-  }
-
-  .result-icon .fa-circle-check {
-    color: #10b981;
-  }
-
-  .result-icon .fa-chart-simple {
-    color: #8b5cf6;
-  }
-
-  .result-icon .fa-stopwatch {
-    color: #3b82f6;
-  }
-
-  .error-icon .fa-triangle-exclamation {
-    color: #f59e0b;
-  }
-
-  .feedback-icon .fa-circle-check {
-    color: #10b981;
-  }
-
-  .feedback-icon .fa-circle-xmark {
-    color: #ef4444;
-  }
-
-  .results-card h2 .fa-trophy {
-    color: #fbbf24;
-  }
-
-  .continue-dialog h2 .fa-clipboard-question {
-    color: #8b5cf6;
-  }
-
-  .achievements-toast h4 .fa-trophy {
-    color: white;
-  }
-
   .stat-value {
     font-size: 14px;
     font-weight: 600;
-    color: #7c3aed;
+    color: #059669;
   }
 
   /* Question Area */
@@ -643,17 +644,17 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 24px;
+    gap: 20px;
   }
 
   .question-image-container {
     width: 100%;
-    max-width: 300px;
+    max-width: 250px;
     aspect-ratio: 1;
     border-radius: 20px;
     overflow: hidden;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-    border: 4px solid #8b5cf6;
+    border: 4px solid #10b981;
   }
 
   .question-image {
@@ -671,85 +672,191 @@
     margin: 0;
   }
 
-  /* Options */
-  .options-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+  /* Hint Section */
+  .hint-section {
+    display: flex;
+    align-items: center;
     gap: 12px;
-    width: 100%;
-    max-width: 500px;
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
-  .option-btn {
-    padding: 16px 20px;
-    font-size: 16px;
+  .btn-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: rgba(251, 191, 36, 0.15);
+    color: #d97706;
+    border: 2px solid rgba(251, 191, 36, 0.3);
+    border-radius: 10px;
+    font-size: 14px;
     font-weight: 600;
-    background: white;
-    border: 3px solid #e2e8f0;
-    border-radius: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
-    color: #1e293b;
   }
 
-  .option-btn:hover:not(:disabled) {
-    border-color: #8b5cf6;
-    background: rgba(139, 92, 246, 0.05);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+  .btn-hint:hover:not(:disabled) {
+    background: rgba(251, 191, 36, 0.25);
+    border-color: rgba(251, 191, 36, 0.5);
   }
 
-  .option-btn.selected {
-    border-color: #8b5cf6;
-    background: rgba(139, 92, 246, 0.1);
-  }
-
-  .option-btn.correct {
-    border-color: #10b981;
-    background: rgba(16, 185, 129, 0.15);
-    color: #059669;
-    animation: correctPulse 0.5s ease;
-  }
-
-  .option-btn.incorrect {
-    border-color: #ef4444;
-    background: rgba(239, 68, 68, 0.15);
-    color: #dc2626;
-    animation: shake 0.5s ease;
-  }
-
-  .option-btn.disabled {
+  .btn-hint:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
 
-  .option-btn:disabled {
+  .btn-hint .fa-lightbulb {
+    color: #fbbf24;
+  }
+
+  .hint-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: #d97706;
+    letter-spacing: 2px;
+    font-family: monospace;
+  }
+
+  /* Input Area */
+  .input-area {
+    width: 100%;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .input-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 52px;
+    padding: 12px 20px;
+    background: white;
+    border: 3px solid #10b981;
+    border-radius: 14px;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+  }
+
+  .input-text {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1e293b;
+    letter-spacing: 4px;
+    text-transform: lowercase;
+  }
+
+  .btn-backspace {
+    background: rgba(239, 68, 68, 0.1);
+    border: none;
+    color: #ef4444;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .btn-backspace:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.2);
+  }
+
+  /* Letter Bank */
+  .letter-bank {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .letter-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
+    font-weight: 700;
+    text-transform: lowercase;
+    background: white;
+    border: 2px solid #d1d5db;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    color: #1e293b;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  }
+
+  .letter-btn:hover:not(:disabled) {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.05);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.2);
+  }
+
+  .letter-btn:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  .letter-btn:disabled {
+    opacity: 0.5;
     cursor: not-allowed;
   }
 
-  @keyframes correctPulse {
-    0%,
-    100% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.05);
-    }
+  /* Text Input Row */
+  .text-input-row {
+    display: flex;
+    gap: 10px;
   }
 
-  @keyframes shake {
-    0%,
-    100% {
-      transform: translateX(0);
-    }
-    20%,
-    60% {
-      transform: translateX(-5px);
-    }
-    40%,
-    80% {
-      transform: translateX(5px);
-    }
+  .text-input {
+    flex: 1;
+    padding: 12px 16px;
+    font-size: 16px;
+    border: 2px solid #d1d5db;
+    border-radius: 12px;
+    outline: none;
+    transition: border-color 0.2s ease;
+    color: #1e293b;
+  }
+
+  .text-input:focus {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+  }
+
+  .text-input:disabled {
+    background: #f1f5f9;
+    cursor: not-allowed;
+  }
+
+  .btn-submit {
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-submit:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+  }
+
+  .btn-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
   }
 
   /* Feedback */
@@ -780,15 +887,17 @@
     font-size: 20px;
   }
 
+  .feedback-icon .fa-circle-check {
+    color: #10b981;
+  }
+
+  .feedback-icon .fa-circle-xmark {
+    color: #ef4444;
+  }
+
   @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(-10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   /* Results */
@@ -813,7 +922,11 @@
   .results-card h2 {
     margin: 0 0 24px 0;
     font-size: 28px;
-    color: #8b5cf6;
+    color: #10b981;
+  }
+
+  .results-card h2 .fa-trophy {
+    color: #fbbf24;
   }
 
   .results-stats {
@@ -837,6 +950,30 @@
     font-size: 24px;
   }
 
+  .result-icon .fa-star {
+    color: #fbbf24;
+  }
+
+  .result-icon .fa-circle-check {
+    color: #10b981;
+  }
+
+  .result-icon .fa-chart-simple {
+    color: #8b5cf6;
+  }
+
+  .result-icon .fa-stopwatch {
+    color: #3b82f6;
+  }
+
+  .result-icon .fa-lightbulb {
+    color: #fbbf24;
+  }
+
+  .result-icon .fa-fire {
+    color: #f97316;
+  }
+
   .result-label {
     font-size: 12px;
     color: #64748b;
@@ -853,6 +990,14 @@
     color: #10b981;
   }
 
+  .result-value.hints {
+    color: #d97706;
+  }
+
+  .result-value.streak {
+    color: #f97316;
+  }
+
   .results-actions {
     display: flex;
     gap: 12px;
@@ -861,7 +1006,7 @@
 
   .btn-next-level {
     padding: 14px 28px;
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: white;
     border: none;
     border-radius: 12px;
@@ -873,7 +1018,7 @@
 
   .btn-next-level:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
   }
 
   .btn-restart {
@@ -891,6 +1036,11 @@
   .btn-restart:hover {
     background: #f8fafc;
     border-color: #cbd5e1;
+  }
+
+  /* Icon colors */
+  .error-icon .fa-triangle-exclamation {
+    color: #f59e0b;
   }
 
   /* Achievement Toast */
@@ -911,6 +1061,10 @@
     margin: 0 0 12px 0;
     color: white;
     font-size: 16px;
+  }
+
+  .achievements-toast h4 .fa-trophy {
+    color: white;
   }
 
   .achievement-item {
@@ -947,14 +1101,8 @@
   }
 
   @keyframes slideInRight {
-    from {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateX(0);
-      opacity: 1;
-    }
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
   }
 
   /* Continue Dialog */
@@ -984,7 +1132,11 @@
   .continue-dialog h2 {
     margin: 0 0 16px 0;
     font-size: 24px;
-    color: #7c3aed;
+    color: #059669;
+  }
+
+  .continue-dialog h2 .fa-clipboard-question {
+    color: #10b981;
   }
 
   .continue-dialog p {
@@ -1010,7 +1162,7 @@
 
   .btn-continue {
     padding: 14px 28px;
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: white;
     border: none;
     border-radius: 12px;
@@ -1032,11 +1184,11 @@
 
   /* Responsive */
   @media (max-width: 768px) {
-    .quiz-container {
+    .spelling-container {
       padding: 20px;
     }
 
-    .quiz-header {
+    .game-header {
       flex-direction: column;
       align-items: center;
     }
@@ -1052,11 +1204,18 @@
     }
 
     .question-image-container {
-      max-width: 250px;
+      max-width: 200px;
     }
 
-    .options-grid {
-      grid-template-columns: 1fr;
+    .input-text {
+      font-size: 20px;
+      letter-spacing: 3px;
+    }
+
+    .letter-btn {
+      width: 40px;
+      height: 40px;
+      font-size: 16px;
     }
 
     .results-card {
@@ -1073,22 +1232,33 @@
   }
 
   @media (max-width: 480px) {
-    .quiz-container {
+    .spelling-container {
       padding: 15px;
       border-radius: 16px;
     }
 
     .question-image-container {
-      max-width: 200px;
+      max-width: 180px;
     }
 
     .question-text h3 {
       font-size: 18px;
     }
 
-    .option-btn {
-      padding: 14px 16px;
+    .input-text {
+      font-size: 18px;
+      letter-spacing: 2px;
+    }
+
+    .letter-btn {
+      width: 36px;
+      height: 36px;
       font-size: 14px;
+    }
+
+    .text-input {
+      font-size: 14px;
+      padding: 10px 12px;
     }
 
     .results-card {

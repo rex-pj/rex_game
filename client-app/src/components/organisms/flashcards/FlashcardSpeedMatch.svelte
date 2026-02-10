@@ -4,25 +4,26 @@
   import { ACCESS_TOKEN, GAME_FLASHCARD_TYPES } from "$lib/common/contants";
   import type { Flashcard } from "$lib/models/flashcard";
   import {
-    quizGameState,
-    quizStats,
-    currentQuestion,
-    quizComboCount,
-    quizNewAchievements,
-    quizProgress,
-    initializeQuiz,
-    answerQuestion,
-    resetQuiz,
-    cleanupQuiz,
-    setQuizError,
-    clearQuizAchievements,
-    getQuizProgress,
-    continueQuizFromProgress,
-    startNewQuizGame,
-    nextLevel,
-  } from "$lib/stores/quiz-game.store";
+    speedMatchState,
+    speedMatchStats,
+    speedMatchPairs,
+    currentPair,
+    currentPairIndex,
+    speedMatchNewAchievements,
+    speedMatchProgress,
+    initializeSpeedMatch,
+    answerSpeedMatch,
+    resetSpeedMatch,
+    cleanupSpeedMatch,
+    setSpeedMatchError,
+    clearSpeedMatchAchievements,
+    getSpeedMatchProgress,
+    continueSpeedMatchFromProgress,
+    startNewSpeedMatchGame,
+    nextSpeedMatchLevel,
+  } from "$lib/stores/speed-match-game.store";
   import type { GameProgress } from "$lib/api/scoringApi";
-  import { formatTime, getAccuracy } from "$lib/helpers/quizHelpers";
+  import { getAccuracy } from "$lib/helpers/speedMatchHelpers";
   import Cookies from "js-cookie";
 
   // Props
@@ -37,13 +38,13 @@
   let errorMessage = $state("");
   let showContinueDialog = $state(false);
   let pendingProgress: GameProgress | null = $state(null);
-  let selectedOption: string | null = $state(null);
+  let lastAnswerCorrect: boolean | null = $state(null);
 
   /**
    * Check for saved progress
    */
   async function checkSavedProgress() {
-    const progress = await getQuizProgress();
+    const progress = await getSpeedMatchProgress();
     if (progress && progress.current_level > 1) {
       pendingProgress = progress;
       showContinueDialog = true;
@@ -70,7 +71,7 @@
    */
   async function handleStartNew() {
     showContinueDialog = false;
-    await startNewQuizGame();
+    await startNewSpeedMatchGame();
     await loadFlashcards(1);
   }
 
@@ -91,28 +92,28 @@
         fetch,
         1,
         50,
-        GAME_FLASHCARD_TYPES.QUIZ,
+        GAME_FLASHCARD_TYPES.SPEED_MATCH,
       );
       const flashcards: Flashcard[] = response.items || response.data || [];
 
-      if (!flashcards || flashcards.length < 4) {
-        throw new Error("Cần ít nhất 4 flashcards để chơi quiz");
+      if (!flashcards || flashcards.length < 2) {
+        throw new Error("Cần ít nhất 2 flashcards để chơi Speed Match");
       }
 
       const filteredFlashcards = flashcardTypeId
         ? flashcards.filter((f) => f.flashcard_type_id === flashcardTypeId)
         : flashcards;
 
-      if (filteredFlashcards.length < 4) {
+      if (filteredFlashcards.length < 2) {
         throw new Error("Không đủ flashcards cho loại này");
       }
 
-      await initializeQuiz(filteredFlashcards, {
+      await initializeSpeedMatch(filteredFlashcards, {
         flashcardTypeId,
       });
 
       if (startScore > 0) {
-        await continueQuizFromProgress({
+        await continueSpeedMatchFromProgress({
           current_level: startLevel,
           total_score: startScore,
         } as GameProgress);
@@ -121,58 +122,51 @@
       console.error("Failed to load flashcards:", error);
       errorMessage =
         error instanceof Error ? error.message : "Không thể tải flashcards";
-      setQuizError();
+      setSpeedMatchError();
     }
   }
 
   /**
-   * Handle option click
+   * Handle answer (same or different)
    */
-  function handleOptionClick(option: string) {
-    if ($quizGameState !== "idle" || selectedOption) return;
-    selectedOption = option;
-    answerQuestion(option);
+  function handleAnswer(userSaysMatch: boolean) {
+    if ($speedMatchState !== "idle") return;
 
-    // Reset selected option after delay
+    const pair = $currentPair;
+    if (!pair) return;
+
+    const isCorrect = userSaysMatch === pair.isMatch;
+    lastAnswerCorrect = isCorrect;
+
+    answerSpeedMatch(userSaysMatch);
+
+    // Clear feedback after delay
     setTimeout(() => {
-      selectedOption = null;
-    }, 1500);
+      lastAnswerCorrect = null;
+    }, 600);
   }
 
   /**
    * Handle next level
    */
   async function handleNextLevel() {
-    await nextLevel();
+    await nextSpeedMatchLevel();
   }
 
   /**
    * Handle reset
    */
   async function handleReset() {
-    await resetQuiz();
+    await resetSpeedMatch();
   }
 
   /**
-   * Get option class based on state
+   * Format time for display
    */
-  function getOptionClass(option: string): string {
-    if ($quizGameState !== "answered" && $quizGameState !== "completed") {
-      return selectedOption === option ? "selected" : "";
-    }
-
-    const question = $currentQuestion;
-    if (!question) return "";
-
-    if (option === question.correctAnswer) {
-      return "correct";
-    }
-
-    if (option === question.selectedAnswer && !question.isCorrect) {
-      return "incorrect";
-    }
-
-    return "disabled";
+  function formatTime(seconds: number): string {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   }
 
   // Lifecycle
@@ -181,7 +175,7 @@
   });
 
   onDestroy(() => {
-    cleanupQuiz();
+    cleanupSpeedMatch();
   });
 </script>
 
@@ -209,14 +203,14 @@
   </div>
 {/if}
 
-<div class="quiz-container">
-  {#if $quizGameState === "loading"}
+<div class="speed-match-container">
+  {#if $speedMatchState === "loading"}
     <!-- Loading State -->
     <div class="loading-container">
       <div class="spinner"></div>
-      <p>Đang tải câu hỏi...</p>
+      <p>Đang tải trò chơi...</p>
     </div>
-  {:else if $quizGameState === "error"}
+  {:else if $speedMatchState === "error"}
     <!-- Error State -->
     <div class="error-container">
       <div class="error-icon">
@@ -228,19 +222,20 @@
         >Thử lại</button
       >
     </div>
-  {:else if $quizGameState === "completed"}
+  {:else if $speedMatchState === "completed"}
     <!-- Results State -->
     <div class="results-container">
       <div class="results-card">
         <h2>
-          <i class="fa-solid fa-trophy"></i> Hoàn thành Màn {$quizStats.level}!
+          <i class="fa-solid fa-trophy"></i> Hoàn thành Màn {$speedMatchStats.level}!
         </h2>
 
         <div class="results-stats">
           <div class="result-item">
             <span class="result-icon"><i class="fa-solid fa-star"></i></span>
             <span class="result-label">Điểm</span>
-            <span class="result-value">{$quizStats.score.toLocaleString()}</span
+            <span class="result-value"
+              >{$speedMatchStats.score.toLocaleString()}</span
             >
           </div>
           <div class="result-item">
@@ -249,7 +244,8 @@
             >
             <span class="result-label">Đúng</span>
             <span class="result-value correct"
-              >{$quizStats.correctAnswers}/{$quizStats.totalQuestions}</span
+              >{$speedMatchStats.correct}/{$speedMatchStats.correct +
+                $speedMatchStats.wrong}</span
             >
           </div>
           <div class="result-item">
@@ -259,19 +255,15 @@
             <span class="result-label">Độ chính xác</span>
             <span class="result-value"
               >{getAccuracy(
-                $quizStats.correctAnswers,
-                $quizStats.totalQuestions,
+                $speedMatchStats.correct,
+                $speedMatchStats.correct + $speedMatchStats.wrong,
               )}%</span
             >
           </div>
           <div class="result-item">
-            <span class="result-icon"
-              ><i class="fa-solid fa-stopwatch"></i></span
-            >
-            <span class="result-label">Thời gian</span>
-            <span class="result-value"
-              >{formatTime($quizStats.timeElapsed)}</span
-            >
+            <span class="result-icon"><i class="fa-solid fa-fire"></i></span>
+            <span class="result-label">Streak cao nhất</span>
+            <span class="result-value streak">{$speedMatchStats.streak}</span>
           </div>
         </div>
 
@@ -285,87 +277,107 @@
     </div>
   {:else}
     <!-- Game Header -->
-    <div class="quiz-header">
+    <div class="game-header">
       <div class="level-display">
         <span class="level-label">Màn</span>
-        <span class="level-number">{$quizStats.level}</span>
+        <span class="level-number">{$speedMatchStats.level}</span>
       </div>
 
-      <div class="progress-display">
-        <span class="progress-text">
-          Câu {$quizStats.currentQuestion}/{$quizStats.totalQuestions}
-        </span>
-        <div class="progress-bar">
-          <div class="progress-fill" style="width: {$quizProgress}%"></div>
-        </div>
+      <div
+        class="timer-display"
+        class:timer-warning={$speedMatchStats.timeRemaining <= 10}
+      >
+        <span class="timer-icon"><i class="fa-solid fa-clock"></i></span>
+        <span class="timer-value"
+          >{formatTime($speedMatchStats.timeRemaining)}</span
+        >
       </div>
 
       <div class="stats-display">
         <div class="stat-item">
           <span class="stat-icon"><i class="fa-solid fa-star"></i></span>
-          <span class="stat-value">{$quizStats.score}</span>
+          <span class="stat-value">{$speedMatchStats.score}</span>
         </div>
         <div class="stat-item">
           <span class="stat-icon"><i class="fa-solid fa-fire"></i></span>
-          <span class="stat-value">{$quizComboCount}</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-icon"><i class="fa-solid fa-stopwatch"></i></span>
-          <span class="stat-value">{formatTime($quizStats.timeElapsed)}</span>
+          <span class="stat-value">{$speedMatchStats.streak}</span>
         </div>
       </div>
     </div>
 
-    <!-- Question Area -->
-    {#if $currentQuestion}
-      <div class="question-area">
-        <!-- Image -->
-        <div class="question-image-container">
+    <!-- Progress Bar -->
+    <div class="progress-section">
+      <span class="progress-text">
+        {$currentPairIndex + 1}/{$speedMatchPairs.length}
+      </span>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width: {$speedMatchProgress}%"></div>
+      </div>
+    </div>
+
+    <!-- Card Comparison Area -->
+    {#if $currentPair}
+      <div
+        class="comparison-area"
+        class:feedback-correct={lastAnswerCorrect === true}
+        class:feedback-incorrect={lastAnswerCorrect === false}
+      >
+        <div class="card-pair">
+          <!-- Left Card -->
+          <div class="match-card">
+            <div
+              class="card-image"
+              style="background-image: url({$currentPair.leftImageUrl});"
+            ></div>
+            <div class="card-label">{$currentPair.leftName}</div>
+          </div>
+
+          <!-- VS Divider -->
+          <div class="vs-divider">
+            <span>VS</span>
+          </div>
+
+          <!-- Right Card -->
+          <div class="match-card">
+            <div
+              class="card-image"
+              style="background-image: url({$currentPair.rightImageUrl});"
+            ></div>
+            <div class="card-label">{$currentPair.rightName}</div>
+          </div>
+        </div>
+
+        <!-- Answer Buttons -->
+        <div class="answer-buttons">
+          <button
+            class="btn-same"
+            onclick={() => handleAnswer(true)}
+            disabled={$speedMatchState !== "idle"}
+          >
+            <i class="fa-solid fa-equals"></i>
+            Giống nhau
+          </button>
+          <button
+            class="btn-different"
+            onclick={() => handleAnswer(false)}
+            disabled={$speedMatchState !== "idle"}
+          >
+            <i class="fa-solid fa-not-equal"></i>
+            Khác nhau
+          </button>
+        </div>
+
+        <!-- Feedback Indicator -->
+        {#if lastAnswerCorrect !== null}
           <div
-            class="question-image"
-            style="background-image: url({$currentQuestion.imageUrl});"
-          ></div>
-        </div>
-
-        <!-- Question Text -->
-        <div class="question-text">
-          <h3>Đây là hình ảnh gì?</h3>
-        </div>
-
-        <!-- Answer Options -->
-        <div class="options-grid">
-          {#each $currentQuestion.options as option}
-            <button
-              class="option-btn {getOptionClass(option)}"
-              onclick={() => handleOptionClick(option)}
-              disabled={$quizGameState !== "idle"}
-            >
-              {option}
-            </button>
-          {/each}
-        </div>
-
-        <!-- Feedback -->
-        {#if $quizGameState === "answered" && $currentQuestion.answered}
-          <div
-            class="feedback {$currentQuestion.isCorrect
+            class="answer-feedback {lastAnswerCorrect
               ? 'correct'
               : 'incorrect'}"
           >
-            {#if $currentQuestion.isCorrect}
-              <span class="feedback-icon"
-                ><i class="fa-solid fa-circle-check"></i></span
-              >
-              <span>Chính xác!</span>
+            {#if lastAnswerCorrect}
+              <i class="fa-solid fa-circle-check"></i> Chính xác!
             {:else}
-              <span class="feedback-icon"
-                ><i class="fa-solid fa-circle-xmark"></i></span
-              >
-              <span
-                >Sai rồi! Đáp án đúng: <strong
-                  >{$currentQuestion.correctAnswer}</strong
-                ></span
-              >
+              <i class="fa-solid fa-circle-xmark"></i> Sai rồi!
             {/if}
           </div>
         {/if}
@@ -374,10 +386,10 @@
   {/if}
 
   <!-- Achievement Toast -->
-  {#if $quizNewAchievements.length > 0}
+  {#if $speedMatchNewAchievements.length > 0}
     <div class="achievements-toast">
       <h4><i class="fa-solid fa-trophy"></i> Thành tựu mới!</h4>
-      {#each $quizNewAchievements as achievement}
+      {#each $speedMatchNewAchievements as achievement}
         <div class="achievement-item">
           <span class="achievement-icon">
             {#if achievement.icon}
@@ -391,7 +403,7 @@
       {/each}
       <button
         class="btn-dismiss"
-        onclick={() => clearQuizAchievements()}
+        onclick={() => clearSpeedMatchAchievements()}
         aria-label="Đóng"><i class="fa-solid fa-xmark"></i></button
       >
     </div>
@@ -399,7 +411,7 @@
 </div>
 
 <style>
-  .quiz-container {
+  .speed-match-container {
     width: 100%;
     max-width: 800px;
     margin: 0 auto;
@@ -416,7 +428,7 @@
       0 4px 12px rgba(0, 0, 0, 0.08);
   }
 
-  .quiz-container::before {
+  .speed-match-container::before {
     content: "";
     position: absolute;
     top: -3px;
@@ -425,11 +437,11 @@
     bottom: -3px;
     background: linear-gradient(
       45deg,
+      #f97316,
+      #ef4444,
       #8b5cf6,
       #3b82f6,
-      #10b981,
-      #f59e0b,
-      #8b5cf6
+      #f97316
     );
     border-radius: 24px;
     z-index: -1;
@@ -463,7 +475,7 @@
     width: 50px;
     height: 50px;
     border: 5px solid #f3f3f3;
-    border-top: 5px solid #8b5cf6;
+    border-top: 5px solid #f97316;
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
@@ -498,15 +510,15 @@
   }
 
   /* Header */
-  .quiz-header {
+  .game-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: 12px;
+    margin-bottom: 16px;
     padding-bottom: 16px;
-    border-bottom: 2px solid rgba(139, 92, 246, 0.2);
+    border-bottom: 2px solid rgba(249, 115, 22, 0.2);
   }
 
   .level-display {
@@ -514,9 +526,9 @@
     align-items: center;
     gap: 8px;
     padding: 8px 16px;
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
     border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
   }
 
   .level-label {
@@ -532,38 +544,59 @@
     color: white;
   }
 
-  .progress-display {
-    flex: 1;
-    min-width: 150px;
-    max-width: 300px;
+  .timer-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 12px;
+    border: 2px solid rgba(59, 130, 246, 0.2);
+    transition: all 0.3s ease;
   }
 
-  .progress-text {
-    display: block;
-    text-align: center;
-    font-size: 14px;
-    font-weight: 600;
-    color: #64748b;
-    margin-bottom: 6px;
+  .timer-display.timer-warning {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.4);
+    animation: timerPulse 1s ease infinite;
   }
 
-  .progress-bar {
-    height: 8px;
-    background: #e2e8f0;
-    border-radius: 4px;
-    overflow: hidden;
+  .timer-icon {
+    font-size: 18px;
   }
 
-  .progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #8b5cf6, #3b82f6);
-    border-radius: 4px;
-    transition: width 0.3s ease;
+  .timer-display .timer-icon .fa-clock {
+    color: #3b82f6;
+  }
+
+  .timer-display.timer-warning .timer-icon .fa-clock {
+    color: #ef4444;
+  }
+
+  .timer-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1e293b;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .timer-display.timer-warning .timer-value {
+    color: #ef4444;
+  }
+
+  @keyframes timerPulse {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
   }
 
   .stats-display {
     display: flex;
-    gap: 12px;
+    gap: 10px;
   }
 
   .stat-item {
@@ -571,7 +604,7 @@
     align-items: center;
     gap: 6px;
     padding: 8px 12px;
-    background: rgba(139, 92, 246, 0.1);
+    background: rgba(249, 115, 22, 0.1);
     border-radius: 10px;
   }
 
@@ -579,7 +612,6 @@
     font-size: 16px;
   }
 
-  /* Icon colors */
   .stat-icon .fa-star {
     color: #fbbf24;
   }
@@ -588,152 +620,65 @@
     color: #f97316;
   }
 
-  .stat-icon .fa-stopwatch {
-    color: #3b82f6;
-  }
-
-  .result-icon .fa-star {
-    color: #fbbf24;
-  }
-
-  .result-icon .fa-circle-check {
-    color: #10b981;
-  }
-
-  .result-icon .fa-chart-simple {
-    color: #8b5cf6;
-  }
-
-  .result-icon .fa-stopwatch {
-    color: #3b82f6;
-  }
-
-  .error-icon .fa-triangle-exclamation {
-    color: #f59e0b;
-  }
-
-  .feedback-icon .fa-circle-check {
-    color: #10b981;
-  }
-
-  .feedback-icon .fa-circle-xmark {
-    color: #ef4444;
-  }
-
-  .results-card h2 .fa-trophy {
-    color: #fbbf24;
-  }
-
-  .continue-dialog h2 .fa-clipboard-question {
-    color: #8b5cf6;
-  }
-
-  .achievements-toast h4 .fa-trophy {
-    color: white;
-  }
-
   .stat-value {
     font-size: 14px;
     font-weight: 600;
-    color: #7c3aed;
+    color: #ea580c;
   }
 
-  /* Question Area */
-  .question-area {
+  /* Progress */
+  .progress-section {
+    margin-bottom: 20px;
+  }
+
+  .progress-text {
+    display: block;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+    margin-bottom: 6px;
+  }
+
+  .progress-bar {
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f97316, #ef4444);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+
+  /* Card Comparison */
+  .comparison-area {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 24px;
+    padding: 20px 0;
+    transition: all 0.3s ease;
   }
 
-  .question-image-container {
-    width: 100%;
-    max-width: 300px;
-    aspect-ratio: 1;
-    border-radius: 20px;
-    overflow: hidden;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-    border: 4px solid #8b5cf6;
+  .comparison-area.feedback-correct {
+    animation: correctFlash 0.5s ease;
   }
 
-  .question-image {
-    width: 100%;
-    height: 100%;
-    background-size: cover;
-    background-position: center;
-    background-color: #f8fafc;
-  }
-
-  .question-text h3 {
-    font-size: 20px;
-    font-weight: 600;
-    color: #1e293b;
-    margin: 0;
-  }
-
-  /* Options */
-  .options-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    width: 100%;
-    max-width: 500px;
-  }
-
-  .option-btn {
-    padding: 16px 20px;
-    font-size: 16px;
-    font-weight: 600;
-    background: white;
-    border: 3px solid #e2e8f0;
-    border-radius: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    color: #1e293b;
-  }
-
-  .option-btn:hover:not(:disabled) {
-    border-color: #8b5cf6;
-    background: rgba(139, 92, 246, 0.05);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
-  }
-
-  .option-btn.selected {
-    border-color: #8b5cf6;
-    background: rgba(139, 92, 246, 0.1);
-  }
-
-  .option-btn.correct {
-    border-color: #10b981;
-    background: rgba(16, 185, 129, 0.15);
-    color: #059669;
-    animation: correctPulse 0.5s ease;
-  }
-
-  .option-btn.incorrect {
-    border-color: #ef4444;
-    background: rgba(239, 68, 68, 0.15);
-    color: #dc2626;
+  .comparison-area.feedback-incorrect {
     animation: shake 0.5s ease;
   }
 
-  .option-btn.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .option-btn:disabled {
-    cursor: not-allowed;
-  }
-
-  @keyframes correctPulse {
+  @keyframes correctFlash {
     0%,
     100% {
-      transform: scale(1);
+      background-color: transparent;
     }
     50% {
-      transform: scale(1.05);
+      background-color: rgba(16, 185, 129, 0.1);
     }
   }
 
@@ -744,46 +689,169 @@
     }
     20%,
     60% {
-      transform: translateX(-5px);
+      transform: translateX(-8px);
     }
     40%,
     80% {
-      transform: translateX(5px);
+      transform: translateX(8px);
     }
   }
 
+  .card-pair {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    width: 100%;
+  }
+
+  .match-card {
+    flex: 1;
+    max-width: 260px;
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    border: 3px solid #e2e8f0;
+    transition: all 0.3s ease;
+  }
+
+  .card-image {
+    width: 100%;
+    aspect-ratio: 1;
+    background-size: cover;
+    background-position: center;
+    background-color: #f8fafc;
+  }
+
+  .card-label {
+    padding: 10px 12px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .vs-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #f97316, #ef4444);
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+  }
+
+  .vs-divider span {
+    font-size: 16px;
+    font-weight: 800;
+    color: white;
+    letter-spacing: 1px;
+  }
+
+  /* Answer Buttons */
+  .answer-buttons {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .btn-same,
+  .btn-different {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 18px 24px;
+    font-size: 18px;
+    font-weight: 700;
+    border: none;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .btn-same {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+  }
+
+  .btn-same:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.45);
+  }
+
+  .btn-different {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+  }
+
+  .btn-different:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(239, 68, 68, 0.45);
+  }
+
+  .btn-same:disabled,
+  .btn-different:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-same:active:not(:disabled),
+  .btn-different:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
   /* Feedback */
-  .feedback {
+  .answer-feedback {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 12px 24px;
+    padding: 10px 24px;
     border-radius: 12px;
     font-size: 16px;
     font-weight: 600;
-    animation: fadeIn 0.3s ease;
+    animation: fadeInUp 0.3s ease;
   }
 
-  .feedback.correct {
+  .answer-feedback.correct {
     background: rgba(16, 185, 129, 0.15);
     color: #059669;
     border: 2px solid #10b981;
   }
 
-  .feedback.incorrect {
+  .answer-feedback.incorrect {
     background: rgba(239, 68, 68, 0.15);
     color: #dc2626;
     border: 2px solid #ef4444;
   }
 
-  .feedback-icon {
-    font-size: 20px;
+  .answer-feedback .fa-circle-check {
+    color: #10b981;
   }
 
-  @keyframes fadeIn {
+  .answer-feedback .fa-circle-xmark {
+    color: #ef4444;
+  }
+
+  @keyframes fadeInUp {
     from {
       opacity: 0;
-      transform: translateY(-10px);
+      transform: translateY(10px);
     }
     to {
       opacity: 1;
@@ -813,7 +881,11 @@
   .results-card h2 {
     margin: 0 0 24px 0;
     font-size: 28px;
-    color: #8b5cf6;
+    color: #f97316;
+  }
+
+  .results-card h2 .fa-trophy {
+    color: #fbbf24;
   }
 
   .results-stats {
@@ -837,6 +909,22 @@
     font-size: 24px;
   }
 
+  .result-icon .fa-star {
+    color: #fbbf24;
+  }
+
+  .result-icon .fa-circle-check {
+    color: #10b981;
+  }
+
+  .result-icon .fa-chart-simple {
+    color: #8b5cf6;
+  }
+
+  .result-icon .fa-fire {
+    color: #f97316;
+  }
+
   .result-label {
     font-size: 12px;
     color: #64748b;
@@ -853,6 +941,10 @@
     color: #10b981;
   }
 
+  .result-value.streak {
+    color: #f97316;
+  }
+
   .results-actions {
     display: flex;
     gap: 12px;
@@ -861,7 +953,7 @@
 
   .btn-next-level {
     padding: 14px 28px;
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
     color: white;
     border: none;
     border-radius: 12px;
@@ -873,7 +965,7 @@
 
   .btn-next-level:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+    box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
   }
 
   .btn-restart {
@@ -891,6 +983,11 @@
   .btn-restart:hover {
     background: #f8fafc;
     border-color: #cbd5e1;
+  }
+
+  /* Icon colors */
+  .error-icon .fa-triangle-exclamation {
+    color: #f59e0b;
   }
 
   /* Achievement Toast */
@@ -911,6 +1008,10 @@
     margin: 0 0 12px 0;
     color: white;
     font-size: 16px;
+  }
+
+  .achievements-toast h4 .fa-trophy {
+    color: white;
   }
 
   .achievement-item {
@@ -984,7 +1085,11 @@
   .continue-dialog h2 {
     margin: 0 0 16px 0;
     font-size: 24px;
-    color: #7c3aed;
+    color: #ea580c;
+  }
+
+  .continue-dialog h2 .fa-clipboard-question {
+    color: #f97316;
   }
 
   .continue-dialog p {
@@ -1010,7 +1115,7 @@
 
   .btn-continue {
     padding: 14px 28px;
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
     color: white;
     border: none;
     border-radius: 12px;
@@ -1032,18 +1137,13 @@
 
   /* Responsive */
   @media (max-width: 768px) {
-    .quiz-container {
+    .speed-match-container {
       padding: 20px;
     }
 
-    .quiz-header {
+    .game-header {
       flex-direction: column;
       align-items: center;
-    }
-
-    .progress-display {
-      width: 100%;
-      max-width: none;
     }
 
     .stats-display {
@@ -1051,12 +1151,31 @@
       justify-content: center;
     }
 
-    .question-image-container {
-      max-width: 250px;
+    .card-pair {
+      gap: 12px;
     }
 
-    .options-grid {
-      grid-template-columns: 1fr;
+    .match-card {
+      max-width: 200px;
+    }
+
+    .vs-divider {
+      width: 40px;
+      height: 40px;
+    }
+
+    .vs-divider span {
+      font-size: 14px;
+    }
+
+    .answer-buttons {
+      gap: 12px;
+    }
+
+    .btn-same,
+    .btn-different {
+      padding: 14px 18px;
+      font-size: 16px;
     }
 
     .results-card {
@@ -1073,22 +1192,44 @@
   }
 
   @media (max-width: 480px) {
-    .quiz-container {
+    .speed-match-container {
       padding: 15px;
       border-radius: 16px;
     }
 
-    .question-image-container {
-      max-width: 200px;
+    .card-pair {
+      flex-direction: column;
+      gap: 10px;
     }
 
-    .question-text h3 {
-      font-size: 18px;
+    .match-card {
+      max-width: 220px;
+      width: 100%;
     }
 
-    .option-btn {
-      padding: 14px 16px;
+    .vs-divider {
+      width: 36px;
+      height: 36px;
+    }
+
+    .vs-divider span {
+      font-size: 12px;
+    }
+
+    .answer-buttons {
+      flex-direction: row;
+      gap: 10px;
+    }
+
+    .btn-same,
+    .btn-different {
+      padding: 14px 12px;
       font-size: 14px;
+      gap: 6px;
+    }
+
+    .timer-value {
+      font-size: 18px;
     }
 
     .results-card {

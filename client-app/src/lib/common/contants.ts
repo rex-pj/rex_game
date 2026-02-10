@@ -22,6 +22,13 @@ export const APP_URLS = {
   SIGNUP_URL: "/account/signup",
 };
 
+export const GAME_FLASHCARD_TYPES = {
+  MATCHING: "Matching",
+  QUIZ: "Quiz",
+  SPEED_MATCH: "SpeedMatch",
+  SPELLING: "Spelling",
+};
+
 export enum ACCESS_TOKEN {
   ADMIN_ACCESS_TOKEN = "s_access_token",
   ADMIN_ACCESS_TOKEN_EXP = "s_access_token_exp",

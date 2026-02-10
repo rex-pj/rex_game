@@ -22,6 +22,7 @@
     canUpdate,
     canDelete,
     canCreate,
+    toggleActive,
   } from "./store";
   import Pagination from "../../../../components/molecules/pagination/pagination.svelte";
   import FlashcardTypeUpdateModal from "./FlashcardTypeUpdateModal.svelte";
@@ -45,7 +46,9 @@
       <div class="col">
         <!-- Add button -->
         {#if canCreate(data.adminUser)}
-          <button class="btn btn-primary mb-3" onclick={() => toggleCreationModal(true)}>Add</button
+          <button
+            class="btn btn-primary mb-3"
+            onclick={() => toggleCreationModal(true)}>Add</button
           >
         {/if}
       </div>
@@ -57,6 +60,7 @@
           <th>#</th>
           <th>Name</th>
           <th>Description</th>
+          <th>Status</th>
           <th>Created On</th>
           <th>Modified On</th>
           <th></th>
@@ -68,6 +72,21 @@
             <td>{item.id}</td>
             <td>{item.name}</td>
             <td>{item.description}</td>
+            <td>
+              <div class="form-check form-switch">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  role="switch"
+                  checked={item.is_actived}
+                  onchange={() => toggleActive(item.id)}
+                  disabled={!canUpdate(data.adminUser)}
+                />
+                <span class="form-check-label">
+                  {item.is_actived ? "Active" : "Inactive"}
+                </span>
+              </div>
+            </td>
             <td>{standardizeDate(item.created_date)}</td>
             <td>{standardizeDate(item.updated_date)}</td>
             <td>
@@ -141,7 +160,9 @@
     {/if}
   </div>
 {:else}
-  <div class="alert alert-danger">You do not have permission to view this page.</div>
+  <div class="alert alert-danger">
+    You do not have permission to view this page.
+  </div>
 {/if}
 
 <style>

@@ -8,4 +8,5 @@ pub struct FlashcardTypeDto {
     pub description: Option<String>,
     pub created_date: DateTime<Utc>,
     pub updated_date: DateTime<Utc>,
+    pub is_actived: bool,
 }

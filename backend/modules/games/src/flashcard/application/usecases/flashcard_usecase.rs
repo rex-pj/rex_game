@@ -80,6 +80,8 @@ impl<
                         created_date: f.created_date.with_timezone(&Utc),
                         updated_date: f.updated_date.with_timezone(&Utc),
                         image_id: f.file_id,
+                        is_actived: f.is_actived,
+                        flashcard_type_names: vec![],
                     })
                     .collect();
 
@@ -103,6 +105,8 @@ impl<
                 created_date: f.created_date.with_timezone(&Utc),
                 updated_date: f.updated_date.with_timezone(&Utc),
                 image_id: f.file_id,
+                is_actived: f.is_actived,
+                flashcard_type_names: vec![],
             }),
             None => None,
         }
@@ -343,5 +347,42 @@ impl<
                 ))
             }
         }
+    }
+
+    async fn toggle_flashcard_active(
+        &self,
+        id: i32,
+        updated_by_id: i32,
+    ) -> Result<bool, ApplicationError> {
+        let existing = match self._flashcard_repository.get_by_id(id).await {
+            Some(f) => f,
+            None => {
+                return Err(ApplicationError::not_found(
+                    "Flashcard not found",
+                    id.to_string(),
+                ))
+            }
+        };
+
+        let new_status = !existing.is_actived;
+        let updating = FlashcardModel {
+            id: existing.id,
+            name: existing.name,
+            description: existing.description,
+            sub_description: existing.sub_description,
+            file_id: existing.file_id,
+            created_by_id: existing.created_by_id,
+            updated_by_id,
+            created_date: existing.created_date,
+            updated_date: existing.updated_date,
+            is_actived: new_status,
+        };
+
+        self._flashcard_repository
+            .update(updating)
+            .await
+            .map_err(|_| ApplicationError::business_rule("Failed to toggle flashcard active status"))?;
+
+        Ok(new_status)
     }
 }

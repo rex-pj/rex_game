@@ -8,6 +8,8 @@ export interface Flashcard {
   sub_description?: string;
   image_id: number;
   flashcard_type_id?: number;
+  is_actived: boolean;
+  flashcard_type_names: string[];
   created_date: string;
   updated_date: string;
   image_url?: string;

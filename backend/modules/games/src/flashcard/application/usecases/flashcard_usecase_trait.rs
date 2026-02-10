@@ -31,4 +31,9 @@ pub trait FlashcardUseCaseTrait {
         &self,
         id: i32,
     ) -> impl Future<Output = Result<u64, ApplicationError>>;
+    fn toggle_flashcard_active(
+        &self,
+        id: i32,
+        updated_by_id: i32,
+    ) -> impl Future<Output = Result<bool, ApplicationError>>;
 }

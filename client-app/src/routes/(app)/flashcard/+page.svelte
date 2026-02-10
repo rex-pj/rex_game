@@ -3,6 +3,8 @@
   import PrimaryHeading from "../../../components/atoms/heading/PrimaryHeading.svelte";
   import FlashcardMatching from "../../../components/organisms/flashcards/FlashcardMatching.svelte";
   import FlashcardQuiz from "../../../components/organisms/flashcards/FlashcardQuiz.svelte";
+  import FlashcardSpeedMatch from "../../../components/organisms/flashcards/FlashcardSpeedMatch.svelte";
+  import FlashcardSpelling from "../../../components/organisms/flashcards/FlashcardSpelling.svelte";
 </script>
 
 <div class="flashcard-page">
@@ -41,16 +43,16 @@
         aria-labelledby="pills-spelling-tab"
         tabindex="0"
       >
-        Đánh Vần
+        <FlashcardSpelling></FlashcardSpelling>
       </div>
       <div
         class="tab-pane"
-        id="pills-alphabet"
+        id="pills-speed-match"
         role="tabpanel"
-        aria-labelledby="pills-alphabet-tab"
+        aria-labelledby="pills-speed-match-tab"
         tabindex="0"
       >
-        Alphabet
+        <FlashcardSpeedMatch></FlashcardSpeedMatch>
       </div>
     </div>
   </div>

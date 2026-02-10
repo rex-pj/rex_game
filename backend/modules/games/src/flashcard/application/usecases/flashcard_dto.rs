@@ -10,4 +10,7 @@ pub struct FlashcardDto {
     pub created_date: DateTime<Utc>,
     pub updated_date: DateTime<Utc>,
     pub image_id: i32,
+    pub is_actived: bool,
+    #[serde(default)]
+    pub flashcard_type_names: Vec<String>,
 }

@@ -150,6 +150,19 @@ export const deleteById = async (id: number) => {
     });
 };
 
+export const toggleActive = async (id: number) => {
+  try {
+    const newStatus = await flashcardTypeService.toggleActive(fetch, id);
+    items.update((currentItems) =>
+      currentItems.map((item) =>
+        item.id === id ? { ...item, is_actived: newStatus } : item
+      )
+    );
+  } catch (error) {
+    console.error("Failed to toggle flashcard type status:", error);
+  }
+};
+
 export const canUpdate = (currentUser: CurrentUser | undefined) => {
   return (
     (currentUser && accessService.isRootAdmin(currentUser)) ||

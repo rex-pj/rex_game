@@ -33,4 +33,9 @@ pub trait FlashcardTypeUseCaseTrait {
         &'a self,
         flashcard_id: i32,
     ) -> impl Future<Output = Option<Vec<FlashcardTypeDto>>>;
+    fn toggle_flashcard_type_active(
+        &self,
+        id: i32,
+        updated_by_id: i32,
+    ) -> impl Future<Output = Option<bool>>;
 }

@@ -14,12 +14,12 @@ use axum::{
     response::Response,
     Extension, Json,
 };
-use rex_game_shared::domain::models::PageListModel;
 use rex_game_games::{
-    FlashcardCreationDto, FlashcardDetailDto, FlashcardDto, FlashcardUpdationDto,
-    FlashcardTypeUseCaseTrait, FlashcardUseCaseTrait,
+    FlashcardCreationDto, FlashcardDetailDto, FlashcardDto, FlashcardTypeUseCaseTrait,
+    FlashcardUpdationDto, FlashcardUseCaseTrait,
 };
 use rex_game_identity::application::usecases::roles::*;
+use rex_game_shared::domain::models::PageListModel;
 use serde::Deserialize;
 use std::sync::Arc;
 use validator::{Validate, ValidationErrors};
@@ -38,12 +38,24 @@ impl FlashcardHandler {
     ) -> Result<Json<PageListModel<FlashcardDto>>, StatusCode> {
         let page = params.page.unwrap_or(1);
         let page_size = params.page_size.unwrap_or(10);
-        let flashcards = _state
+        let mut flashcards = _state
             .usecases
             .flashcard
             .get_paged_list(params.type_name, page, page_size)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        for item in flashcards.items.iter_mut() {
+            if let Some(types) = _state
+                .usecases
+                .flashcard_type
+                .get_flashcard_type_by_flashcard_id(item.id)
+                .await
+            {
+                item.flashcard_type_names = types.into_iter().map(|t| t.name).collect();
+            }
+        }
+
         return Ok(Json(flashcards));
     }
 
@@ -362,6 +374,37 @@ impl FlashcardHandler {
             })?;
 
         Ok(Json(deleted_numbers))
+    }
+
+    pub async fn toggle_flashcard_active(
+        State(_state): State<AppState>,
+        Extension(current_user): Extension<Arc<CurrentUser>>,
+        Path(id): Path<i32>,
+    ) -> HandlerResult<Json<bool>> {
+        if !current_user
+            .roles
+            .iter()
+            .any(|role| role == ROLE_ROOT_ADMIN)
+        {
+            return Err(HandlerError {
+                status: StatusCode::FORBIDDEN,
+                message: "You do not have permission to toggle flashcard status".to_string(),
+                ..Default::default()
+            });
+        }
+
+        let new_status = _state
+            .usecases
+            .flashcard
+            .toggle_flashcard_active(id, current_user.id)
+            .await
+            .map_err(|err| HandlerError {
+                status: StatusCode::INTERNAL_SERVER_ERROR,
+                message: format!("Failed to toggle flashcard status: {}", err),
+                ..Default::default()
+            })?;
+
+        Ok(Json(new_status))
     }
 }
 

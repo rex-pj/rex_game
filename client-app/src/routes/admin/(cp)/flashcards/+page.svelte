@@ -23,6 +23,7 @@
     canCreate,
     canUpdate,
     canDelete,
+    toggleActive,
   } from "./store";
   import Pagination from "../../../../components/molecules/pagination/pagination.svelte";
   import FlashcardUpdateModal from "./FlashcardUpdateModal.svelte";
@@ -57,7 +58,9 @@
       <div class="col">
         <!-- Add button -->
         {#if canCreate(data.adminUser)}
-          <button class="btn btn-primary mb-3" onclick={() => toggleCreationModal(true)}>Add</button
+          <button
+            class="btn btn-primary mb-3"
+            onclick={() => toggleCreationModal(true)}>Add</button
           >
         {/if}
       </div>
@@ -69,6 +72,8 @@
           <th>#</th>
           <th colspan="2">Name</th>
           <th>Description</th>
+          <th>Types</th>
+          <th>Status</th>
           <th>Created On</th>
           <th>Modified On</th>
           <th></th>
@@ -93,6 +98,28 @@
             <td>
               <p class="mb-1">{item.description}</p>
               <p class="mb-0">Sub: <i>{item.sub_description}</i></p>
+            </td>
+            <td>
+              {#if item.flashcard_type_names?.length}
+                {item.flashcard_type_names.join(", ")}
+              {:else}
+                <span class="text-muted">—</span>
+              {/if}
+            </td>
+            <td>
+              <div class="form-check form-switch">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  role="switch"
+                  checked={item.is_actived}
+                  onchange={() => toggleActive(item.id)}
+                  disabled={!canUpdate(data.adminUser)}
+                />
+                <span class="form-check-label">
+                  {item.is_actived ? "Active" : "Inactive"}
+                </span>
+              </div>
             </td>
             <td>{standardizeDate(item.created_date)}</td>
             <td>{standardizeDate(item.updated_date)}</td>
@@ -168,7 +195,9 @@
     {/if}
   </div>
 {:else}
-  <div class="alert alert-danger">You do not have permission to view this page.</div>
+  <div class="alert alert-danger">
+    You do not have permission to view this page.
+  </div>
 {/if}
 
 <style>

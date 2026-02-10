@@ -89,4 +89,15 @@ export class FlashcardApi extends BaseApi {
     }
     return await response.json();
   }
+
+  async toggleActive(
+    fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+    id: number
+  ): Promise<boolean> {
+    const response = await this.put(fetch, `${this.baseUrl}/${id}/toggle-active`, {}, { observe: true });
+    if (response.status !== 200) {
+      throw new Error("Failed to toggle flashcard status");
+    }
+    return await response.json();
+  }
 }

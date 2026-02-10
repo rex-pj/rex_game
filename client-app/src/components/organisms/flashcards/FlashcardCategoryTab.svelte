@@ -35,12 +35,12 @@
   <li class="nav-item" role="presentation">
     <span
       class="nav-link cloud-button"
-      id="pills-alphabet-tab"
+      id="pills-speed-match-tab"
       data-bs-toggle="pill"
-      data-bs-target="#pills-alphabet"
+      data-bs-target="#pills-speed-match"
       role="tab"
-      aria-controls="pills-alphabet"
-      aria-selected="false"><span>Chữ cái</span></span
+      aria-controls="pills-speed-match"
+      aria-selected="false"><span>Tốc độ</span></span
     >
   </li>
 </ul>

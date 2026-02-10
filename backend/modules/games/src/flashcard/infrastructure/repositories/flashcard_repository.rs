@@ -156,6 +156,7 @@ impl FlashcardRepositoryTrait for FlashcardRepository {
         flashcard.sub_description = Set(flashcard_req.sub_description);
         flashcard.file_id = Set(flashcard_req.file_id);
         flashcard.name = Set(flashcard_req.name);
+        flashcard.is_actived = Set(flashcard_req.is_actived);
 
         match flashcard.update(db).await {
             Ok(_) => Ok(true),

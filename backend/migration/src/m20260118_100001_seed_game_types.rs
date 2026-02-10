@@ -55,7 +55,7 @@ impl MigrationTrait for Migration {
                 "Spelling Game".into(),
                 "Spell the word shown in the flashcard image".into(),
                 "fa-solid fa-spell-check".into(),
-                false.into(),
+                true.into(),
                 now.into(),
                 now.into(),
             ])

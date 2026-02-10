@@ -182,6 +182,7 @@ impl FlashcardTypeRepositoryTrait for FlashcardTypeRepository {
         flashcard_type.updated_date = Set(Utc::now().fixed_offset());
         flashcard_type.description = Set(flashcard_type_req.description);
         flashcard_type.name = Set(flashcard_type_req.name);
+        flashcard_type.is_actived = Set(flashcard_type_req.is_actived);
 
         match FlashcardType::update(flashcard_type).exec(db).await {
             Ok(_) => Ok(true),

@@ -5,16 +5,16 @@ use axum::{
     Extension, Json,
 };
 use hyper::StatusCode;
-use rex_game_shared::domain::models::PageListModel;
 use rex_game_games::{
-    FlashcardTypeUseCaseTrait,
     flashcard::application::usecases::{
         flashcard_type_creation_dto::FlashcardTypeCreationDto,
         flashcard_type_dto::FlashcardTypeDto,
         flashcard_type_updation_dto::FlashcardTypeUpdationDto,
     },
+    FlashcardTypeUseCaseTrait,
 };
 use rex_game_identity::application::usecases::roles::*;
+use rex_game_shared::domain::models::PageListModel;
 use serde::Deserialize;
 use validator::{Validate, ValidationErrors};
 
@@ -267,6 +267,38 @@ impl FlashcardTypeHandler {
             }
         }
     }
-}
 
+    pub async fn toggle_flashcard_type_active(
+        State(_state): State<AppState>,
+        Extension(current_user): Extension<Arc<CurrentUser>>,
+        Path(id): Path<i32>,
+    ) -> HandlerResult<Json<bool>> {
+        if !current_user
+            .roles
+            .iter()
+            .any(|role| role == ROLE_ROOT_ADMIN)
+        {
+            return Err(HandlerError {
+                status: StatusCode::FORBIDDEN,
+                message: "You do not have permission to toggle flashcard type status".to_string(),
+                ..Default::default()
+            });
+        }
+
+        let new_status = _state
+            .usecases
+            .flashcard_type
+            .toggle_flashcard_type_active(id, current_user.id)
+            .await;
+
+        match new_status {
+            Some(status) => Ok(Json(status)),
+            None => Err(HandlerError {
+                status: StatusCode::INTERNAL_SERVER_ERROR,
+                message: "Failed to toggle flashcard type status".to_string(),
+                ..Default::default()
+            }),
+        }
+    }
+}
 pub struct FlashcardTypeHandler {}

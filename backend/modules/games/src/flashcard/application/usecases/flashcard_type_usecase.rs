@@ -50,6 +50,7 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
                         description: f.description,
                         created_date: f.created_date.with_timezone(&Utc),
                         updated_date: f.updated_date.with_timezone(&Utc),
+                        is_actived: f.is_actived,
                     })
                     .collect();
                 Ok(PageListModel {
@@ -70,6 +71,7 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
                 description: f.description,
                 created_date: f.created_date.with_timezone(&Utc),
                 updated_date: f.updated_date.with_timezone(&Utc),
+                is_actived: f.is_actived,
             }),
             Err(_) => None,
         }
@@ -93,6 +95,7 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
                         description: f.description,
                         created_date: f.created_date.with_timezone(&Utc),
                         updated_date: f.updated_date.with_timezone(&Utc),
+                        is_actived: f.is_actived,
                     })
                     .collect();
                 return Some(result);
@@ -135,6 +138,7 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
                     name: flashcard_type_req.name,
                     description: flashcard_type_req.description,
                     updated_by_id: flashcard_type_req.updated_by_id,
+                    is_actived: exist.is_actived,
                     ..Default::default()
                 };
                 let updated = self._flashcard_type_repository.update(updating).await;
@@ -151,6 +155,28 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
         let deleted = self._flashcard_type_repository.delete_by_id(id).await;
         match deleted {
             Ok(i) => Some(i),
+            Err(_) => None,
+        }
+    }
+
+    async fn toggle_flashcard_type_active(&self, id: i32, updated_by_id: i32) -> Option<bool> {
+        let existing = match self._flashcard_type_repository.get_by_id(id).await {
+            Ok(f) => f,
+            Err(_) => return None,
+        };
+
+        let new_status = !existing.is_actived;
+        let updating = FlashcardTypeModel {
+            id: existing.id,
+            name: existing.name,
+            description: existing.description,
+            updated_by_id,
+            is_actived: new_status,
+            ..Default::default()
+        };
+
+        match self._flashcard_type_repository.update(updating).await {
+            Ok(_) => Some(new_status),
             Err(_) => None,
         }
     }

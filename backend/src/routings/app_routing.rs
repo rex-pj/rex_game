@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
 use axum::{
-    routing::{delete, get, patch, post},
-    Router,
     middleware,
+    routing::{delete, get, patch, post, put},
+    Router,
 };
 
-use rex_game_shared::domain::enums::permission_codes::PermissionCodes;
 use rex_game_identity::roles::ROLE_ROOT_ADMIN;
+use rex_game_shared::domain::enums::permission_codes::PermissionCodes;
 use tower::ServiceBuilder;
 
 use crate::{
@@ -37,14 +37,23 @@ impl AppRouting {
             .route("/users/{id}", patch(UserHandler::update_user))
             // Scoring routes (authenticated)
             .route("/games/sessions", post(ScoringHandler::start_game_session))
-            .route("/games/sessions/complete", post(ScoringHandler::complete_game_session))
+            .route(
+                "/games/sessions/complete",
+                post(ScoringHandler::complete_game_session),
+            )
             .route("/games/history", get(ScoringHandler::get_game_history))
             .route("/games/best", get(ScoringHandler::get_best_games))
             .route("/games/progress", get(ScoringHandler::get_game_progress))
             .route("/games/progress", post(ScoringHandler::save_game_progress))
-            .route("/games/progress", delete(ScoringHandler::reset_game_progress))
+            .route(
+                "/games/progress",
+                delete(ScoringHandler::reset_game_progress),
+            )
             .route("/users/me/stats", get(ScoringHandler::get_my_stats))
-            .route("/users/me/achievements", get(ScoringHandler::get_my_achievements))
+            .route(
+                "/users/me/achievements",
+                get(ScoringHandler::get_my_achievements),
+            )
             .layer(ServiceBuilder::new().layer(AuthenticateLayer {
                 app_state: self.app_state.clone(),
             }))
@@ -104,7 +113,10 @@ impl AppRouting {
             .route("/game-types", get(ScoringHandler::get_game_types))
             .route("/leaderboard", get(ScoringHandler::get_leaderboard))
             .route("/achievements", get(ScoringHandler::get_achievements))
-            .route("/users/{user_id}/stats", get(ScoringHandler::get_user_stats))
+            .route(
+                "/users/{user_id}/stats",
+                get(ScoringHandler::get_user_stats),
+            )
             .route_layer(middleware::from_fn(move |req, next| {
                 let limiter = api_limiter.clone();
                 async move { limiter.middleware(req, next).await }
@@ -259,6 +271,13 @@ impl AppRouting {
                 }),
             )
             .route(
+                "/flashcards/{id}/toggle-active",
+                put(FlashcardHandler::toggle_flashcard_active).layer(AuthorizeByPermissionLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: vec![PermissionCodes::FlashcardUpdate.as_str().to_string()],
+                }),
+            )
+            .route(
                 "/flashcard-types",
                 post(FlashcardTypeHandler::create_flashcard_type).layer(
                     AuthorizeByPermissionLayer {
@@ -286,6 +305,17 @@ impl AppRouting {
                     AuthorizeByPermissionLayer {
                         app_state: self.app_state.clone(),
                         permissions: vec![PermissionCodes::FlashcardTypeDelete
+                            .as_str()
+                            .to_string()],
+                    },
+                ),
+            )
+            .route(
+                "/flashcard-types/{id}/toggle-active",
+                put(FlashcardTypeHandler::toggle_flashcard_type_active).layer(
+                    AuthorizeByPermissionLayer {
+                        app_state: self.app_state.clone(),
+                        permissions: vec![PermissionCodes::FlashcardTypeUpdate
                             .as_str()
                             .to_string()],
                     },
