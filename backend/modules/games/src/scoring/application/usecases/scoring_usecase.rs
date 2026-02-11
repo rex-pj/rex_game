@@ -4,10 +4,15 @@ use std::sync::Arc;
 
 use crate::scoring::domain::repositories::ScoringRepositoryTrait;
 
+use rex_game_shared::domain::models::page_list_model::PageListModel;
+
+use crate::scoring::domain::models::GameTypeModel;
+
 use super::scoring_dto::{
-    AchievementDto, CompleteGameSessionDto, GameCompleteResponseDto, GameProgressDto,
-    GameSessionDto, GameTypeDto, LeaderboardEntryDto, SaveGameProgressDto, StartGameSessionDto,
-    UserStatsDto,
+    AchievementCreationDto, AchievementDto, AchievementUpdationDto, AdminAchievementDto,
+    AdminGameSessionDto, AdminUserStatsDto, CompleteGameSessionDto, GameCompleteResponseDto,
+    GameProgressDto, GameSessionDto, GameTypeCreationDto, GameTypeDto, GameTypeUpdationDto,
+    LeaderboardEntryDto, SaveGameProgressDto, StartGameSessionDto, UserStatsDto,
 };
 use super::scoring_usecase_trait::ScoringUseCaseTrait;
 
@@ -19,6 +24,19 @@ pub struct ScoringUseCase {
 impl ScoringUseCase {
     pub fn new(repository: Arc<dyn ScoringRepositoryTrait>) -> Self {
         Self { repository }
+    }
+
+    fn map_game_type_dto(gt: GameTypeModel) -> GameTypeDto {
+        GameTypeDto {
+            id: gt.id,
+            code: gt.code,
+            name: gt.name,
+            description: gt.description,
+            icon: gt.icon,
+            is_actived: gt.is_actived,
+            created_date: gt.created_date,
+            updated_date: gt.updated_date,
+        }
     }
 
     async fn check_and_unlock_achievements(
@@ -89,13 +107,7 @@ impl ScoringUseCaseTrait for ScoringUseCase {
 
         Ok(game_types
             .into_iter()
-            .map(|gt| GameTypeDto {
-                id: gt.id,
-                code: gt.code,
-                name: gt.name,
-                description: gt.description,
-                icon: gt.icon,
-            })
+            .map(|gt| Self::map_game_type_dto(gt))
             .collect())
     }
 
@@ -466,5 +478,213 @@ impl ScoringUseCaseTrait for ScoringUseCase {
         self.repository
             .reset_game_progress(user_id, game_type.id)
             .await
+    }
+
+    // ---- Admin: Game Types ----
+
+    async fn admin_get_game_types(
+        &self,
+        name: Option<String>,
+        page: u64,
+        page_size: u64,
+    ) -> Result<PageListModel<GameTypeDto>, DbErr> {
+        let (items, total_count) = self.repository.get_game_types_paged(name, page, page_size).await?;
+        let list = items.into_iter().map(|gt| Self::map_game_type_dto(gt)).collect();
+        Ok(PageListModel { items: list, total_count })
+    }
+
+    async fn admin_get_game_type_by_id(&self, id: i32) -> Result<Option<GameTypeDto>, DbErr> {
+        let item = self.repository.get_game_type_by_id(id).await?;
+        Ok(item.map(|gt| Self::map_game_type_dto(gt)))
+    }
+
+    async fn admin_create_game_type(&self, dto: GameTypeCreationDto) -> Result<i32, DbErr> {
+        let model = GameTypeModel {
+            id: 0,
+            code: dto.code,
+            name: dto.name,
+            description: dto.description,
+            icon: dto.icon,
+            is_actived: true,
+            created_date: chrono::Utc::now(),
+            updated_date: chrono::Utc::now(),
+        };
+        self.repository.create_game_type(model).await
+    }
+
+    async fn admin_update_game_type(&self, id: i32, dto: GameTypeUpdationDto) -> Result<bool, DbErr> {
+        let existing = self.repository.get_game_type_by_id(id).await?;
+        match existing {
+            Some(mut model) => {
+                if let Some(code) = dto.code { model.code = code; }
+                if let Some(name) = dto.name { model.name = name; }
+                if dto.description.is_some() { model.description = dto.description; }
+                if dto.icon.is_some() { model.icon = dto.icon; }
+                self.repository.update_game_type(model).await
+            }
+            None => Ok(false),
+        }
+    }
+
+    async fn admin_delete_game_type(&self, id: i32) -> Result<u64, DbErr> {
+        self.repository.delete_game_type(id).await
+    }
+
+    async fn admin_toggle_game_type_active(&self, id: i32) -> Result<bool, DbErr> {
+        self.repository.toggle_game_type_active(id).await
+    }
+
+    // ---- Admin: Achievements ----
+
+    async fn admin_get_achievements(
+        &self,
+        name: Option<String>,
+        page: u64,
+        page_size: u64,
+    ) -> Result<PageListModel<AdminAchievementDto>, DbErr> {
+        let (items, total_count) = self.repository.get_achievements_paged(name, page, page_size).await?;
+        let list = items
+            .into_iter()
+            .map(|a| AdminAchievementDto {
+                id: a.id,
+                code: a.code,
+                name: a.name,
+                description: a.description,
+                icon: a.icon,
+                points: a.points,
+                category: a.category,
+                is_actived: a.is_actived,
+                created_date: a.created_date,
+                updated_date: a.updated_date,
+            })
+            .collect();
+        Ok(PageListModel { items: list, total_count })
+    }
+
+    async fn admin_get_achievement_by_id(&self, id: i32) -> Result<Option<AdminAchievementDto>, DbErr> {
+        let item = self.repository.get_achievement_by_id(id).await?;
+        Ok(item.map(|a| AdminAchievementDto {
+            id: a.id,
+            code: a.code,
+            name: a.name,
+            description: a.description,
+            icon: a.icon,
+            points: a.points,
+            category: a.category,
+            is_actived: a.is_actived,
+            created_date: a.created_date,
+            updated_date: a.updated_date,
+        }))
+    }
+
+    async fn admin_create_achievement(&self, dto: AchievementCreationDto) -> Result<i32, DbErr> {
+        use crate::scoring::domain::models::AchievementModel;
+        let model = AchievementModel {
+            id: 0,
+            code: dto.code,
+            name: dto.name,
+            description: dto.description,
+            icon: dto.icon,
+            points: dto.points,
+            category: dto.category,
+            is_actived: true,
+            created_date: chrono::Utc::now(),
+            updated_date: chrono::Utc::now(),
+        };
+        self.repository.create_achievement(model).await
+    }
+
+    async fn admin_update_achievement(&self, id: i32, dto: AchievementUpdationDto) -> Result<bool, DbErr> {
+        let existing = self.repository.get_achievement_by_id(id).await?;
+        match existing {
+            Some(mut model) => {
+                if let Some(code) = dto.code { model.code = code; }
+                if let Some(name) = dto.name { model.name = name; }
+                if dto.description.is_some() { model.description = dto.description; }
+                if dto.icon.is_some() { model.icon = dto.icon; }
+                if let Some(points) = dto.points { model.points = points; }
+                if dto.category.is_some() { model.category = dto.category; }
+                self.repository.update_achievement(model).await
+            }
+            None => Ok(false),
+        }
+    }
+
+    async fn admin_delete_achievement(&self, id: i32) -> Result<u64, DbErr> {
+        self.repository.delete_achievement(id).await
+    }
+
+    async fn admin_toggle_achievement_active(&self, id: i32) -> Result<bool, DbErr> {
+        self.repository.toggle_achievement_active(id).await
+    }
+
+    // ---- Admin: Game Sessions ----
+
+    async fn admin_get_game_sessions(
+        &self,
+        page: u64,
+        page_size: u64,
+    ) -> Result<PageListModel<AdminGameSessionDto>, DbErr> {
+        let (items, total_count) = self.repository.get_all_game_sessions_paged(page, page_size).await?;
+        let list = items
+            .into_iter()
+            .map(|s| AdminGameSessionDto {
+                id: s.id,
+                user_id: s.user_id,
+                user_name: s.user_name,
+                user_display_name: s.user_display_name,
+                game_type_code: s.game_type_code,
+                game_type_name: s.game_type_name,
+                score: s.score,
+                max_score: s.max_score,
+                accuracy: s.accuracy,
+                time_spent_seconds: s.time_spent_seconds,
+                cards_played: s.cards_played,
+                correct_answers: s.correct_answers,
+                wrong_answers: s.wrong_answers,
+                combo_max: s.combo_max,
+                started_at: s.started_at.to_rfc3339(),
+                completed_at: s.completed_at.map(|dt| dt.to_rfc3339()),
+                created_date: s.created_date.to_rfc3339(),
+            })
+            .collect();
+        Ok(PageListModel { items: list, total_count })
+    }
+
+    async fn admin_delete_game_session(&self, id: i32) -> Result<u64, DbErr> {
+        self.repository.delete_game_session(id).await
+    }
+
+    // ---- Admin: User Stats ----
+
+    async fn admin_get_user_stats(
+        &self,
+        page: u64,
+        page_size: u64,
+    ) -> Result<PageListModel<AdminUserStatsDto>, DbErr> {
+        let (items, total_count) = self.repository.get_all_user_stats_paged(page, page_size).await?;
+        let list = items
+            .into_iter()
+            .map(|s| AdminUserStatsDto {
+                id: s.id,
+                user_id: s.user_id,
+                user_name: s.user_name,
+                user_display_name: s.user_display_name,
+                total_score: s.total_score,
+                total_games_played: s.total_games_played,
+                total_time_played_seconds: s.total_time_played_seconds,
+                best_score: s.best_score,
+                best_combo: s.best_combo,
+                average_accuracy: s.average_accuracy,
+                current_streak: s.current_streak,
+                best_streak: s.best_streak,
+                last_played_at: s.last_played_at.map(|dt| dt.to_rfc3339()),
+            })
+            .collect();
+        Ok(PageListModel { items: list, total_count })
+    }
+
+    async fn admin_reset_user_stats(&self, user_id: i32) -> Result<bool, DbErr> {
+        self.repository.reset_user_stats(user_id).await
     }
 }

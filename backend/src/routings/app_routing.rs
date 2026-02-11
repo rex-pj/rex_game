@@ -14,9 +14,10 @@ use crate::{
     app_state::AppState,
     handlers::{
         authentication_handler::AuthenticationHandler, flashcard_handler::FlashcardHandler,
-        flashcard_type_handler::FlashcardTypeHandler, mail_template_handler::MailTemplateHandler,
-        permission_handler::PermissionHandler, role_handler::RoleHandler,
-        scoring_handler::ScoringHandler, setup_handler::SetupHandler, user_handler::UserHandler,
+        flashcard_type_handler::FlashcardTypeHandler, game_admin_handler::GameAdminHandler,
+        mail_template_handler::MailTemplateHandler, permission_handler::PermissionHandler,
+        role_handler::RoleHandler, scoring_handler::ScoringHandler,
+        setup_handler::SetupHandler, user_handler::UserHandler,
     },
     middlewares::{
         authenticate_middleware::AuthenticateLayer,
@@ -382,6 +383,124 @@ impl AppRouting {
                         permissions: vec![PermissionCodes::MailTemplateUpdate.as_str().to_string()],
                     },
                 ),
+            )
+            // Game Type Admin
+            .route(
+                "/admin/game-types",
+                get(GameAdminHandler::get_game_types).layer(AuthorizeByPermissionLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: vec![PermissionCodes::GameTypeRead.as_str().to_string()],
+                }),
+            )
+            .route(
+                "/admin/game-types/{id}",
+                get(GameAdminHandler::get_game_type_by_id).layer(AuthorizeByPermissionLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: vec![PermissionCodes::GameTypeRead.as_str().to_string()],
+                }),
+            )
+            .route(
+                "/admin/game-types",
+                post(GameAdminHandler::create_game_type).layer(AuthorizeByPermissionLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: vec![PermissionCodes::GameTypeCreate.as_str().to_string()],
+                }),
+            )
+            .route(
+                "/admin/game-types/{id}",
+                patch(GameAdminHandler::update_game_type).layer(AuthorizeByPermissionLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: vec![PermissionCodes::GameTypeUpdate.as_str().to_string()],
+                }),
+            )
+            .route(
+                "/admin/game-types/{id}",
+                delete(GameAdminHandler::delete_game_type).layer(AuthorizeByPermissionLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: vec![PermissionCodes::GameTypeDelete.as_str().to_string()],
+                }),
+            )
+            .route(
+                "/admin/game-types/{id}/toggle-active",
+                put(GameAdminHandler::toggle_game_type_active).layer(AuthorizeByPermissionLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: vec![PermissionCodes::GameTypeUpdate.as_str().to_string()],
+                }),
+            )
+            // Achievement Admin
+            .route(
+                "/admin/achievements",
+                get(GameAdminHandler::get_achievements).layer(AuthorizeByPermissionLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: vec![PermissionCodes::AchievementRead.as_str().to_string()],
+                }),
+            )
+            .route(
+                "/admin/achievements/{id}",
+                get(GameAdminHandler::get_achievement_by_id).layer(AuthorizeByPermissionLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: vec![PermissionCodes::AchievementRead.as_str().to_string()],
+                }),
+            )
+            .route(
+                "/admin/achievements",
+                post(GameAdminHandler::create_achievement).layer(AuthorizeByPermissionLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: vec![PermissionCodes::AchievementCreate.as_str().to_string()],
+                }),
+            )
+            .route(
+                "/admin/achievements/{id}",
+                patch(GameAdminHandler::update_achievement).layer(AuthorizeByPermissionLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: vec![PermissionCodes::AchievementUpdate.as_str().to_string()],
+                }),
+            )
+            .route(
+                "/admin/achievements/{id}",
+                delete(GameAdminHandler::delete_achievement).layer(AuthorizeByPermissionLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: vec![PermissionCodes::AchievementDelete.as_str().to_string()],
+                }),
+            )
+            .route(
+                "/admin/achievements/{id}/toggle-active",
+                put(GameAdminHandler::toggle_achievement_active).layer(
+                    AuthorizeByPermissionLayer {
+                        app_state: self.app_state.clone(),
+                        permissions: vec![PermissionCodes::AchievementUpdate.as_str().to_string()],
+                    },
+                ),
+            )
+            // Game Session Admin
+            .route(
+                "/admin/game-sessions",
+                get(GameAdminHandler::get_game_sessions).layer(AuthorizeByPermissionLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: vec![PermissionCodes::GameSessionRead.as_str().to_string()],
+                }),
+            )
+            .route(
+                "/admin/game-sessions/{id}",
+                delete(GameAdminHandler::delete_game_session).layer(AuthorizeByPermissionLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: vec![PermissionCodes::GameSessionDelete.as_str().to_string()],
+                }),
+            )
+            // User Stats Admin
+            .route(
+                "/admin/user-stats",
+                get(GameAdminHandler::get_user_stats_list).layer(AuthorizeByPermissionLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: vec![PermissionCodes::UserStatsRead.as_str().to_string()],
+                }),
+            )
+            .route(
+                "/admin/user-stats/{user_id}/reset",
+                put(GameAdminHandler::reset_user_stats).layer(AuthorizeByPermissionLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: vec![PermissionCodes::UserStatsUpdate.as_str().to_string()],
+                }),
             )
             .layer(ServiceBuilder::new().layer(AuthorizeByRoleLayer {
                 app_state: self.app_state.clone(),

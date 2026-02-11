@@ -49,6 +49,30 @@
       icon: "fa-solid fa-envelope-open-text",
       canRead: accessService.canReadAccesses(data.adminUser),
     },
+    {
+      name: "Game Types",
+      link: "/admin/game-types",
+      icon: "fa-solid fa-gamepad",
+      canRead: accessService.canReadGameTypes(data.adminUser),
+    },
+    {
+      name: "Achievements",
+      link: "/admin/achievements",
+      icon: "fa-solid fa-trophy",
+      canRead: accessService.canReadAchievements(data.adminUser),
+    },
+    {
+      name: "Game Sessions",
+      link: "/admin/game-sessions",
+      icon: "fa-solid fa-clock-rotate-left",
+      canRead: accessService.canReadGameSessions(data.adminUser),
+    },
+    {
+      name: "User Stats",
+      link: "/admin/user-stats",
+      icon: "fa-solid fa-chart-line",
+      canRead: accessService.canReadUserStats(data.adminUser),
+    },
   ];
 
   let currentPath = $derived(page.url.pathname);

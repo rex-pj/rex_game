@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 pub struct GameSessionModel {
     pub id: i32,
     pub user_id: i32,
+    pub user_name: Option<String>,
+    pub user_display_name: Option<String>,
     pub game_type_id: i32,
     pub game_type_code: Option<String>,
     pub game_type_name: Option<String>,
@@ -31,6 +33,8 @@ pub struct GameTypeModel {
     pub description: Option<String>,
     pub icon: Option<String>,
     pub is_actived: bool,
+    pub created_date: DateTime<Utc>,
+    pub updated_date: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -59,6 +63,9 @@ pub struct AchievementModel {
     pub icon: Option<String>,
     pub points: i32,
     pub category: Option<String>,
+    pub is_actived: bool,
+    pub created_date: DateTime<Utc>,
+    pub updated_date: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -17,7 +17,9 @@ pub use flashcard::infrastructure::repositories::{
 
 // Re-export scoring module items
 pub use scoring::{
-    AchievementDto, CompleteGameSessionDto, GameCompleteResponseDto, GameProgressDto,
-    GameSessionDto, GameTypeDto, LeaderboardEntryDto, SaveGameProgressDto, ScoringRepository,
-    ScoringRepositoryTrait, ScoringUseCase, ScoringUseCaseTrait, StartGameSessionDto, UserStatsDto,
+    AchievementCreationDto, AchievementDto, AchievementUpdationDto, AdminAchievementDto,
+    AdminGameSessionDto, AdminUserStatsDto, CompleteGameSessionDto, GameCompleteResponseDto,
+    GameProgressDto, GameSessionDto, GameTypeCreationDto, GameTypeDto, GameTypeUpdationDto,
+    LeaderboardEntryDto, SaveGameProgressDto, ScoringRepository, ScoringRepositoryTrait,
+    ScoringUseCase, ScoringUseCaseTrait, StartGameSessionDto, UserStatsDto,
 };

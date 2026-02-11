@@ -87,4 +87,46 @@ pub trait ScoringRepositoryTrait: Send + Sync {
     ) -> Result<GameProgressModel, DbErr>;
 
     async fn reset_game_progress(&self, user_id: i32, game_type_id: i32) -> Result<(), DbErr>;
+
+    // Admin: Game Types
+    async fn get_game_types_paged(
+        &self,
+        name: Option<String>,
+        page: u64,
+        page_size: u64,
+    ) -> Result<(Vec<GameTypeModel>, u64), DbErr>;
+    async fn get_game_type_by_id(&self, id: i32) -> Result<Option<GameTypeModel>, DbErr>;
+    async fn create_game_type(&self, model: GameTypeModel) -> Result<i32, DbErr>;
+    async fn update_game_type(&self, model: GameTypeModel) -> Result<bool, DbErr>;
+    async fn delete_game_type(&self, id: i32) -> Result<u64, DbErr>;
+    async fn toggle_game_type_active(&self, id: i32) -> Result<bool, DbErr>;
+
+    // Admin: Achievements
+    async fn get_achievements_paged(
+        &self,
+        name: Option<String>,
+        page: u64,
+        page_size: u64,
+    ) -> Result<(Vec<AchievementModel>, u64), DbErr>;
+    async fn get_achievement_by_id(&self, id: i32) -> Result<Option<AchievementModel>, DbErr>;
+    async fn create_achievement(&self, model: AchievementModel) -> Result<i32, DbErr>;
+    async fn update_achievement(&self, model: AchievementModel) -> Result<bool, DbErr>;
+    async fn delete_achievement(&self, id: i32) -> Result<u64, DbErr>;
+    async fn toggle_achievement_active(&self, id: i32) -> Result<bool, DbErr>;
+
+    // Admin: Game Sessions
+    async fn get_all_game_sessions_paged(
+        &self,
+        page: u64,
+        page_size: u64,
+    ) -> Result<(Vec<GameSessionModel>, u64), DbErr>;
+    async fn delete_game_session(&self, id: i32) -> Result<u64, DbErr>;
+
+    // Admin: User Stats
+    async fn get_all_user_stats_paged(
+        &self,
+        page: u64,
+        page_size: u64,
+    ) -> Result<(Vec<UserStatsModel>, u64), DbErr>;
+    async fn reset_user_stats(&self, user_id: i32) -> Result<bool, DbErr>;
 }

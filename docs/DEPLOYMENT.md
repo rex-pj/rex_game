@@ -10,7 +10,7 @@ This guide walks you through deploying the Rex Game application to Google Comput
 4. [Part 2: Server Setup](#part-2-server-setup)
 5. [Part 3: Email Service Configuration](#part-3-email-service-configuration)
 6. [Part 4: Production Configuration](#part-4-production-configuration)
-7. [Part 5: CI/CD with GitHub Actions](#part-5-cicd-with-github-actions) *(includes passwordless sudo setup)*
+7. [Part 5: CI/CD with GitHub Actions](#part-5-cicd-with-github-actions) _(includes passwordless sudo setup)_
 8. [Part 6: Monitoring and Maintenance](#part-6-monitoring-and-maintenance)
 9. [Troubleshooting](#troubleshooting)
 10. [Cost Estimation](#cost-estimation)
@@ -44,16 +44,16 @@ This guide walks you through deploying the Rex Game application to Google Comput
 
 ### Technology Stack
 
-| Component | Technology |
-|-----------|------------|
-| Frontend | SvelteKit 2.x with Svelte 5 |
-| Backend | Rust with Axum framework |
-| Database | PostgreSQL 15 |
-| ORM | SeaORM |
-| Web Server | Nginx (reverse proxy) |
-| SSL | Let's Encrypt (Certbot) |
-| CI/CD | GitHub Actions |
-| Email | Resend |
+| Component  | Technology                  |
+| ---------- | --------------------------- |
+| Frontend   | SvelteKit 2.x with Svelte 5 |
+| Backend    | Rust with Axum framework    |
+| Database   | PostgreSQL 15               |
+| ORM        | SeaORM                      |
+| Web Server | Nginx (reverse proxy)       |
+| SSL        | Let's Encrypt (Certbot)     |
+| CI/CD      | GitHub Actions              |
+| Email      | Resend                      |
 
 ---
 
@@ -78,14 +78,14 @@ Before starting, ensure you have:
 
 **Recommended Configuration (Free Tier Eligible):**
 
-| Setting | Value |
-|---------|-------|
-| Name | `rex-game-server` |
-| Region | `us-central1` (or `us-east1`, `us-west1`) |
-| Zone | `us-central1-a` |
-| Machine type | `e2-micro` (Free tier) |
-| Boot disk | Ubuntu 22.04 LTS, 30GB SSD |
-| Firewall | ✅ Allow HTTP, ✅ Allow HTTPS |
+| Setting      | Value                                     |
+| ------------ | ----------------------------------------- |
+| Name         | `rex-game-server`                         |
+| Region       | `us-central1` (or `us-east1`, `us-west1`) |
+| Zone         | `us-central1-a`                           |
+| Machine type | `e2-micro` (Free tier)                    |
+| Boot disk    | Ubuntu 22.04 LTS, 30GB SSD                |
+| Firewall     | ✅ Allow HTTP, ✅ Allow HTTPS             |
 
 ### 1.2 Configure Firewall Rules
 
@@ -93,21 +93,21 @@ Navigate to **VPC Network** > **Firewall** > **Create Firewall Rule**
 
 **Rule 1: Allow HTTP/HTTPS (required for SSL certificate)**
 
-| Setting | Value |
-|---------|-------|
-| Name | `allow-http-https` |
-| Targets | All instances in the network |
-| Source IP ranges | `0.0.0.0/0` |
-| Protocols and ports | TCP: `80, 443` |
+| Setting             | Value                        |
+| ------------------- | ---------------------------- |
+| Name                | `allow-http-https`           |
+| Targets             | All instances in the network |
+| Source IP ranges    | `0.0.0.0/0`                  |
+| Protocols and ports | TCP: `80, 443`               |
 
 **Rule 2: Allow Backend API**
 
-| Setting | Value |
-|---------|-------|
-| Name | `allow-backend-api` |
-| Targets | All instances in the network |
-| Source IP ranges | `0.0.0.0/0` |
-| Protocols and ports | TCP: `8080` |
+| Setting             | Value                        |
+| ------------------- | ---------------------------- |
+| Name                | `allow-backend-api`          |
+| Targets             | All instances in the network |
+| Source IP ranges    | `0.0.0.0/0`                  |
+| Protocols and ports | TCP: `8080`                  |
 
 ### 1.3 Reserve Static IP (Optional but Recommended)
 
@@ -289,8 +289,8 @@ DATABASE_URL=postgres://rex_user:your_secure_password@localhost:5432/rex_game_db
 
 # JWT Configuration
 JWT_CLIENT_SECRET=your-super-secure-jwt-secret-minimum-32-characters-long
-JWT_EXPIRATION=3600
-JWT_REFRESH_EXPIRATION=604800
+JWT_EXPIRATION=3600000
+JWT_REFRESH_EXPIRATION=604800000
 
 # CORS (replace with your actual domain)
 CORS_ALLOW_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
@@ -414,6 +414,7 @@ sudo systemctl reload nginx
 ### 4.4 SSL Certificate with Let's Encrypt
 
 **Note for Cloudflare users:** Before running Certbot, temporarily disable **Always Use HTTPS** on Cloudflare:
+
 1. Go to **Cloudflare Dashboard** > domain > **SSL/TLS** > **Edge Certificates**
 2. Find **Always Use HTTPS** > turn **OFF**
 
@@ -434,6 +435,7 @@ sudo systemctl enable certbot.timer
 ```
 
 **After Certbot succeeds:**
+
 1. Re-enable **Always Use HTTPS** on Cloudflare
 2. Go to **SSL/TLS** > **Overview** > set mode to **Full (Strict)**
 
@@ -558,11 +560,11 @@ Go to your GitHub repository:
 
 Add the following secrets:
 
-| Secret Name | Description | Example |
-|-------------|-------------|---------|
+| Secret Name       | Description                       | Example                                  |
+| ----------------- | --------------------------------- | ---------------------------------------- |
 | `SSH_PRIVATE_KEY` | Content of `~/.ssh/github_deploy` | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
-| `SSH_HOST` | Server IP or hostname | `34.123.45.67` or `yourdomain.com` |
-| `SSH_USER` | SSH username | `your_username` |
+| `SSH_HOST`        | Server IP or hostname             | `34.123.45.67` or `yourdomain.com`       |
+| `SSH_USER`        | SSH username                      | `your_username`                          |
 
 ### 5.3 Configure Passwordless Sudo for Deploy User
 
@@ -611,6 +613,7 @@ The workflow file is already created at `.github/workflows/deploy.yml`. It inclu
 ### 5.5 Trigger Deployment
 
 Deployment is triggered automatically when:
+
 - Code is pushed to `main` or `master` branch
 - Manual trigger via **Actions** > **Deploy to Production** > **Run workflow**
 
@@ -823,24 +826,26 @@ sudo -u postgres psql -c "ALTER USER rex_user WITH PASSWORD 'new_password';"
 
 ### Monthly Costs (USD)
 
-| Item | Free Tier | After Free Tier |
-|------|-----------|-----------------|
-| Compute Engine (e2-micro) | $0 (720 hrs/month) | ~$6.11 |
-| Static IP | $0 (when attached) | ~$2.88 (when not attached) |
-| Egress (first 1GB) | Free | $0.12/GB |
-| PostgreSQL (local) | $0 | $0 |
-| Disk (30GB SSD) | Free (up to 30GB) | ~$1.20 |
-| Email (Resend) | $0 (3k emails/month) | $20 (50k/month) |
-| **Total** | **$0** | **~$10-15** |
+| Item                      | Free Tier            | After Free Tier            |
+| ------------------------- | -------------------- | -------------------------- |
+| Compute Engine (e2-micro) | $0 (720 hrs/month)   | ~$6.11                     |
+| Static IP                 | $0 (when attached)   | ~$2.88 (when not attached) |
+| Egress (first 1GB)        | Free                 | $0.12/GB                   |
+| PostgreSQL (local)        | $0                   | $0                         |
+| Disk (30GB SSD)           | Free (up to 30GB)    | ~$1.20                     |
+| Email (Resend)            | $0 (3k emails/month) | $20 (50k/month)            |
+| **Total**                 | **$0**               | **~$10-15**                |
 
 ### Free Tier Eligibility
 
 Google Cloud offers:
+
 - 1 `e2-micro` instance per month (in select regions)
 - 30 GB standard persistent disk
 - 1 GB network egress
 
 To stay within free tier:
+
 - Use `e2-micro` machine type
 - Stay in `us-central1`, `us-east1`, or `us-west1`
 - Keep disk under 30GB
@@ -874,33 +879,34 @@ sudo systemctl restart postgresql
 
 ### Useful Paths
 
-| Path | Description |
-|------|-------------|
-| `/var/www/rex-game/backend/` | Backend application |
-| `/var/www/rex-game/client-app/` | Frontend application |
-| `/var/www/rex-game/uploads/` | User uploads |
-| `/var/www/rex-game/backend/environments/.env.prod` | Production config |
-| `/etc/nginx/sites-available/rex-game` | Nginx config |
-| `/etc/systemd/system/rex-*.service` | Systemd services |
+| Path                                               | Description          |
+| -------------------------------------------------- | -------------------- |
+| `/var/www/rex-game/backend/`                       | Backend application  |
+| `/var/www/rex-game/client-app/`                    | Frontend application |
+| `/var/www/rex-game/uploads/`                       | User uploads         |
+| `/var/www/rex-game/backend/environments/.env.prod` | Production config    |
+| `/etc/nginx/sites-available/rex-game`              | Nginx config         |
+| `/etc/systemd/system/rex-*.service`                | Systemd services     |
 
 ### Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `APP_ENV` | Environment name (`dev`, `prod`) |
-| `DATABASE_URL` | PostgreSQL connection string |
-| `JWT_CLIENT_SECRET` | Secret for JWT signing |
-| `EMAIL_PROVIDER` | Email provider (`resend`) |
-| `CORS_ALLOW_ORIGINS` | Allowed origins for CORS |
+| Variable             | Description                      |
+| -------------------- | -------------------------------- |
+| `APP_ENV`            | Environment name (`dev`, `prod`) |
+| `DATABASE_URL`       | PostgreSQL connection string     |
+| `JWT_CLIENT_SECRET`  | Secret for JWT signing           |
+| `EMAIL_PROVIDER`     | Email provider (`resend`)        |
+| `CORS_ALLOW_ORIGINS` | Allowed origins for CORS         |
 
 ---
 
 ## Support
 
 For issues or questions:
+
 - Open an issue on the [GitHub repository](https://github.com/rex-pj/rex_game/issues)
 - Check the [troubleshooting section](#troubleshooting)
 
 ---
 
-*Last updated: February 2026*
+_Last updated: February 2026_

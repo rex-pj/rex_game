@@ -2,8 +2,8 @@ use async_trait::async_trait;
 use chrono::Utc;
 use rust_decimal::Decimal;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
-    PaginatorTrait, QuerySelect, Set,
+    ActiveModelTrait, ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter,
+    QueryOrder, PaginatorTrait, QuerySelect, Set,
 };
 use std::sync::Arc;
 
@@ -46,6 +46,8 @@ impl ScoringRepositoryTrait for ScoringRepository {
                 description: gt.description,
                 icon: gt.icon,
                 is_actived: gt.is_actived,
+                created_date: gt.created_date.with_timezone(&Utc),
+                updated_date: gt.updated_date.with_timezone(&Utc),
             })
             .collect())
     }
@@ -63,6 +65,8 @@ impl ScoringRepositoryTrait for ScoringRepository {
             description: gt.description,
             icon: gt.icon,
             is_actived: gt.is_actived,
+            created_date: gt.created_date.with_timezone(&Utc),
+            updated_date: gt.updated_date.with_timezone(&Utc),
         }))
     }
 
@@ -158,6 +162,8 @@ impl ScoringRepositoryTrait for ScoringRepository {
             .map(|(session, game_type)| GameSessionModel {
                 id: session.id,
                 user_id: session.user_id,
+                user_name: None,
+                user_display_name: None,
                 game_type_id: session.game_type_id,
                 game_type_code: game_type.as_ref().map(|gt| gt.code.clone()),
                 game_type_name: game_type.map(|gt| gt.name),
@@ -203,6 +209,8 @@ impl ScoringRepositoryTrait for ScoringRepository {
             .map(|(session, game_type)| GameSessionModel {
                 id: session.id,
                 user_id: session.user_id,
+                user_name: None,
+                user_display_name: None,
                 game_type_id: session.game_type_id,
                 game_type_code: game_type.as_ref().map(|gt| gt.code.clone()),
                 game_type_name: game_type.map(|gt| gt.name),
@@ -416,6 +424,9 @@ impl ScoringRepositoryTrait for ScoringRepository {
                 icon: a.icon,
                 points: a.points,
                 category: a.category,
+                is_actived: a.is_actived,
+                created_date: a.created_date.with_timezone(&Utc),
+                updated_date: a.updated_date.with_timezone(&Utc),
             })
             .collect())
     }
@@ -444,6 +455,9 @@ impl ScoringRepositoryTrait for ScoringRepository {
                         icon: a.icon,
                         points: a.points,
                         category: a.category,
+                        is_actived: a.is_actived,
+                        created_date: a.created_date.with_timezone(&Utc),
+                        updated_date: a.updated_date.with_timezone(&Utc),
                     },
                     unlocked_at: ua.unlocked_at.with_timezone(&Utc),
                 })
@@ -614,5 +628,399 @@ impl ScoringRepositoryTrait for ScoringRepository {
         }
 
         Ok(())
+    }
+
+    // ---- Admin: Game Types ----
+
+    async fn get_game_types_paged(
+        &self,
+        name: Option<String>,
+        page: u64,
+        page_size: u64,
+    ) -> Result<(Vec<GameTypeModel>, u64), sea_orm::DbErr> {
+        let mut query = game_type::Entity::find();
+
+        if let Some(n) = name {
+            if !n.is_empty() {
+                query = query.filter(
+                    Condition::any().add(game_type::Column::Name.contains(&n)),
+                );
+            }
+        }
+
+        let total_count = query.clone().count(self.db.as_ref()).await?;
+
+        let items = query
+            .order_by_desc(game_type::Column::UpdatedDate)
+            .paginate(self.db.as_ref(), page_size)
+            .fetch_page(page - 1)
+            .await?;
+
+        let list = items
+            .into_iter()
+            .map(|gt| GameTypeModel {
+                id: gt.id,
+                code: gt.code,
+                name: gt.name,
+                description: gt.description,
+                icon: gt.icon,
+                is_actived: gt.is_actived,
+                created_date: gt.created_date.with_timezone(&Utc),
+                updated_date: gt.updated_date.with_timezone(&Utc),
+            })
+            .collect();
+
+        Ok((list, total_count))
+    }
+
+    async fn get_game_type_by_id(&self, id: i32) -> Result<Option<GameTypeModel>, sea_orm::DbErr> {
+        let item = game_type::Entity::find_by_id(id)
+            .one(self.db.as_ref())
+            .await?;
+
+        Ok(item.map(|gt| GameTypeModel {
+            id: gt.id,
+            code: gt.code,
+            name: gt.name,
+            description: gt.description,
+            icon: gt.icon,
+            is_actived: gt.is_actived,
+            created_date: gt.created_date.with_timezone(&Utc),
+            updated_date: gt.updated_date.with_timezone(&Utc),
+        }))
+    }
+
+    async fn create_game_type(&self, model: GameTypeModel) -> Result<i32, sea_orm::DbErr> {
+        let now = Utc::now().fixed_offset();
+        let active = game_type::ActiveModel {
+            code: Set(model.code),
+            name: Set(model.name),
+            description: Set(model.description),
+            icon: Set(model.icon),
+            is_actived: Set(true),
+            created_date: Set(now),
+            updated_date: Set(now),
+            ..Default::default()
+        };
+        let result = active.insert(self.db.as_ref()).await?;
+        Ok(result.id)
+    }
+
+    async fn update_game_type(&self, model: GameTypeModel) -> Result<bool, sea_orm::DbErr> {
+        let existing = game_type::Entity::find_by_id(model.id)
+            .one(self.db.as_ref())
+            .await?;
+
+        if let Some(item) = existing {
+            let now = Utc::now().fixed_offset();
+            let mut active: game_type::ActiveModel = item.into();
+            active.code = Set(model.code);
+            active.name = Set(model.name);
+            active.description = Set(model.description);
+            active.icon = Set(model.icon);
+            active.updated_date = Set(now);
+            active.update(self.db.as_ref()).await?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    async fn delete_game_type(&self, id: i32) -> Result<u64, sea_orm::DbErr> {
+        let result = game_type::Entity::delete_by_id(id)
+            .exec(self.db.as_ref())
+            .await?;
+        Ok(result.rows_affected)
+    }
+
+    async fn toggle_game_type_active(&self, id: i32) -> Result<bool, sea_orm::DbErr> {
+        let existing = game_type::Entity::find_by_id(id)
+            .one(self.db.as_ref())
+            .await?;
+
+        if let Some(item) = existing {
+            let now = Utc::now().fixed_offset();
+            let new_status = !item.is_actived;
+            let mut active: game_type::ActiveModel = item.into();
+            active.is_actived = Set(new_status);
+            active.updated_date = Set(now);
+            active.update(self.db.as_ref()).await?;
+            Ok(new_status)
+        } else {
+            Err(sea_orm::DbErr::RecordNotFound("Game type not found".to_string()))
+        }
+    }
+
+    // ---- Admin: Achievements ----
+
+    async fn get_achievements_paged(
+        &self,
+        name: Option<String>,
+        page: u64,
+        page_size: u64,
+    ) -> Result<(Vec<AchievementModel>, u64), sea_orm::DbErr> {
+        let mut query = achievement::Entity::find();
+
+        if let Some(n) = name {
+            if !n.is_empty() {
+                query = query.filter(
+                    Condition::any().add(achievement::Column::Name.contains(&n)),
+                );
+            }
+        }
+
+        let total_count = query.clone().count(self.db.as_ref()).await?;
+
+        let items = query
+            .order_by_desc(achievement::Column::UpdatedDate)
+            .paginate(self.db.as_ref(), page_size)
+            .fetch_page(page - 1)
+            .await?;
+
+        let list = items
+            .into_iter()
+            .map(|a| AchievementModel {
+                id: a.id,
+                code: a.code,
+                name: a.name,
+                description: a.description,
+                icon: a.icon,
+                points: a.points,
+                category: a.category,
+                is_actived: a.is_actived,
+                created_date: a.created_date.with_timezone(&Utc),
+                updated_date: a.updated_date.with_timezone(&Utc),
+            })
+            .collect();
+
+        Ok((list, total_count))
+    }
+
+    async fn get_achievement_by_id(&self, id: i32) -> Result<Option<AchievementModel>, sea_orm::DbErr> {
+        let item = achievement::Entity::find_by_id(id)
+            .one(self.db.as_ref())
+            .await?;
+
+        Ok(item.map(|a| AchievementModel {
+            id: a.id,
+            code: a.code,
+            name: a.name,
+            description: a.description,
+            icon: a.icon,
+            points: a.points,
+            category: a.category,
+            is_actived: a.is_actived,
+            created_date: a.created_date.with_timezone(&Utc),
+            updated_date: a.updated_date.with_timezone(&Utc),
+        }))
+    }
+
+    async fn create_achievement(&self, model: AchievementModel) -> Result<i32, sea_orm::DbErr> {
+        let now = Utc::now().fixed_offset();
+        let active = achievement::ActiveModel {
+            code: Set(model.code),
+            name: Set(model.name),
+            description: Set(model.description),
+            icon: Set(model.icon),
+            points: Set(model.points),
+            category: Set(model.category),
+            is_actived: Set(true),
+            created_date: Set(now),
+            updated_date: Set(now),
+            ..Default::default()
+        };
+        let result = active.insert(self.db.as_ref()).await?;
+        Ok(result.id)
+    }
+
+    async fn update_achievement(&self, model: AchievementModel) -> Result<bool, sea_orm::DbErr> {
+        let existing = achievement::Entity::find_by_id(model.id)
+            .one(self.db.as_ref())
+            .await?;
+
+        if let Some(item) = existing {
+            let now = Utc::now().fixed_offset();
+            let mut active: achievement::ActiveModel = item.into();
+            active.code = Set(model.code);
+            active.name = Set(model.name);
+            active.description = Set(model.description);
+            active.icon = Set(model.icon);
+            active.points = Set(model.points);
+            active.category = Set(model.category);
+            active.updated_date = Set(now);
+            active.update(self.db.as_ref()).await?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    async fn delete_achievement(&self, id: i32) -> Result<u64, sea_orm::DbErr> {
+        let result = achievement::Entity::delete_by_id(id)
+            .exec(self.db.as_ref())
+            .await?;
+        Ok(result.rows_affected)
+    }
+
+    async fn toggle_achievement_active(&self, id: i32) -> Result<bool, sea_orm::DbErr> {
+        let existing = achievement::Entity::find_by_id(id)
+            .one(self.db.as_ref())
+            .await?;
+
+        if let Some(item) = existing {
+            let now = Utc::now().fixed_offset();
+            let new_status = !item.is_actived;
+            let mut active: achievement::ActiveModel = item.into();
+            active.is_actived = Set(new_status);
+            active.updated_date = Set(now);
+            active.update(self.db.as_ref()).await?;
+            Ok(new_status)
+        } else {
+            Err(sea_orm::DbErr::RecordNotFound("Achievement not found".to_string()))
+        }
+    }
+
+    // ---- Admin: Game Sessions ----
+
+    async fn get_all_game_sessions_paged(
+        &self,
+        page: u64,
+        page_size: u64,
+    ) -> Result<(Vec<GameSessionModel>, u64), sea_orm::DbErr> {
+        let total_count = game_session::Entity::find()
+            .count(self.db.as_ref())
+            .await?;
+
+        let offset = (page - 1) * page_size;
+        let sessions = game_session::Entity::find()
+            .order_by_desc(game_session::Column::CreatedDate)
+            .offset(offset)
+            .limit(page_size)
+            .find_also_related(game_type::Entity)
+            .all(self.db.as_ref())
+            .await?;
+
+        // Collect user IDs to fetch user info
+        let user_ids: Vec<i32> = sessions.iter().map(|(s, _)| s.user_id).collect();
+        let users = user::Entity::find()
+            .filter(user::Column::Id.is_in(user_ids))
+            .all(self.db.as_ref())
+            .await?;
+        let user_map: std::collections::HashMap<i32, user::Model> =
+            users.into_iter().map(|u| (u.id, u)).collect();
+
+        let list = sessions
+            .into_iter()
+            .map(|(session, game_type)| {
+                let u = user_map.get(&session.user_id);
+                GameSessionModel {
+                    id: session.id,
+                    user_id: session.user_id,
+                    user_name: u.map(|u| u.name.clone()),
+                    user_display_name: u.and_then(|u| u.display_name.clone()),
+                    game_type_id: session.game_type_id,
+                    game_type_code: game_type.as_ref().map(|gt| gt.code.clone()),
+                    game_type_name: game_type.map(|gt| gt.name),
+                    flashcard_type_id: session.flashcard_type_id,
+                    score: session.score,
+                    max_score: session.max_score,
+                    accuracy: session.accuracy,
+                    time_spent_seconds: session.time_spent_seconds,
+                    cards_played: session.cards_played,
+                    correct_answers: session.correct_answers,
+                    wrong_answers: session.wrong_answers,
+                    combo_max: session.combo_max,
+                    started_at: session.started_at.with_timezone(&Utc),
+                    completed_at: session.completed_at.map(|dt| dt.with_timezone(&Utc)),
+                    created_date: session.created_date.with_timezone(&Utc),
+                }
+            })
+            .collect();
+
+        Ok((list, total_count))
+    }
+
+    async fn delete_game_session(&self, id: i32) -> Result<u64, sea_orm::DbErr> {
+        let result = game_session::Entity::delete_by_id(id)
+            .exec(self.db.as_ref())
+            .await?;
+        Ok(result.rows_affected)
+    }
+
+    // ---- Admin: User Stats ----
+
+    async fn get_all_user_stats_paged(
+        &self,
+        page: u64,
+        page_size: u64,
+    ) -> Result<(Vec<UserStatsModel>, u64), sea_orm::DbErr> {
+        let total_count = user_stats::Entity::find()
+            .count(self.db.as_ref())
+            .await?;
+
+        let items = user_stats::Entity::find()
+            .order_by_desc(user_stats::Column::TotalScore)
+            .paginate(self.db.as_ref(), page_size)
+            .fetch_page(page - 1)
+            .await?;
+
+        // Fetch related users
+        let user_ids: Vec<i32> = items.iter().map(|s| s.user_id).collect();
+        let users = user::Entity::find()
+            .filter(user::Column::Id.is_in(user_ids))
+            .all(self.db.as_ref())
+            .await?;
+        let user_map: std::collections::HashMap<i32, user::Model> =
+            users.into_iter().map(|u| (u.id, u)).collect();
+
+        let list = items
+            .into_iter()
+            .map(|stats| {
+                let u = user_map.get(&stats.user_id);
+                UserStatsModel {
+                    id: stats.id,
+                    user_id: stats.user_id,
+                    user_name: u.map(|u| u.name.clone()),
+                    user_display_name: u.and_then(|u| u.display_name.clone()),
+                    total_score: stats.total_score,
+                    total_games_played: stats.total_games_played,
+                    total_time_played_seconds: stats.total_time_played_seconds,
+                    best_score: stats.best_score,
+                    best_combo: stats.best_combo,
+                    average_accuracy: stats.average_accuracy,
+                    current_streak: stats.current_streak,
+                    best_streak: stats.best_streak,
+                    last_played_at: stats.last_played_at.map(|dt| dt.with_timezone(&Utc)),
+                }
+            })
+            .collect();
+
+        Ok((list, total_count))
+    }
+
+    async fn reset_user_stats(&self, user_id: i32) -> Result<bool, sea_orm::DbErr> {
+        let existing = user_stats::Entity::find()
+            .filter(user_stats::Column::UserId.eq(user_id))
+            .one(self.db.as_ref())
+            .await?;
+
+        if let Some(stats) = existing {
+            let now = Utc::now().fixed_offset();
+            let mut active: user_stats::ActiveModel = stats.into();
+            active.total_score = Set(0);
+            active.total_games_played = Set(0);
+            active.total_time_played_seconds = Set(0);
+            active.best_score = Set(0);
+            active.best_combo = Set(0);
+            active.average_accuracy = Set(Decimal::ZERO);
+            active.current_streak = Set(0);
+            active.best_streak = Set(0);
+            active.last_played_at = Set(None);
+            active.updated_date = Set(now);
+            active.update(self.db.as_ref()).await?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 }

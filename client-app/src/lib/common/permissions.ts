@@ -48,4 +48,20 @@ export enum PermissionCodes {
   MailTemplateCreate = "mail_template:create",
   MailTemplateDelete = "mail_template:delete",
   MailTemplateUpdate = "mail_template:update",
+
+  GameTypeRead = "game_type:read",
+  GameTypeCreate = "game_type:create",
+  GameTypeDelete = "game_type:delete",
+  GameTypeUpdate = "game_type:update",
+
+  AchievementRead = "achievement:read",
+  AchievementCreate = "achievement:create",
+  AchievementDelete = "achievement:delete",
+  AchievementUpdate = "achievement:update",
+
+  GameSessionRead = "game_session:read",
+  GameSessionDelete = "game_session:delete",
+
+  UserStatsRead = "user_stats:read",
+  UserStatsUpdate = "user_stats:update",
 }

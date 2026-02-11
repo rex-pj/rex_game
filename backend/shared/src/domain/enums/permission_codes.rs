@@ -50,6 +50,22 @@ pub enum PermissionCodes {
     MailTemplateCreate,
     MailTemplateDelete,
     MailTemplateUpdate,
+    // Game Type
+    GameTypeRead,
+    GameTypeCreate,
+    GameTypeDelete,
+    GameTypeUpdate,
+    // Achievement
+    AchievementRead,
+    AchievementCreate,
+    AchievementDelete,
+    AchievementUpdate,
+    // Game Session
+    GameSessionRead,
+    GameSessionDelete,
+    // User Stats
+    UserStatsRead,
+    UserStatsUpdate,
 }
 
 impl PermissionCodes {
@@ -104,6 +120,22 @@ impl PermissionCodes {
             PermissionCodes::MailTemplateCreate => "mail_template:create",
             PermissionCodes::MailTemplateDelete => "mail_template:delete",
             PermissionCodes::MailTemplateUpdate => "mail_template:update",
+
+            PermissionCodes::GameTypeRead => "game_type:read",
+            PermissionCodes::GameTypeCreate => "game_type:create",
+            PermissionCodes::GameTypeDelete => "game_type:delete",
+            PermissionCodes::GameTypeUpdate => "game_type:update",
+
+            PermissionCodes::AchievementRead => "achievement:read",
+            PermissionCodes::AchievementCreate => "achievement:create",
+            PermissionCodes::AchievementDelete => "achievement:delete",
+            PermissionCodes::AchievementUpdate => "achievement:update",
+
+            PermissionCodes::GameSessionRead => "game_session:read",
+            PermissionCodes::GameSessionDelete => "game_session:delete",
+
+            PermissionCodes::UserStatsRead => "user_stats:read",
+            PermissionCodes::UserStatsUpdate => "user_stats:update",
         }
     }
 }

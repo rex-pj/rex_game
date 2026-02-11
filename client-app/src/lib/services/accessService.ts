@@ -241,3 +241,47 @@ export const canReadRolePermissions = (currentUser: CurrentUser | undefined) => 
     ])
   );
 };
+
+export const canReadGameTypes = (currentUser: CurrentUser | undefined) => {
+  return (
+    isRootAdmin(currentUser) ||
+    isInPermissions(currentUser, [
+      PermissionCodes.GameTypeCreate,
+      PermissionCodes.GameTypeDelete,
+      PermissionCodes.GameTypeRead,
+      PermissionCodes.GameTypeUpdate,
+    ])
+  );
+};
+
+export const canReadAchievements = (currentUser: CurrentUser | undefined) => {
+  return (
+    isRootAdmin(currentUser) ||
+    isInPermissions(currentUser, [
+      PermissionCodes.AchievementCreate,
+      PermissionCodes.AchievementDelete,
+      PermissionCodes.AchievementRead,
+      PermissionCodes.AchievementUpdate,
+    ])
+  );
+};
+
+export const canReadGameSessions = (currentUser: CurrentUser | undefined) => {
+  return (
+    isRootAdmin(currentUser) ||
+    isInPermissions(currentUser, [
+      PermissionCodes.GameSessionRead,
+      PermissionCodes.GameSessionDelete,
+    ])
+  );
+};
+
+export const canReadUserStats = (currentUser: CurrentUser | undefined) => {
+  return (
+    isRootAdmin(currentUser) ||
+    isInPermissions(currentUser, [
+      PermissionCodes.UserStatsRead,
+      PermissionCodes.UserStatsUpdate,
+    ])
+  );
+};
