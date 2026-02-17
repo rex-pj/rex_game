@@ -5,6 +5,10 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -12,6 +16,7 @@ jobs:
   # Job 1: Build and Test Backend
   build-backend:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -28,10 +33,14 @@ jobs:
             ~/.cargo/git/db/
             backend/target/
           key: ${{ runner.os }}-cargo-v2-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-v2-
 
       - name: Build Backend
         working-directory: ./backend
-        run: cargo build --release --bin rex_game -p rex-game-migration --bin migration
+        run: |
+          cargo build --release --bin rex_game
+          cargo build --release -p rex-game-migration --bin migration
 
       - name: Prepare Backend Binaries
         working-directory: ./backend
@@ -51,6 +60,7 @@ jobs:
   # Job 2: Build Frontend
   build-frontend:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -84,6 +94,7 @@ jobs:
   deploy:
     needs: [build-backend, build-frontend]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -121,6 +132,8 @@ jobs:
 
           # Deploy on server
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'ENDSSH'
+            set -e
+
             # Stop service
             sudo systemctl stop rex-backend || true
 
@@ -138,11 +151,13 @@ jobs:
 
             # Run migrations
             cd /var/www/rex-game/backend
-            export $(grep -v '^#' environments/.env.prod | xargs)
+            set -a && source environments/.env.prod && set +a
             sudo -E ./target/release/migration up
 
-            # Start service
+            # Start service and verify
             sudo systemctl start rex-backend
+            sleep 3
+            sudo systemctl is-active rex-backend
           ENDSSH
 
       - name: Deploy Frontend
@@ -157,6 +172,8 @@ jobs:
 
           # Deploy on server
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'ENDSSH'
+            set -e
+
             # Stop service
             sudo systemctl stop rex-frontend || true
 
@@ -175,23 +192,25 @@ jobs:
             sudo cp /tmp/frontend-package-lock.json /var/www/rex-game/client-app/package-lock.json
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-            cd /var/www/rex-game/client-app && npm ci --production
+            cd /var/www/rex-game/client-app && npm ci --omit=dev
 
             # Set ownership
             sudo chown -R www-data:www-data /var/www/rex-game/client-app/build
             sudo chown -R www-data:www-data /var/www/rex-game/client-app/node_modules
 
             # Cleanup
-            rm /tmp/frontend.tar.gz /tmp/frontend-package.json /tmp/frontend-package-lock.json
+            rm -f /tmp/frontend.tar.gz /tmp/frontend-package.json /tmp/frontend-package-lock.json
 
-            # Start service
+            # Start service and verify
             sudo systemctl start rex-frontend
+            sleep 3
+            sudo systemctl is-active rex-frontend
           ENDSSH
 
       - name: Health Check
         run: |
           sleep 10
-          curl -f https://${{ secrets.SSH_HOST }}/api/health || echo "Health check failed"
+          curl -f --retry 3 --retry-delay 5 https://${{ secrets.SSH_HOST }}/api/health
 
       - name: Notify Success
         if: success()
