@@ -32,9 +32,9 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             backend/target/
-          key: ${{ runner.os }}-cargo-v2-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-v2-
+            ${{ runner.os }}-cargo-
 
       - name: Build Backend
         working-directory: ./backend
@@ -192,7 +192,7 @@ jobs:
             sudo cp /tmp/frontend-package-lock.json /var/www/rex-game/client-app/package-lock.json
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-            cd /var/www/rex-game/client-app && npm ci --omit=dev
+            cd /var/www/rex-game/client-app && sudo npm ci --omit=dev
 
             # Set ownership
             sudo chown -R www-data:www-data /var/www/rex-game/client-app/build
