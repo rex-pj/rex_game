@@ -33,13 +33,20 @@ jobs:
         working-directory: ./backend
         run: cargo build --release
 
+      - name: Prepare Backend Binaries
+        working-directory: ./backend
+        run: |
+          mkdir -p ../artifacts
+          cp target/release/rex_game ../artifacts/
+          cp target/release/migration ../artifacts/
+
       - name: Upload Backend Binary
         uses: actions/upload-artifact@v4
         with:
           name: backend-binary
           path: |
-            backend/target/release/rex_game
-            backend/target/release/migration
+            artifacts/rex_game
+            artifacts/migration
 
   # Job 2: Build Frontend
   build-frontend:
