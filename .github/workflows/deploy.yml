@@ -27,11 +27,11 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             backend/target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-v2-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build Backend
         working-directory: ./backend
-        run: cargo build --release
+        run: cargo build --release --bin rex_game --bin migration
 
       - name: Prepare Backend Binaries
         working-directory: ./backend
@@ -57,8 +57,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
           cache-dependency-path: client-app/package-lock.json
 
       - name: Install Dependencies
