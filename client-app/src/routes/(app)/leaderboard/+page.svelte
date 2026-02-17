@@ -38,7 +38,7 @@
 </script>
 
 <svelte:head>
-  <title>Leaderboard - Rex Game</title>
+  <title>Leaderboard - Qhortus</title>
 </svelte:head>
 
 <div class="container py-4">

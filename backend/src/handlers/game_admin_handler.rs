@@ -7,7 +7,8 @@ use axum::{
 };
 use rex_game_games::{
     AchievementCreationDto, AchievementUpdationDto, AdminAchievementDto, AdminGameSessionDto,
-    AdminUserStatsDto, GameTypeCreationDto, GameTypeDto, GameTypeUpdationDto, ScoringUseCaseTrait,
+    AdminUserStatsDto, FlashcardDto, FlashcardTypeUseCaseTrait,
+    GameTypeCreationDto, GameTypeDto, GameTypeUpdationDto, ScoringUseCaseTrait,
 };
 use rex_game_shared::domain::models::PageListModel;
 use serde::Deserialize;
@@ -397,4 +398,163 @@ impl GameAdminHandler {
             }),
         }
     }
+
+    // ---- Game Type Flashcards ----
+
+    pub async fn get_game_type_flashcards(
+        State(state): State<AppState>,
+        Path(game_type_id): Path<i32>,
+    ) -> HandlerResult<Json<Vec<FlashcardDto>>> {
+        use rex_game_entities::entities::{game_type_flashcard, flashcard};
+        use sea_orm::{EntityTrait, ColumnTrait, QueryFilter, JoinType, RelationTrait, QuerySelect};
+
+        let db = state.db_connection.as_ref();
+
+        let flashcards = flashcard::Entity::find()
+            .join(
+                JoinType::InnerJoin,
+                flashcard::Relation::GameTypeFlashcard.def(),
+            )
+            .filter(game_type_flashcard::Column::GameTypeId.eq(game_type_id))
+            .all(db)
+            .await
+            .map_err(|e| HandlerError {
+                status: StatusCode::INTERNAL_SERVER_ERROR,
+                message: format!("Failed to fetch flashcards: {}", e),
+                ..Default::default()
+            })?;
+
+        let mut result: Vec<FlashcardDto> = Vec::new();
+        for f in flashcards {
+            let mut dto = FlashcardDto {
+                id: f.id,
+                name: f.name,
+                description: f.description,
+                sub_description: f.sub_description,
+                created_on: f.created_on.with_timezone(&chrono::Utc),
+                updated_on: f.updated_on.with_timezone(&chrono::Utc),
+                image_id: f.file_id,
+                is_actived: f.is_actived,
+                flashcard_type_names: vec![],
+            };
+            if let Some(types) = state
+                .usecases
+                .flashcard_type
+                .get_flashcard_type_by_flashcard_id(f.id)
+                .await
+            {
+                dto.flashcard_type_names = types.into_iter().map(|t| t.name).collect();
+            }
+            result.push(dto);
+        }
+
+        Ok(Json(result))
+    }
+
+    pub async fn assign_flashcards_to_game_type(
+        State(state): State<AppState>,
+        Path(game_type_id): Path<i32>,
+        Json(payload): Json<Option<AssignFlashcardsRequest>>,
+    ) -> HandlerResult<Json<bool>> {
+        use rex_game_entities::entities::game_type_flashcard;
+        use sea_orm::{EntityTrait, ActiveModelTrait, ColumnTrait, QueryFilter, Set};
+
+        let request = match payload {
+            Some(r) => r,
+            None => {
+                return Err(HandlerError {
+                    status: StatusCode::BAD_REQUEST,
+                    message: "Invalid request payload".to_string(),
+                    ..Default::default()
+                })
+            }
+        };
+
+        if request.flashcard_ids.is_empty() {
+            return Err(HandlerError {
+                status: StatusCode::BAD_REQUEST,
+                message: "flashcard_ids cannot be empty".to_string(),
+                ..Default::default()
+            });
+        }
+
+        let db = state.db_connection.as_ref();
+        let now = chrono::Utc::now().fixed_offset();
+
+        for flashcard_id in request.flashcard_ids {
+            // Check if already assigned
+            let existing = game_type_flashcard::Entity::find()
+                .filter(game_type_flashcard::Column::GameTypeId.eq(game_type_id))
+                .filter(game_type_flashcard::Column::FlashcardId.eq(flashcard_id))
+                .one(db)
+                .await
+                .map_err(|e| HandlerError {
+                    status: StatusCode::INTERNAL_SERVER_ERROR,
+                    message: format!("Failed to check existing: {}", e),
+                    ..Default::default()
+                })?;
+
+            if existing.is_some() {
+                continue; // Skip already assigned
+            }
+
+            let new_relation = game_type_flashcard::ActiveModel {
+                game_type_id: Set(game_type_id),
+                flashcard_id: Set(flashcard_id),
+                created_on: Set(now),
+                updated_on: Set(now),
+                ..Default::default()
+            };
+
+            new_relation.insert(db).await.map_err(|e| HandlerError {
+                status: StatusCode::INTERNAL_SERVER_ERROR,
+                message: format!("Failed to assign flashcard: {}", e),
+                ..Default::default()
+            })?;
+        }
+
+        Ok(Json(true))
+    }
+
+    pub async fn remove_flashcard_from_game_type(
+        State(state): State<AppState>,
+        Path((game_type_id, flashcard_id)): Path<(i32, i32)>,
+    ) -> HandlerResult<Json<bool>> {
+        use rex_game_entities::entities::game_type_flashcard;
+        use sea_orm::{EntityTrait, ColumnTrait, QueryFilter, ModelTrait};
+
+        let db = state.db_connection.as_ref();
+
+        let existing = game_type_flashcard::Entity::find()
+            .filter(game_type_flashcard::Column::GameTypeId.eq(game_type_id))
+            .filter(game_type_flashcard::Column::FlashcardId.eq(flashcard_id))
+            .one(db)
+            .await
+            .map_err(|e| HandlerError {
+                status: StatusCode::INTERNAL_SERVER_ERROR,
+                message: format!("Failed to find relation: {}", e),
+                ..Default::default()
+            })?;
+
+        match existing {
+            Some(relation) => {
+                relation.delete(db).await.map_err(|e| HandlerError {
+                    status: StatusCode::INTERNAL_SERVER_ERROR,
+                    message: format!("Failed to remove: {}", e),
+                    ..Default::default()
+                })?;
+                Ok(Json(true))
+            }
+            None => Err(HandlerError {
+                status: StatusCode::NOT_FOUND,
+                message: "Relation not found".to_string(),
+                ..Default::default()
+            }),
+        }
+    }
+}
+
+#[derive(Deserialize)]
+pub struct AssignFlashcardsRequest {
+    pub flashcard_ids: Vec<i32>,
 }

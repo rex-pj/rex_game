@@ -12,6 +12,7 @@
     edittingData,
     submit,
     flashcardTypeSuggestions,
+    gameTypeSuggestions,
     deleteById,
     showDeletionModal,
     isDeletionSubmitting,
@@ -39,11 +40,20 @@
   });
 
   let flashcardTypeOptions: SelectOption[] = $state([]);
+  let gameTypeOptions: SelectOption[] = $state([]);
   $effect(() => {
     if ($flashcardTypeSuggestions) {
       flashcardTypeOptions = $flashcardTypeSuggestions.map((type) => ({
         value: type.id,
         label: type.name,
+      }));
+    }
+  });
+  $effect(() => {
+    if ($gameTypeSuggestions) {
+      gameTypeOptions = $gameTypeSuggestions.map((gt) => ({
+        value: gt.id,
+        label: gt.name,
       }));
     }
   });
@@ -121,8 +131,8 @@
                 </span>
               </div>
             </td>
-            <td>{standardizeDate(item.created_date)}</td>
-            <td>{standardizeDate(item.updated_date)}</td>
+            <td>{standardizeDate(item.created_on)}</td>
+            <td>{standardizeDate(item.updated_on)}</td>
             <td>
               <div class="dropdown">
                 <button
@@ -181,6 +191,7 @@
         {isSubmitting}
         {creationError}
         {flashcardTypeOptions}
+        {gameTypeOptions}
       ></FlashcardUpdateModal>
     {/if}
     {#if canDelete(data.adminUser)}

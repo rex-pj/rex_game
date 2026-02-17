@@ -13,14 +13,34 @@ pub struct Model {
     pub description: Option<String>,
     pub icon: Option<String>,
     pub is_actived: bool,
-    pub created_date: DateTimeWithTimeZone,
-    pub updated_date: DateTimeWithTimeZone,
+    pub created_on: DateTimeWithTimeZone,
+    pub updated_on: DateTimeWithTimeZone,
+    pub created_by_id: Option<i32>,
+    pub updated_by_id: Option<i32>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(has_many = "super::game_session::Entity")]
     GameSession,
+    #[sea_orm(has_many = "super::game_type_flashcard::Entity")]
+    GameTypeFlashcard,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::CreatedById",
+        to = "super::user::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    User2,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::UpdatedById",
+        to = "super::user::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    User1,
     #[sea_orm(has_many = "super::user_game_progress::Entity")]
     UserGameProgress,
 }
@@ -28,6 +48,12 @@ pub enum Relation {
 impl Related<super::game_session::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::GameSession.def()
+    }
+}
+
+impl Related<super::game_type_flashcard::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::GameTypeFlashcard.def()
     }
 }
 

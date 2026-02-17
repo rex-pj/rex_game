@@ -7,8 +7,8 @@ export interface Achievement {
   points: number;
   category: string;
   is_actived: boolean;
-  created_date: string;
-  updated_date: string;
+  created_on: string;
+  updated_on: string;
 }
 
 export interface AchievementRequest {

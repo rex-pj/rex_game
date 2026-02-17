@@ -10,7 +10,7 @@
       </div>
       <div class="col-md-2 mb-3">
         <h5 class="footer-heading">Liên hệ</h5>
-        <p class="footer-text mb-0">Email: contact@rexgame.com</p>
+        <p class="footer-text mb-0">Email: contact@qhortus.com</p>
       </div>
       <div class="col-md-2 mb-3">
         <h5 class="footer-heading">Giới thiệu</h5>
@@ -26,7 +26,7 @@
       </div>
     </div>
     <div class="text-center mt-4">
-      <p class="copyright mb-0">&copy; {currentYear} Rex Game. Bản quyền được bảo hộ.</p>
+      <p class="copyright mb-0">&copy; {currentYear} Qhortus. Bản quyền được bảo hộ.</p>
     </div>
   </div>
 </footer>

@@ -31,6 +31,12 @@ pub enum GameSession {
     StartedAt,
     #[sea_orm(iden = "completed_at")]
     CompletedAt,
-    #[sea_orm(iden = "created_date")]
-    CreatedDate,
+    #[sea_orm(iden = "created_on")]
+    CreatedOn,
+    #[sea_orm(iden = "updated_on")]
+    UpdatedOn,
+    #[sea_orm(iden = "created_by_id")]
+    CreatedById,
+    #[sea_orm(iden = "updated_by_id")]
+    UpdatedById,
 }

@@ -1,3 +1,4 @@
+import type { Flashcard } from "$lib/models/flashcard";
 import type { GameType } from "$lib/models/game-type";
 import { BaseApi } from "./baseApi";
 
@@ -83,6 +84,44 @@ export class GameTypeAdminApi extends BaseApi {
     );
     if (response.status !== 200) {
       throw new Error("Failed to toggle game type active status");
+    }
+    return (await response.json()) as boolean;
+  }
+
+  async getFlashcards(fetch: Function, gameTypeId: number): Promise<Flashcard[]> {
+    const response: Response = await this.get(
+      fetch,
+      `${this.baseUrl}/${gameTypeId}/flashcards`,
+      new URLSearchParams(),
+      { observe: true }
+    );
+    if (response.status !== 200) {
+      throw new Error("Failed to fetch game type flashcards");
+    }
+    return (await response.json()) as Flashcard[];
+  }
+
+  async assignFlashcards(fetch: Function, gameTypeId: number, flashcardIds: number[]): Promise<boolean> {
+    const response: Response = await this.post(
+      fetch,
+      `${this.baseUrl}/${gameTypeId}/flashcards`,
+      { flashcard_ids: flashcardIds },
+      { observe: true }
+    );
+    if (response.status !== 200) {
+      throw new Error("Failed to assign flashcards");
+    }
+    return (await response.json()) as boolean;
+  }
+
+  async removeFlashcard(fetch: Function, gameTypeId: number, flashcardId: number): Promise<boolean> {
+    const response: Response = await this.delete(
+      fetch,
+      `${this.baseUrl}/${gameTypeId}/flashcards/${flashcardId}`,
+      { observe: true }
+    );
+    if (response.status !== 200) {
+      throw new Error("Failed to remove flashcard");
     }
     return (await response.json()) as boolean;
   }

@@ -6,7 +6,7 @@ use std::future::Future;
 pub trait FlashcardRepositoryTrait {
     fn get_list(
         &self,
-        type_name: Option<String>,
+        game_type_code: Option<String>,
         page: u64,
         page_size: u64,
     ) -> impl Future<Output = Result<PageListModel<FlashcardModel>, InfraError>>;

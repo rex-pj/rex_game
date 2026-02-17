@@ -21,8 +21,8 @@ impl MigrationTrait for Migration {
                 Achievement::Points,
                 Achievement::Category,
                 Achievement::IsActived,
-                Achievement::CreatedDate,
-                Achievement::UpdatedDate,
+                Achievement::CreatedOn,
+                Achievement::UpdatedOn,
             ])
             // First Steps
             .values_panic([

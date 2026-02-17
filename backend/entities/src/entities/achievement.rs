@@ -15,12 +15,30 @@ pub struct Model {
     pub points: i32,
     pub category: Option<String>,
     pub is_actived: bool,
-    pub created_date: DateTimeWithTimeZone,
-    pub updated_date: DateTimeWithTimeZone,
+    pub created_on: DateTimeWithTimeZone,
+    pub updated_on: DateTimeWithTimeZone,
+    pub created_by_id: Option<i32>,
+    pub updated_by_id: Option<i32>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::CreatedById",
+        to = "super::user::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    User2,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::UpdatedById",
+        to = "super::user::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    User1,
     #[sea_orm(has_many = "super::user_achievement::Entity")]
     UserAchievement,
 }

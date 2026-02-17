@@ -4,10 +4,9 @@ use crate::flashcard::domain::{
 };
 use rex_game_entities::entities::{
     flashcard::{self, Entity as Flashcard, Relation as FlashcardRelation},
-    flashcard_type,
-    flashcard_type_relation::{
-        self, Entity as FlashcardTypeRelation, Relation as FlashcardTypeRelationRelation,
-    },
+    flashcard_type_relation::{self, Entity as FlashcardTypeRelation},
+    game_type,
+    game_type_flashcard::Relation as GameTypeFlashcardRelation,
 };
 use chrono::Utc;
 use rex_game_shared::domain::models::page_list_model::PageListModel;
@@ -34,26 +33,29 @@ impl FlashcardRepository {
 impl FlashcardRepositoryTrait for FlashcardRepository {
     async fn get_list(
         &self,
-        type_name: Option<String>,
+        game_type_code: Option<String>,
         page: u64,
         page_size: u64,
     ) -> Result<PageListModel<FlashcardModel>, InfraError> {
         let db = self._db_connection.as_ref();
-        let mut query = Flashcard::find().join(
-            JoinType::InnerJoin,
-            FlashcardRelation::FlashcardTypeRelation.def(),
-        );
-        if let Some(i) = type_name {
+        let mut query = Flashcard::find();
+
+        if let Some(code) = game_type_code {
             query = query
                 .join(
-                    JoinType::LeftJoin,
-                    FlashcardTypeRelationRelation::FlashcardType.def(),
+                    JoinType::InnerJoin,
+                    FlashcardRelation::GameTypeFlashcard.def(),
                 )
-                .filter(Condition::all().add(flashcard_type::Column::Name.eq(i)))
+                .join(
+                    JoinType::InnerJoin,
+                    GameTypeFlashcardRelation::GameType.def(),
+                )
+                .filter(Condition::all().add(game_type::Column::Code.eq(code)))
         }
 
         query = query
-            .order_by(flashcard::Column::UpdatedDate, sea_orm::Order::Desc)
+            .filter(flashcard::Column::IsActived.eq(true))
+            .order_by(flashcard::Column::UpdatedOn, sea_orm::Order::Desc)
             .distinct();
 
         let paginator = query.paginate(db, page_size);
@@ -74,8 +76,8 @@ impl FlashcardRepositoryTrait for FlashcardRepository {
                 name: i.name,
                 description: i.description,
                 sub_description: i.sub_description,
-                created_date: i.created_date.with_timezone(&Utc),
-                updated_date: i.updated_date.with_timezone(&Utc),
+                created_on: i.created_on.with_timezone(&Utc),
+                updated_on: i.updated_on.with_timezone(&Utc),
                 created_by_id: i.created_by_id,
                 updated_by_id: i.updated_by_id,
                 file_id: i.file_id,
@@ -96,8 +98,8 @@ impl FlashcardRepositoryTrait for FlashcardRepository {
                     name: f.name,
                     description: f.description,
                     sub_description: f.sub_description,
-                    created_date: f.created_date.with_timezone(&Utc),
-                    updated_date: f.updated_date.with_timezone(&Utc),
+                    created_on: f.created_on.with_timezone(&Utc),
+                    updated_on: f.updated_on.with_timezone(&Utc),
                     created_by_id: f.created_by_id,
                     updated_by_id: f.updated_by_id,
                     file_id: f.file_id,
@@ -119,8 +121,8 @@ impl FlashcardRepositoryTrait for FlashcardRepository {
             file_id: Set(flashcard.file_id),
             created_by_id: Set(flashcard.created_by_id),
             updated_by_id: Set(flashcard.updated_by_id),
-            created_date: Set(Utc::now().fixed_offset()),
-            updated_date: Set(Utc::now().fixed_offset()),
+            created_on: Set(Utc::now().fixed_offset()),
+            updated_on: Set(Utc::now().fixed_offset()),
             is_actived: Set(true),
             ..Default::default()
         };
@@ -151,7 +153,7 @@ impl FlashcardRepositoryTrait for FlashcardRepository {
         };
 
         flashcard.updated_by_id = Set(flashcard_req.updated_by_id);
-        flashcard.updated_date = Set(Utc::now().fixed_offset());
+        flashcard.updated_on = Set(Utc::now().fixed_offset());
         flashcard.description = Set(flashcard_req.description);
         flashcard.sub_description = Set(flashcard_req.sub_description);
         flashcard.file_id = Set(flashcard_req.file_id);

@@ -3,7 +3,8 @@ pub mod scoring;
 
 // Re-export flashcard module items
 pub use flashcard::application::usecases::{
-    flashcard_creation_dto::FlashcardCreationDto, flashcard_detail_dto::FlashcardDetailDto,
+    flashcard_creation_dto::FlashcardCreationDto,
+    flashcard_detail_dto::{FlashcardDetailDto, FlashcardGameTypeInfo},
     flashcard_dto::FlashcardDto, flashcard_file_dto::FlashcardFileDto,
     flashcard_type_creation_dto::FlashcardTypeCreationDto, flashcard_type_dto::FlashcardTypeDto,
     flashcard_type_updation_dto::FlashcardTypeUpdationDto, flashcard_updation_dto::FlashcardUpdationDto,

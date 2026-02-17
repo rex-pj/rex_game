@@ -7,8 +7,8 @@ pub struct FlashcardDto {
     pub name: String,
     pub description: Option<String>,
     pub sub_description: Option<String>,
-    pub created_date: DateTime<Utc>,
-    pub updated_date: DateTime<Utc>,
+    pub created_on: DateTime<Utc>,
+    pub updated_on: DateTime<Utc>,
     pub image_id: i32,
     pub is_actived: bool,
     #[serde(default)]

@@ -6,8 +6,8 @@ pub struct RoleModel {
     pub name: String,
     pub description: Option<String>,
     pub created_by_id: Option<i32>,
-    pub created_date: DateTime<Utc>,
-    pub updated_date: DateTime<Utc>,
+    pub created_on: DateTime<Utc>,
+    pub updated_on: DateTime<Utc>,
     pub updated_by_id: Option<i32>,
     pub is_actived: bool,
 }

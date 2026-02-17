@@ -28,13 +28,13 @@ impl MigrationTrait for Migration {
                             .to(User::Table, User::Id),
                     )
                     .col(
-                        ColumnDef::new(SystemSettings::CreatedDate)
+                        ColumnDef::new(SystemSettings::CreatedOn)
                             .timestamp_with_time_zone()
                             .not_null()
                             .default(Expr::current_timestamp()),
                     )
                     .col(
-                        ColumnDef::new(SystemSettings::UpdatedDate)
+                        ColumnDef::new(SystemSettings::UpdatedOn)
                             .timestamp_with_time_zone()
                             .not_null()
                             .default(Expr::current_timestamp()),

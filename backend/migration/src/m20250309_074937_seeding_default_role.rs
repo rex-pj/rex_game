@@ -15,8 +15,8 @@ impl MigrationTrait for Migration {
             .columns([
                 Role::Name,
                 Role::Description,
-                Role::CreatedDate,
-                Role::UpdatedDate,
+                Role::CreatedOn,
+                Role::UpdatedOn,
                 Role::IsActived,
             ])
             .values_panic([
@@ -29,8 +29,8 @@ impl MigrationTrait for Migration {
             .columns([
                 Role::Name,
                 Role::Description,
-                Role::CreatedDate,
-                Role::UpdatedDate,
+                Role::CreatedOn,
+                Role::UpdatedOn,
                 Role::IsActived,
             ])
             .values_panic([
@@ -43,8 +43,8 @@ impl MigrationTrait for Migration {
             .columns([
                 Role::Name,
                 Role::Description,
-                Role::CreatedDate,
-                Role::UpdatedDate,
+                Role::CreatedOn,
+                Role::UpdatedOn,
                 Role::IsActived,
             ])
             .values_panic([
@@ -57,8 +57,8 @@ impl MigrationTrait for Migration {
             .columns([
                 Role::Name,
                 Role::Description,
-                Role::CreatedDate,
-                Role::UpdatedDate,
+                Role::CreatedOn,
+                Role::UpdatedOn,
                 Role::IsActived,
             ])
             .values_panic([

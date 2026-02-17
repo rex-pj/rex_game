@@ -25,6 +25,12 @@ pub enum UserStats {
     BestStreak,
     #[sea_orm(iden = "last_played_at")]
     LastPlayedAt,
-    #[sea_orm(iden = "updated_date")]
-    UpdatedDate,
+    #[sea_orm(iden = "created_on")]
+    CreatedOn,
+    #[sea_orm(iden = "created_by_id")]
+    CreatedById,
+    #[sea_orm(iden = "updated_on")]
+    UpdatedOn,
+    #[sea_orm(iden = "updated_by_id")]
+    UpdatedById,
 }

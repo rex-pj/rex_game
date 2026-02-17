@@ -14,12 +14,14 @@ use axum::{
     response::Response,
     Extension, Json,
 };
+use rex_game_entities::entities::{game_type, game_type_flashcard};
 use rex_game_games::{
-    FlashcardCreationDto, FlashcardDetailDto, FlashcardDto, FlashcardTypeUseCaseTrait,
-    FlashcardUpdationDto, FlashcardUseCaseTrait,
+    FlashcardCreationDto, FlashcardDetailDto, FlashcardDto, FlashcardGameTypeInfo,
+    FlashcardTypeUseCaseTrait, FlashcardUpdationDto, FlashcardUseCaseTrait,
 };
 use rex_game_identity::application::usecases::roles::*;
 use rex_game_shared::domain::models::PageListModel;
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::Deserialize;
 use std::sync::Arc;
 use validator::{Validate, ValidationErrors};
@@ -28,7 +30,7 @@ use validator::{Validate, ValidationErrors};
 pub struct FlashcardQuery {
     page: Option<u64>,
     page_size: Option<u64>,
-    type_name: Option<String>,
+    game_type_code: Option<String>,
 }
 
 impl FlashcardHandler {
@@ -41,7 +43,7 @@ impl FlashcardHandler {
         let mut flashcards = _state
             .usecases
             .flashcard
-            .get_paged_list(params.type_name, page, page_size)
+            .get_paged_list(params.game_type_code, page, page_size)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -84,15 +86,35 @@ impl FlashcardHandler {
             Some(types) => types,
         };
 
+        // Fetch game types assigned to this flashcard
+        let db = _state.db_connection.as_ref();
+        let game_types = game_type_flashcard::Entity::find()
+            .filter(game_type_flashcard::Column::FlashcardId.eq(id))
+            .all(db)
+            .await
+            .unwrap_or_default();
+
+        let mut game_type_infos: Vec<FlashcardGameTypeInfo> = Vec::new();
+        for gtf in game_types {
+            if let Ok(Some(gt)) = game_type::Entity::find_by_id(gtf.game_type_id).one(db).await {
+                game_type_infos.push(FlashcardGameTypeInfo {
+                    id: gt.id,
+                    code: gt.code,
+                    name: gt.name,
+                });
+            }
+        }
+
         Ok(Json(FlashcardDetailDto {
             id: flashcard.id,
             name: flashcard.name,
             description: flashcard.description,
             sub_description: flashcard.sub_description,
-            created_date: flashcard.created_date,
-            updated_date: flashcard.updated_date,
+            created_on: flashcard.created_on,
+            updated_on: flashcard.updated_on,
             image_id: flashcard.image_id,
             flashcard_types: flashcard_types.into_iter().map(|f| f.into()).collect(),
+            game_types: game_type_infos,
         }))
     }
 
@@ -145,9 +167,25 @@ impl FlashcardHandler {
         let mut flashcard_req = FlashcardRequest {
             ..Default::default()
         };
+        let mut game_type_ids: Vec<i32> = Vec::new();
 
         while let Some(field) = multipart.next_field().await.unwrap() {
             let field_name = field.name().unwrap_or("").to_string();
+            if field_name.contains("game_type_ids") {
+                let game_type_id =
+                    field
+                        .text()
+                        .await
+                        .unwrap()
+                        .parse::<i32>()
+                        .map_err(|err| HandlerError {
+                            status: StatusCode::BAD_REQUEST,
+                            message: format!("Invalid game_type_id: {}", err),
+                            ..Default::default()
+                        })?;
+                game_type_ids.push(game_type_id);
+                continue;
+            }
             if field_name.contains("type_ids") {
                 let type_id =
                     field
@@ -228,9 +266,29 @@ impl FlashcardHandler {
             .map_err(|err| HandlerError {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
                 message: format!("Failed to create flashcard: {}", err),
-
                 ..Default::default()
             })?;
+
+        // Insert game_type_flashcard relations
+        if !game_type_ids.is_empty() {
+            let db = _state.db_connection.as_ref();
+            let now = chrono::Utc::now().fixed_offset();
+            for game_type_id in game_type_ids {
+                let relation = game_type_flashcard::ActiveModel {
+                    game_type_id: Set(game_type_id),
+                    flashcard_id: Set(id),
+                    created_on: Set(now),
+                    updated_on: Set(now),
+                    ..Default::default()
+                };
+                relation.insert(db).await.map_err(|e| HandlerError {
+                    status: StatusCode::INTERNAL_SERVER_ERROR,
+                    message: format!("Failed to assign game type: {}", e),
+                    ..Default::default()
+                })?;
+            }
+        }
+
         Ok(Json(id))
     }
 
@@ -256,9 +314,25 @@ impl FlashcardHandler {
             updated_by_id: current_user.id,
             ..Default::default()
         };
+        let mut game_type_ids: Option<Vec<i32>> = None;
 
         while let Some(field) = multipart.next_field().await.unwrap() {
             let field_name = field.name().unwrap_or("").to_string();
+            if field_name.contains("game_type_ids") {
+                let game_type_id =
+                    field
+                        .text()
+                        .await
+                        .unwrap()
+                        .parse::<i32>()
+                        .map_err(|err| HandlerError {
+                            status: StatusCode::BAD_REQUEST,
+                            message: format!("Invalid game_type_id: {}", err),
+                            ..Default::default()
+                        })?;
+                game_type_ids.get_or_insert(Vec::new()).push(game_type_id);
+                continue;
+            }
             if field_name.contains("type_ids") {
                 let type_id =
                     field
@@ -342,6 +416,40 @@ impl FlashcardHandler {
                 message: format!("Failed to update flashcard: {}", err),
                 ..Default::default()
             })?;
+
+        // Sync game_type_flashcard relations
+        if let Some(gt_ids) = game_type_ids {
+            let db = _state.db_connection.as_ref();
+
+            // Delete existing relations
+            game_type_flashcard::Entity::delete_many()
+                .filter(game_type_flashcard::Column::FlashcardId.eq(id))
+                .exec(db)
+                .await
+                .map_err(|e| HandlerError {
+                    status: StatusCode::INTERNAL_SERVER_ERROR,
+                    message: format!("Failed to clear game type relations: {}", e),
+                    ..Default::default()
+                })?;
+
+            // Insert new relations
+            let now = chrono::Utc::now().fixed_offset();
+            for game_type_id in gt_ids {
+                let relation = game_type_flashcard::ActiveModel {
+                    game_type_id: Set(game_type_id),
+                    flashcard_id: Set(id),
+                    created_on: Set(now),
+                    updated_on: Set(now),
+                    ..Default::default()
+                };
+                relation.insert(db).await.map_err(|e| HandlerError {
+                    status: StatusCode::INTERNAL_SERVER_ERROR,
+                    message: format!("Failed to assign game type: {}", e),
+                    ..Default::default()
+                })?;
+            }
+        }
+
         Ok(Json(true))
     }
 

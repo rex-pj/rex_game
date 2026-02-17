@@ -2,8 +2,8 @@ use async_trait::async_trait;
 use chrono::Utc;
 use rust_decimal::Decimal;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter,
-    QueryOrder, PaginatorTrait, QuerySelect, Set,
+    ActiveModelTrait, ColumnTrait, Condition, DatabaseConnection, EntityTrait, PaginatorTrait,
+    QueryFilter, QueryOrder, QuerySelect, Set,
 };
 use std::sync::Arc;
 
@@ -46,13 +46,16 @@ impl ScoringRepositoryTrait for ScoringRepository {
                 description: gt.description,
                 icon: gt.icon,
                 is_actived: gt.is_actived,
-                created_date: gt.created_date.with_timezone(&Utc),
-                updated_date: gt.updated_date.with_timezone(&Utc),
+                created_on: gt.created_on.with_timezone(&Utc),
+                updated_on: gt.updated_on.with_timezone(&Utc),
             })
             .collect())
     }
 
-    async fn get_game_type_by_code(&self, code: &str) -> Result<Option<GameTypeModel>, sea_orm::DbErr> {
+    async fn get_game_type_by_code(
+        &self,
+        code: &str,
+    ) -> Result<Option<GameTypeModel>, sea_orm::DbErr> {
         let game_type = game_type::Entity::find()
             .filter(game_type::Column::Code.eq(code))
             .one(self.db.as_ref())
@@ -65,8 +68,8 @@ impl ScoringRepositoryTrait for ScoringRepository {
             description: gt.description,
             icon: gt.icon,
             is_actived: gt.is_actived,
-            created_date: gt.created_date.with_timezone(&Utc),
-            updated_date: gt.updated_date.with_timezone(&Utc),
+            created_on: gt.created_on.with_timezone(&Utc),
+            updated_on: gt.updated_on.with_timezone(&Utc),
         }))
     }
 
@@ -92,7 +95,7 @@ impl ScoringRepositoryTrait for ScoringRepository {
             combo_max: Set(0),
             started_at: Set(now),
             completed_at: Set(None),
-            created_date: Set(now),
+            created_on: Set(now),
             ..Default::default()
         };
 
@@ -150,7 +153,7 @@ impl ScoringRepositoryTrait for ScoringRepository {
         let sessions = game_session::Entity::find()
             .filter(game_session::Column::UserId.eq(user_id))
             .filter(game_session::Column::CompletedAt.is_not_null())
-            .order_by_desc(game_session::Column::CreatedDate)
+            .order_by_desc(game_session::Column::CreatedOn)
             .offset(offset)
             .limit(page_size)
             .find_also_related(game_type::Entity)
@@ -178,7 +181,7 @@ impl ScoringRepositoryTrait for ScoringRepository {
                 combo_max: session.combo_max,
                 started_at: session.started_at.with_timezone(&Utc),
                 completed_at: session.completed_at.map(|dt| dt.with_timezone(&Utc)),
-                created_date: session.created_date.with_timezone(&Utc),
+                created_on: session.created_on.with_timezone(&Utc),
             })
             .collect())
     }
@@ -225,7 +228,7 @@ impl ScoringRepositoryTrait for ScoringRepository {
                 combo_max: session.combo_max,
                 started_at: session.started_at.with_timezone(&Utc),
                 completed_at: session.completed_at.map(|dt| dt.with_timezone(&Utc)),
-                created_date: session.created_date.with_timezone(&Utc),
+                created_on: session.created_on.with_timezone(&Utc),
             })
             .collect())
     }
@@ -273,7 +276,7 @@ impl ScoringRepositoryTrait for ScoringRepository {
                 current_streak: Set(0),
                 best_streak: Set(0),
                 last_played_at: Set(None),
-                updated_date: Set(now),
+                updated_on: Set(now),
                 ..Default::default()
             };
             stats.insert(self.db.as_ref()).await?;
@@ -304,7 +307,8 @@ impl ScoringRepositoryTrait for ScoringRepository {
             let new_avg_accuracy = if stats.total_games_played == 0 {
                 session_accuracy
             } else {
-                (stats.average_accuracy * Decimal::from(stats.total_games_played) + session_accuracy)
+                (stats.average_accuracy * Decimal::from(stats.total_games_played)
+                    + session_accuracy)
                     / Decimal::from(new_total_games)
             };
 
@@ -337,19 +341,13 @@ impl ScoringRepositoryTrait for ScoringRepository {
             active.total_games_played = Set(new_total_games);
             active.total_time_played_seconds =
                 Set(active.total_time_played_seconds.unwrap() + session.time_spent_seconds as i64);
-            active.best_score = Set(std::cmp::max(
-                active.best_score.unwrap(),
-                session.score,
-            ));
-            active.best_combo = Set(std::cmp::max(
-                active.best_combo.unwrap(),
-                session.combo_max,
-            ));
+            active.best_score = Set(std::cmp::max(active.best_score.unwrap(), session.score));
+            active.best_combo = Set(std::cmp::max(active.best_combo.unwrap(), session.combo_max));
             active.average_accuracy = Set(new_avg_accuracy);
             active.current_streak = Set(new_current_streak);
             active.best_streak = Set(new_best_streak);
             active.last_played_at = Set(Some(now));
-            active.updated_date = Set(now);
+            active.updated_on = Set(now);
             active.update(self.db.as_ref()).await?;
         }
 
@@ -425,8 +423,8 @@ impl ScoringRepositoryTrait for ScoringRepository {
                 points: a.points,
                 category: a.category,
                 is_actived: a.is_actived,
-                created_date: a.created_date.with_timezone(&Utc),
-                updated_date: a.updated_date.with_timezone(&Utc),
+                created_on: a.created_on.with_timezone(&Utc),
+                updated_on: a.updated_on.with_timezone(&Utc),
             })
             .collect())
     }
@@ -456,8 +454,8 @@ impl ScoringRepositoryTrait for ScoringRepository {
                         points: a.points,
                         category: a.category,
                         is_actived: a.is_actived,
-                        created_date: a.created_date.with_timezone(&Utc),
-                        updated_date: a.updated_date.with_timezone(&Utc),
+                        created_on: a.created_on.with_timezone(&Utc),
+                        updated_on: a.updated_on.with_timezone(&Utc),
                     },
                     unlocked_at: ua.unlocked_at.with_timezone(&Utc),
                 })
@@ -465,7 +463,11 @@ impl ScoringRepositoryTrait for ScoringRepository {
             .collect())
     }
 
-    async fn unlock_achievement(&self, user_id: i32, achievement_id: i32) -> Result<(), sea_orm::DbErr> {
+    async fn unlock_achievement(
+        &self,
+        user_id: i32,
+        achievement_id: i32,
+    ) -> Result<(), sea_orm::DbErr> {
         let now = Utc::now().fixed_offset();
 
         let existing = user_achievement::Entity::find()
@@ -573,7 +575,7 @@ impl ScoringRepositoryTrait for ScoringRepository {
             active.highest_level = Set(highest_level);
             active.total_score = Set(total_score);
             active.last_played_at = Set(now);
-            active.updated_date = Set(now);
+            active.updated_on = Set(now);
             active.update(self.db.as_ref()).await?
         } else {
             // Create new progress
@@ -584,8 +586,8 @@ impl ScoringRepositoryTrait for ScoringRepository {
                 highest_level: Set(current_level),
                 total_score: Set(total_score),
                 last_played_at: Set(now),
-                created_date: Set(now),
-                updated_date: Set(now),
+                created_on: Set(now),
+                updated_on: Set(now),
                 ..Default::default()
             };
             new_progress.insert(self.db.as_ref()).await?
@@ -609,7 +611,11 @@ impl ScoringRepositoryTrait for ScoringRepository {
         })
     }
 
-    async fn reset_game_progress(&self, user_id: i32, game_type_id: i32) -> Result<(), sea_orm::DbErr> {
+    async fn reset_game_progress(
+        &self,
+        user_id: i32,
+        game_type_id: i32,
+    ) -> Result<(), sea_orm::DbErr> {
         let now = Utc::now().fixed_offset();
 
         let existing = user_game_progress::Entity::find()
@@ -623,7 +629,7 @@ impl ScoringRepositoryTrait for ScoringRepository {
             active.current_level = Set(1);
             active.total_score = Set(0);
             active.last_played_at = Set(now);
-            active.updated_date = Set(now);
+            active.updated_on = Set(now);
             active.update(self.db.as_ref()).await?;
         }
 
@@ -642,16 +648,14 @@ impl ScoringRepositoryTrait for ScoringRepository {
 
         if let Some(n) = name {
             if !n.is_empty() {
-                query = query.filter(
-                    Condition::any().add(game_type::Column::Name.contains(&n)),
-                );
+                query = query.filter(Condition::any().add(game_type::Column::Name.contains(&n)));
             }
         }
 
         let total_count = query.clone().count(self.db.as_ref()).await?;
 
         let items = query
-            .order_by_desc(game_type::Column::UpdatedDate)
+            .order_by_desc(game_type::Column::UpdatedOn)
             .paginate(self.db.as_ref(), page_size)
             .fetch_page(page - 1)
             .await?;
@@ -665,8 +669,8 @@ impl ScoringRepositoryTrait for ScoringRepository {
                 description: gt.description,
                 icon: gt.icon,
                 is_actived: gt.is_actived,
-                created_date: gt.created_date.with_timezone(&Utc),
-                updated_date: gt.updated_date.with_timezone(&Utc),
+                created_on: gt.created_on.with_timezone(&Utc),
+                updated_on: gt.updated_on.with_timezone(&Utc),
             })
             .collect();
 
@@ -685,8 +689,8 @@ impl ScoringRepositoryTrait for ScoringRepository {
             description: gt.description,
             icon: gt.icon,
             is_actived: gt.is_actived,
-            created_date: gt.created_date.with_timezone(&Utc),
-            updated_date: gt.updated_date.with_timezone(&Utc),
+            created_on: gt.created_on.with_timezone(&Utc),
+            updated_on: gt.updated_on.with_timezone(&Utc),
         }))
     }
 
@@ -698,8 +702,8 @@ impl ScoringRepositoryTrait for ScoringRepository {
             description: Set(model.description),
             icon: Set(model.icon),
             is_actived: Set(true),
-            created_date: Set(now),
-            updated_date: Set(now),
+            created_on: Set(now),
+            updated_on: Set(now),
             ..Default::default()
         };
         let result = active.insert(self.db.as_ref()).await?;
@@ -718,7 +722,7 @@ impl ScoringRepositoryTrait for ScoringRepository {
             active.name = Set(model.name);
             active.description = Set(model.description);
             active.icon = Set(model.icon);
-            active.updated_date = Set(now);
+            active.updated_on = Set(now);
             active.update(self.db.as_ref()).await?;
             Ok(true)
         } else {
@@ -743,11 +747,13 @@ impl ScoringRepositoryTrait for ScoringRepository {
             let new_status = !item.is_actived;
             let mut active: game_type::ActiveModel = item.into();
             active.is_actived = Set(new_status);
-            active.updated_date = Set(now);
+            active.updated_on = Set(now);
             active.update(self.db.as_ref()).await?;
             Ok(new_status)
         } else {
-            Err(sea_orm::DbErr::RecordNotFound("Game type not found".to_string()))
+            Err(sea_orm::DbErr::RecordNotFound(
+                "Game type not found".to_string(),
+            ))
         }
     }
 
@@ -763,16 +769,14 @@ impl ScoringRepositoryTrait for ScoringRepository {
 
         if let Some(n) = name {
             if !n.is_empty() {
-                query = query.filter(
-                    Condition::any().add(achievement::Column::Name.contains(&n)),
-                );
+                query = query.filter(Condition::any().add(achievement::Column::Name.contains(&n)));
             }
         }
 
         let total_count = query.clone().count(self.db.as_ref()).await?;
 
         let items = query
-            .order_by_desc(achievement::Column::UpdatedDate)
+            .order_by_desc(achievement::Column::UpdatedOn)
             .paginate(self.db.as_ref(), page_size)
             .fetch_page(page - 1)
             .await?;
@@ -788,15 +792,18 @@ impl ScoringRepositoryTrait for ScoringRepository {
                 points: a.points,
                 category: a.category,
                 is_actived: a.is_actived,
-                created_date: a.created_date.with_timezone(&Utc),
-                updated_date: a.updated_date.with_timezone(&Utc),
+                created_on: a.created_on.with_timezone(&Utc),
+                updated_on: a.updated_on.with_timezone(&Utc),
             })
             .collect();
 
         Ok((list, total_count))
     }
 
-    async fn get_achievement_by_id(&self, id: i32) -> Result<Option<AchievementModel>, sea_orm::DbErr> {
+    async fn get_achievement_by_id(
+        &self,
+        id: i32,
+    ) -> Result<Option<AchievementModel>, sea_orm::DbErr> {
         let item = achievement::Entity::find_by_id(id)
             .one(self.db.as_ref())
             .await?;
@@ -810,8 +817,8 @@ impl ScoringRepositoryTrait for ScoringRepository {
             points: a.points,
             category: a.category,
             is_actived: a.is_actived,
-            created_date: a.created_date.with_timezone(&Utc),
-            updated_date: a.updated_date.with_timezone(&Utc),
+            created_on: a.created_on.with_timezone(&Utc),
+            updated_on: a.updated_on.with_timezone(&Utc),
         }))
     }
 
@@ -825,8 +832,8 @@ impl ScoringRepositoryTrait for ScoringRepository {
             points: Set(model.points),
             category: Set(model.category),
             is_actived: Set(true),
-            created_date: Set(now),
-            updated_date: Set(now),
+            created_on: Set(now),
+            updated_on: Set(now),
             ..Default::default()
         };
         let result = active.insert(self.db.as_ref()).await?;
@@ -847,7 +854,7 @@ impl ScoringRepositoryTrait for ScoringRepository {
             active.icon = Set(model.icon);
             active.points = Set(model.points);
             active.category = Set(model.category);
-            active.updated_date = Set(now);
+            active.updated_on = Set(now);
             active.update(self.db.as_ref()).await?;
             Ok(true)
         } else {
@@ -872,11 +879,13 @@ impl ScoringRepositoryTrait for ScoringRepository {
             let new_status = !item.is_actived;
             let mut active: achievement::ActiveModel = item.into();
             active.is_actived = Set(new_status);
-            active.updated_date = Set(now);
+            active.updated_on = Set(now);
             active.update(self.db.as_ref()).await?;
             Ok(new_status)
         } else {
-            Err(sea_orm::DbErr::RecordNotFound("Achievement not found".to_string()))
+            Err(sea_orm::DbErr::RecordNotFound(
+                "Achievement not found".to_string(),
+            ))
         }
     }
 
@@ -887,13 +896,11 @@ impl ScoringRepositoryTrait for ScoringRepository {
         page: u64,
         page_size: u64,
     ) -> Result<(Vec<GameSessionModel>, u64), sea_orm::DbErr> {
-        let total_count = game_session::Entity::find()
-            .count(self.db.as_ref())
-            .await?;
+        let total_count = game_session::Entity::find().count(self.db.as_ref()).await?;
 
         let offset = (page - 1) * page_size;
         let sessions = game_session::Entity::find()
-            .order_by_desc(game_session::Column::CreatedDate)
+            .order_by_desc(game_session::Column::CreatedOn)
             .offset(offset)
             .limit(page_size)
             .find_also_related(game_type::Entity)
@@ -932,7 +939,7 @@ impl ScoringRepositoryTrait for ScoringRepository {
                     combo_max: session.combo_max,
                     started_at: session.started_at.with_timezone(&Utc),
                     completed_at: session.completed_at.map(|dt| dt.with_timezone(&Utc)),
-                    created_date: session.created_date.with_timezone(&Utc),
+                    created_on: session.created_on.with_timezone(&Utc),
                 }
             })
             .collect();
@@ -954,9 +961,7 @@ impl ScoringRepositoryTrait for ScoringRepository {
         page: u64,
         page_size: u64,
     ) -> Result<(Vec<UserStatsModel>, u64), sea_orm::DbErr> {
-        let total_count = user_stats::Entity::find()
-            .count(self.db.as_ref())
-            .await?;
+        let total_count = user_stats::Entity::find().count(self.db.as_ref()).await?;
 
         let items = user_stats::Entity::find()
             .order_by_desc(user_stats::Column::TotalScore)
@@ -1016,7 +1021,7 @@ impl ScoringRepositoryTrait for ScoringRepository {
             active.current_streak = Set(0);
             active.best_streak = Set(0);
             active.last_played_at = Set(None);
-            active.updated_date = Set(now);
+            active.updated_on = Set(now);
             active.update(self.db.as_ref()).await?;
             Ok(true)
         } else {

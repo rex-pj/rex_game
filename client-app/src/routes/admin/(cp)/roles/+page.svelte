@@ -69,8 +69,8 @@
             <td>{item.id}</td>
             <td>{item.name}</td>
             <td>{item.description}</td>
-            <td>{standardizeDate(item.created_date)}</td>
-            <td>{standardizeDate(item.updated_date)}</td>
+            <td>{standardizeDate(item.created_on)}</td>
+            <td>{standardizeDate(item.updated_on)}</td>
             <td>
               <div class="dropdown">
                 <button

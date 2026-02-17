@@ -3,8 +3,8 @@ export interface MailTemplate {
   name: string;
   subject: string;
   body: string;
-  created_date: string;
-  updated_date: string;
+  created_on: string;
+  updated_on: string;
   is_active: boolean;
   is_enabled: boolean;
 }

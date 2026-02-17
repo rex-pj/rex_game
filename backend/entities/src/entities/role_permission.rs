@@ -10,8 +10,8 @@ pub struct Model {
     pub role_id: i32,
     pub permission_id: i32,
     pub created_by_id: i32,
-    pub created_date: DateTimeWithTimeZone,
-    pub updated_date: DateTimeWithTimeZone,
+    pub created_on: DateTimeWithTimeZone,
+    pub updated_on: DateTimeWithTimeZone,
     pub updated_by_id: i32,
     pub is_actived: bool,
 }

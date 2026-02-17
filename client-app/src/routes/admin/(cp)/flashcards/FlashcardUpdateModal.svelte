@@ -18,6 +18,7 @@
     creationError?: Writable<string>;
     initialData?: Writable<FlashcardRequest>;
     flashcardTypeOptions?: SelectOption[];
+    gameTypeOptions?: SelectOption[];
   }
 
   let {
@@ -34,10 +35,12 @@
       type_ids: [],
     }),
     flashcardTypeOptions = [],
+    gameTypeOptions = [],
   }: Props = $props();
 
-  // Derived values
-  const modalTitle = $derived($initialData.id ? "Update Flashcard" : "Create Flashcard");
+  const modalTitle = $derived(
+    $initialData.id ? "Update Flashcard" : "Create Flashcard",
+  );
   const submitText = $derived($initialData.id ? "Update" : "Create");
   const loadingText = $derived($initialData.id ? "Updating..." : "Creating...");
 
@@ -45,6 +48,24 @@
     event.preventDefault();
     creationError.set("");
     await submit($initialData);
+  }
+
+  function handleTypeChange(e: CustomEvent) {
+    const selected = e.detail;
+    initialData.update((d) => ({
+      ...d,
+      types: selected,
+      type_ids: selected ? selected.map((i: any) => i.value) : [],
+    }));
+  }
+
+  function handleGameTypeChange(e: CustomEvent) {
+    const selected = e.detail;
+    initialData.update((d) => ({
+      ...d,
+      game_types: selected,
+      game_type_ids: selected ? selected.map((i: any) => i.value) : [],
+    }));
   }
 
   async function onImageChange(e: Event) {
@@ -102,12 +123,23 @@
       <label class="form-label" for="type_ids">Types</label>
       <Select
         id="type_ids"
-        class="form-select"
         items={flashcardTypeOptions}
         multiple={true}
-        bind:value={$initialData.types}
-        bind:justValue={$initialData.type_ids}
+        value={$initialData.types}
+        on:change={handleTypeChange}
         placeholder="Select types"
+      />
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label" for="game_type_ids">Game Types</label>
+      <Select
+        id="game_type_ids"
+        items={gameTypeOptions}
+        multiple={true}
+        value={$initialData.game_types}
+        on:change={handleGameTypeChange}
+        placeholder="Select game types"
       />
     </div>
 
@@ -135,8 +167,8 @@
         <div class="thumbnail">
           <button
             type="button"
+            aria-label="Remove Image"
             class="btn btn-sm btn-outline-danger remove-btn"
-            aria-label="Remove image"
             onclick={removeImage}
           >
             <i class="fa-solid fa-xmark"></i>
@@ -157,7 +189,7 @@
       type="submit"
       variant="primary"
       loading={$isSubmitting}
-      loadingText={loadingText}
+      {loadingText}
       onclick={handleSubmit}
     >
       {submitText}
@@ -174,13 +206,11 @@
     border-radius: 0.375rem;
     text-align: center;
   }
-
   .thumbnail img {
     max-width: 200px;
     max-height: 200px;
     object-fit: contain;
   }
-
   .remove-btn {
     position: absolute;
     top: 0.25rem;

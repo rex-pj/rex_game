@@ -27,8 +27,8 @@ export interface UserDto {
   name: string;
   display_name?: string;
   created_by_id?: number;
-  created_date: string;
-  updated_date: string;
+  created_on: string;
+  updated_on: string;
   updated_by_id?: number;
   status_id: number;
 }

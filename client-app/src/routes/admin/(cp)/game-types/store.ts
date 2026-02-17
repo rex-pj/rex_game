@@ -1,8 +1,10 @@
 import { get, writable, type Writable } from "svelte/store";
 import { GameTypeAdminApi } from "$lib/api/gameTypeAdminApi";
+import { FlashcardApi } from "$lib/api/flashcardApi";
 import Cookies from "js-cookie";
 import type { Pager } from "../../../../components/molecules/pagination/pager";
 import type { GameType, GameTypeRequest } from "$lib/models/game-type";
+import type { Flashcard } from "$lib/models/flashcard";
 import * as accessService from "$lib/services/accessService";
 import type { CurrentUser } from "$lib/models/current-user";
 import { PermissionCodes } from "$lib/common/permissions";
@@ -187,4 +189,81 @@ export const canDelete = (currentUser: CurrentUser | undefined) => {
     (currentUser && accessService.isRootAdmin(currentUser)) ||
     accessService.isInPermissions(currentUser, [PermissionCodes.GameTypeDelete])
   );
+};
+
+// ---- Flashcard Management ----
+
+const flashcardService: FlashcardApi = new FlashcardApi(
+  new AdminClientApiOptions(Cookies)
+);
+
+export const showFlashcardModal = writable(false);
+export const flashcardModalGameType = writable({ id: 0, name: "" });
+export const assignedFlashcards: Writable<Flashcard[]> = writable([]);
+export const allFlashcards: Writable<Flashcard[]> = writable([]);
+export const flashcardError = writable("");
+export const isFlashcardLoading = writable(false);
+
+export const openFlashcardModal = async (id: number) => {
+  const gameType = await getById(id);
+  if (!gameType) return;
+
+  flashcardModalGameType.set({ id: gameType.id, name: gameType.name });
+  flashcardError.set("");
+  showFlashcardModal.set(true);
+  await loadFlashcardData(id);
+};
+
+export const loadFlashcardData = async (gameTypeId: number) => {
+  isFlashcardLoading.set(true);
+  try {
+    const [assigned, all] = await Promise.all([
+      gameTypeService.getFlashcards(fetch, gameTypeId),
+      flashcardService.getList(fetch, 1, 1000),
+    ]);
+    assignedFlashcards.set(assigned);
+    allFlashcards.set(all.items);
+  } catch (error: any) {
+    flashcardError.set(error.message);
+  } finally {
+    isFlashcardLoading.set(false);
+  }
+};
+
+export const assignFlashcards = async (flashcardIds: number[]) => {
+  const gameType = get(flashcardModalGameType);
+  if (!gameType.id || flashcardIds.length === 0) return;
+
+  isFlashcardLoading.set(true);
+  try {
+    await gameTypeService.assignFlashcards(fetch, gameType.id, flashcardIds);
+    await loadFlashcardData(gameType.id);
+  } catch (error: any) {
+    flashcardError.set(error.message);
+  } finally {
+    isFlashcardLoading.set(false);
+  }
+};
+
+export const removeFlashcard = async (flashcardId: number) => {
+  const gameType = get(flashcardModalGameType);
+  if (!gameType.id) return;
+
+  isFlashcardLoading.set(true);
+  try {
+    await gameTypeService.removeFlashcard(fetch, gameType.id, flashcardId);
+    await loadFlashcardData(gameType.id);
+  } catch (error: any) {
+    flashcardError.set(error.message);
+  } finally {
+    isFlashcardLoading.set(false);
+  }
+};
+
+export const closeFlashcardModal = () => {
+  showFlashcardModal.set(false);
+  flashcardModalGameType.set({ id: 0, name: "" });
+  assignedFlashcards.set([]);
+  allFlashcards.set([]);
+  flashcardError.set("");
 };

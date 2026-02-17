@@ -9,11 +9,11 @@ pub struct Model {
     pub id: i32,
     pub name: String,
     pub description: Option<String>,
-    pub created_date: DateTimeWithTimeZone,
-    pub updated_date: DateTimeWithTimeZone,
+    pub created_on: DateTimeWithTimeZone,
+    pub updated_on: DateTimeWithTimeZone,
     pub is_actived: bool,
-    pub created_by_id: i32,
-    pub updated_by_id: i32,
+    pub created_by_id: Option<i32>,
+    pub updated_by_id: Option<i32>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

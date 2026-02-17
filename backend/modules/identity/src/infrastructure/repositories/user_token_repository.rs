@@ -28,8 +28,8 @@ impl UserTokenRepositoryTrait for UserTokenRepository {
             user_id: Set(user_token_req.user_id),
             created_by_id: Set(user_token_req.created_by_id),
             updated_by_id: Set(user_token_req.updated_by_id),
-            created_date: Set(Utc::now().fixed_offset()),
-            updated_date: Set(Utc::now().fixed_offset()),
+            created_on: Set(Utc::now().fixed_offset()),
+            updated_on: Set(Utc::now().fixed_offset()),
             token: Set(user_token_req.token),
             expiration: Set(user_token_req.expiration),
             is_actived: Set(user_token_req.is_actived),
@@ -105,7 +105,7 @@ impl UserTokenRepositoryTrait for UserTokenRepository {
         };
 
         existing_user_token.updated_by_id = Set(user_token_req.updated_by_id);
-        existing_user_token.updated_date = Set(Utc::now().fixed_offset());
+        existing_user_token.updated_on = Set(Utc::now().fixed_offset());
         existing_user_token.is_actived = Set(user_token_req.is_actived);
 
         match UserToken::update(existing_user_token).exec(db).await {
@@ -121,8 +121,8 @@ fn map_entity_to_model(f: user_token::Model) -> UserTokenModel {
         user_id: f.user_id,
         created_by_id: f.created_by_id,
         updated_by_id: f.updated_by_id,
-        created_date: f.created_date.with_timezone(&Utc),
-        updated_date: f.updated_date.with_timezone(&Utc),
+        created_on: f.created_on.with_timezone(&Utc),
+        updated_on: f.updated_on.with_timezone(&Utc),
         token: f.token,
         expiration: f.expiration,
         is_actived: f.is_actived,

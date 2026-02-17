@@ -23,10 +23,21 @@
     canDelete,
     canCreate,
     toggleActive,
+    showFlashcardModal,
+    flashcardModalGameType,
+    assignedFlashcards,
+    allFlashcards,
+    flashcardError,
+    isFlashcardLoading,
+    openFlashcardModal,
+    assignFlashcards,
+    removeFlashcard,
+    closeFlashcardModal,
   } from "./store";
   import Pagination from "../../../../components/molecules/pagination/pagination.svelte";
   import GameTypeUpdateModal from "./GameTypeUpdateModal.svelte";
   import GameTypeDeleteModal from "./GameTypeDeleteModal.svelte";
+  import GameTypeFlashcardsModal from "./GameTypeFlashcardsModal.svelte";
   import { standardizeDate } from "$lib/helpers/dateTimeHelper";
   import { canReadGameTypes } from "$lib/services/accessService";
   import type { LayoutProps } from "../$types";
@@ -90,8 +101,8 @@
                 </span>
               </div>
             </td>
-            <td>{standardizeDate(item.created_date)}</td>
-            <td>{standardizeDate(item.updated_date)}</td>
+            <td>{standardizeDate(item.created_on)}</td>
+            <td>{standardizeDate(item.updated_on)}</td>
             <td>
               <div class="dropdown">
                 <button
@@ -117,6 +128,18 @@
                           openEditingModal(item.id);
                         }}>Edit</button
                       >
+                    </li>
+                  {/if}
+                  {#if canUpdate(data.adminUser)}
+                    <li>
+                      <button
+                        class="dropdown-item"
+                        type="button"
+                        onclick={() => {
+                          openFlashcardModal(item.id);
+                        }}>
+                        <i class="fa-solid fa-clone me-1"></i> Flashcards
+                      </button>
                     </li>
                   {/if}
                   {#if canDelete(data.adminUser)}
@@ -160,6 +183,19 @@
         {deletionError}
         initialData={deletingData}
       ></GameTypeDeleteModal>
+    {/if}
+    {#if canUpdate(data.adminUser)}
+      <GameTypeFlashcardsModal
+        showModal={showFlashcardModal}
+        gameType={flashcardModalGameType}
+        {assignedFlashcards}
+        {allFlashcards}
+        error={flashcardError}
+        loading={isFlashcardLoading}
+        onAssign={assignFlashcards}
+        onRemove={removeFlashcard}
+        onClose={closeFlashcardModal}
+      />
     {/if}
   </div>
 {:else}

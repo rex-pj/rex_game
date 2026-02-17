@@ -24,8 +24,8 @@ struct UserPermissionWithUser {
     pub permission_code: String,
     pub permission_module: String,
     pub created_by_id: i32,
-    pub created_date: DateTime<Utc>,
-    pub updated_date: DateTime<Utc>,
+    pub created_on: DateTime<Utc>,
+    pub updated_on: DateTime<Utc>,
     pub updated_by_id: i32,
     pub is_actived: bool,
 }
@@ -51,8 +51,8 @@ impl UserPermissionRepositoryTrait for UserPermissionRepository {
             permission_id: Set(user_permission_req.permission_id),
             created_by_id: Set(user_permission_req.created_by_id),
             updated_by_id: Set(user_permission_req.updated_by_id),
-            created_date: Set(Utc::now().fixed_offset()),
-            updated_date: Set(Utc::now().fixed_offset()),
+            created_on: Set(Utc::now().fixed_offset()),
+            updated_on: Set(Utc::now().fixed_offset()),
             is_actived: Set(true),
             ..Default::default()
         };
@@ -85,9 +85,9 @@ impl UserPermissionRepositoryTrait for UserPermissionRepository {
                 .columns([
                     user_permission::Column::Id,
                     user_permission::Column::PermissionId,
-                    user_permission::Column::CreatedDate,
+                    user_permission::Column::CreatedOn,
                     user_permission::Column::CreatedById,
-                    user_permission::Column::UpdatedDate,
+                    user_permission::Column::UpdatedOn,
                     user_permission::Column::UpdatedById,
                     user_permission::Column::IsActived,
                     user_permission::Column::UserId,
@@ -126,9 +126,9 @@ impl UserPermissionRepositoryTrait for UserPermissionRepository {
                 .columns([
                     user_permission::Column::Id,
                     user_permission::Column::PermissionId,
-                    user_permission::Column::CreatedDate,
+                    user_permission::Column::CreatedOn,
                     user_permission::Column::CreatedById,
-                    user_permission::Column::UpdatedDate,
+                    user_permission::Column::UpdatedOn,
                     user_permission::Column::UpdatedById,
                     user_permission::Column::IsActived,
                     user_permission::Column::UserId,
@@ -188,8 +188,8 @@ impl UserPermissionRepositoryTrait for UserPermissionRepository {
                 permission_id: Set(req.permission_id),
                 created_by_id: Set(req.created_by_id),
                 updated_by_id: Set(req.updated_by_id),
-                created_date: Set(Utc::now().fixed_offset()),
-                updated_date: Set(Utc::now().fixed_offset()),
+                created_on: Set(Utc::now().fixed_offset()),
+                updated_on: Set(Utc::now().fixed_offset()),
                 is_actived: Set(true),
                 ..Default::default()
             })
@@ -237,8 +237,8 @@ fn map_entity_to_model(permission: UserPermissionWithUser) -> UserPermissionMode
         permission_name: permission.permission_name,
         permission_code: permission.permission_code,
         permission_module: permission.permission_module,
-        created_date: permission.created_date.with_timezone(&Utc),
-        updated_date: permission.updated_date.with_timezone(&Utc),
+        created_on: permission.created_on.with_timezone(&Utc),
+        updated_on: permission.updated_on.with_timezone(&Utc),
         created_by_id: permission.created_by_id,
         updated_by_id: permission.updated_by_id,
         is_actived: permission.is_actived,

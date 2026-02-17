@@ -18,8 +18,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -36,8 +36,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -54,8 +54,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -72,8 +72,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -95,8 +95,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -113,8 +113,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -131,8 +131,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -149,8 +149,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -172,8 +172,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -190,8 +190,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -208,8 +208,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -226,8 +226,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -249,8 +249,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -267,8 +267,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -285,8 +285,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -303,8 +303,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -326,8 +326,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -344,8 +344,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -362,8 +362,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -380,8 +380,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -403,8 +403,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -421,8 +421,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -439,8 +439,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -457,8 +457,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -480,8 +480,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -498,8 +498,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -516,8 +516,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -534,8 +534,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -557,8 +557,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -575,8 +575,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -593,8 +593,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -611,8 +611,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -634,8 +634,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -652,8 +652,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -670,8 +670,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -688,8 +688,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -711,8 +711,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -729,8 +729,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -747,8 +747,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([
@@ -765,8 +765,8 @@ impl MigrationTrait for Migration {
                 Permission::Description,
                 Permission::Module,
                 Permission::Code,
-                Permission::CreatedDate,
-                Permission::UpdatedDate,
+                Permission::CreatedOn,
+                Permission::UpdatedOn,
                 Permission::IsActived,
             ])
             .values_panic([

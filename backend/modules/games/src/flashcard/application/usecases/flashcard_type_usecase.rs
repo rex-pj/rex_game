@@ -48,8 +48,8 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
                         id: f.id,
                         name: f.name,
                         description: f.description,
-                        created_date: f.created_date.with_timezone(&Utc),
-                        updated_date: f.updated_date.with_timezone(&Utc),
+                        created_on: f.created_on.with_timezone(&Utc),
+                        updated_on: f.updated_on.with_timezone(&Utc),
                         is_actived: f.is_actived,
                     })
                     .collect();
@@ -69,8 +69,8 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
                 id: f.id,
                 name: f.name,
                 description: f.description,
-                created_date: f.created_date.with_timezone(&Utc),
-                updated_date: f.updated_date.with_timezone(&Utc),
+                created_on: f.created_on.with_timezone(&Utc),
+                updated_on: f.updated_on.with_timezone(&Utc),
                 is_actived: f.is_actived,
             }),
             Err(_) => None,
@@ -93,8 +93,8 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
                         id: f.id,
                         name: f.name,
                         description: f.description,
-                        created_date: f.created_date.with_timezone(&Utc),
-                        updated_date: f.updated_date.with_timezone(&Utc),
+                        created_on: f.created_on.with_timezone(&Utc),
+                        updated_on: f.updated_on.with_timezone(&Utc),
                         is_actived: f.is_actived,
                     })
                     .collect();
@@ -170,7 +170,7 @@ impl<TFT: FlashcardTypeRepositoryTrait> FlashcardTypeUseCaseTrait for FlashcardT
             id: existing.id,
             name: existing.name,
             description: existing.description,
-            updated_by_id,
+            updated_by_id: Some(updated_by_id),
             is_actived: new_status,
             ..Default::default()
         };

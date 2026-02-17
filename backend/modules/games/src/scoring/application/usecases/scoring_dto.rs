@@ -11,8 +11,8 @@ pub struct GameTypeDto {
     pub description: Option<String>,
     pub icon: Option<String>,
     pub is_actived: bool,
-    pub created_date: DateTime<Utc>,
-    pub updated_date: DateTime<Utc>,
+    pub created_on: DateTime<Utc>,
+    pub updated_on: DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
@@ -161,8 +161,8 @@ pub struct AdminAchievementDto {
     pub points: i32,
     pub category: Option<String>,
     pub is_actived: bool,
-    pub created_date: DateTime<Utc>,
-    pub updated_date: DateTime<Utc>,
+    pub created_on: DateTime<Utc>,
+    pub updated_on: DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
@@ -206,7 +206,7 @@ pub struct AdminGameSessionDto {
     pub combo_max: i32,
     pub started_at: String,
     pub completed_at: Option<String>,
-    pub created_date: String,
+    pub created_on: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -3,8 +3,8 @@ export interface FlashcardType {
   name: string;
   description: string;
   is_actived: boolean;
-  created_date: string;
-  updated_date: string;
+  created_on: string;
+  updated_on: string;
 }
 
 export interface FlashcardTypeRequest {

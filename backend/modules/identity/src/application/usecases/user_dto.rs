@@ -8,8 +8,8 @@ pub struct UserDto {
     pub name: String,
     pub display_name: Option<String>,
     pub created_by_id: Option<i32>,
-    pub created_date: DateTime<Utc>,
-    pub updated_date: DateTime<Utc>,
+    pub created_on: DateTime<Utc>,
+    pub updated_on: DateTime<Utc>,
     pub updated_by_id: Option<i32>,
     pub status_id: i32,
 }

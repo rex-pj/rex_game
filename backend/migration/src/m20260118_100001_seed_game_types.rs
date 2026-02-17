@@ -20,8 +20,8 @@ impl MigrationTrait for Migration {
                 GameType::Description,
                 GameType::Icon,
                 GameType::IsActived,
-                GameType::CreatedDate,
-                GameType::UpdatedDate,
+                GameType::CreatedOn,
+                GameType::UpdatedOn,
             ])
             .values_panic([
                 "memory_match".into(),

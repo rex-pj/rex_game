@@ -11,7 +11,7 @@ pub struct UserPermissionDto {
     pub permission_code: String,
     pub permission_module: String,
     pub created_by_id: Option<i32>,
-    pub created_date: DateTime<Utc>,
-    pub updated_date: DateTime<Utc>,
+    pub created_on: DateTime<Utc>,
+    pub updated_on: DateTime<Utc>,
     pub updated_by_id: Option<i32>,
 }

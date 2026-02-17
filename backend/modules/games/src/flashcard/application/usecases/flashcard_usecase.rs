@@ -59,13 +59,13 @@ impl<
 {
     async fn get_paged_list<'a>(
         &'a self,
-        type_name: Option<String>,
+        game_type_code: Option<String>,
         page: u64,
         page_size: u64,
     ) -> Result<PageListModel<FlashcardDto>, ApplicationError> {
         match self
             ._flashcard_repository
-            .get_list(type_name, page, page_size)
+            .get_list(game_type_code, page, page_size)
             .await
         {
             Ok(page_list) => {
@@ -77,8 +77,8 @@ impl<
                         name: f.name,
                         description: f.description,
                         sub_description: f.sub_description,
-                        created_date: f.created_date.with_timezone(&Utc),
-                        updated_date: f.updated_date.with_timezone(&Utc),
+                        created_on: f.created_on.with_timezone(&Utc),
+                        updated_on: f.updated_on.with_timezone(&Utc),
                         image_id: f.file_id,
                         is_actived: f.is_actived,
                         flashcard_type_names: vec![],
@@ -102,8 +102,8 @@ impl<
                 name: f.name,
                 description: f.description,
                 sub_description: f.sub_description,
-                created_date: f.created_date.with_timezone(&Utc),
-                updated_date: f.updated_date.with_timezone(&Utc),
+                created_on: f.created_on.with_timezone(&Utc),
+                updated_on: f.updated_on.with_timezone(&Utc),
                 image_id: f.file_id,
                 is_actived: f.is_actived,
                 flashcard_type_names: vec![],
@@ -221,8 +221,8 @@ impl<
             file_id: existing_flashcard.file_id,
             created_by_id: existing_flashcard.created_by_id,
             updated_by_id: flashcard_req.updated_by_id,
-            created_date: existing_flashcard.created_date,
-            updated_date: existing_flashcard.updated_date,
+            created_on: existing_flashcard.created_on,
+            updated_on: existing_flashcard.updated_on,
             is_actived: existing_flashcard.is_actived,
         };
 
@@ -373,8 +373,8 @@ impl<
             file_id: existing.file_id,
             created_by_id: existing.created_by_id,
             updated_by_id,
-            created_date: existing.created_date,
-            updated_date: existing.updated_date,
+            created_on: existing.created_on,
+            updated_on: existing.updated_on,
             is_actived: new_status,
         };
 

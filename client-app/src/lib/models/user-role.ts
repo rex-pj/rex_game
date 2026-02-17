@@ -4,6 +4,6 @@ export interface UserRole {
   user_name: string;
   role_id: number;
   role_name: string;
-  created_date: string;
-  updated_date: string;
+  created_on: string;
+  updated_on: string;
 }

@@ -20,7 +20,7 @@
         src="../../assets/imgs/logo.png"
         alt="logo"
         class="navbar-logo"
-      /> Rex Game</a
+      /> Qhortus</a
     >
     <button
       class="navbar-toggler"

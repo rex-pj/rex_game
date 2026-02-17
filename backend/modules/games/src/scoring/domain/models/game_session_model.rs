@@ -22,7 +22,7 @@ pub struct GameSessionModel {
     pub combo_max: i32,
     pub started_at: DateTime<Utc>,
     pub completed_at: Option<DateTime<Utc>>,
-    pub created_date: DateTime<Utc>,
+    pub created_on: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -33,8 +33,8 @@ pub struct GameTypeModel {
     pub description: Option<String>,
     pub icon: Option<String>,
     pub is_actived: bool,
-    pub created_date: DateTime<Utc>,
-    pub updated_date: DateTime<Utc>,
+    pub created_on: DateTime<Utc>,
+    pub updated_on: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -64,8 +64,8 @@ pub struct AchievementModel {
     pub points: i32,
     pub category: Option<String>,
     pub is_actived: bool,
-    pub created_date: DateTime<Utc>,
-    pub updated_date: DateTime<Utc>,
+    pub created_on: DateTime<Utc>,
+    pub updated_on: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

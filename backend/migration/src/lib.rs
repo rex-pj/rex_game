@@ -13,6 +13,8 @@ mod m20260118_100000_add_scoring_system;
 mod m20260118_100001_seed_game_types;
 mod m20260118_100002_seed_achievements;
 mod m20260123_100000_add_user_game_progress;
+mod m20260211_100000_add_game_type_flashcard;
+mod m20260211_100001_seed_flashcard_types;
 
 pub struct Migrator;
 
@@ -32,6 +34,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20260118_100001_seed_game_types::Migration),
             Box::new(m20260118_100002_seed_achievements::Migration),
             Box::new(m20260123_100000_add_user_game_progress::Migration),
+            Box::new(m20260211_100000_add_game_type_flashcard::Migration),
+            Box::new(m20260211_100001_seed_flashcard_types::Migration),
         ]
     }
 }

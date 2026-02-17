@@ -34,12 +34,12 @@ impl MigrationTrait for Migration {
                             .to(User::Table, User::Id),
                     )
                     .col(
-                        ColumnDef::new(UserToken::CreatedDate)
+                        ColumnDef::new(UserToken::CreatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(UserToken::UpdatedDate)
+                        ColumnDef::new(UserToken::UpdatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )

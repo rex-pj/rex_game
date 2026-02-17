@@ -39,8 +39,8 @@ impl FlashcardFileRepositoryTrait for FlashcardFileRepository {
                 data: f.data,
                 created_by_id: f.created_by_id,
                 updated_by_id: f.updated_by_id,
-                created_date: f.created_date.with_timezone(&Utc),
-                updated_date: f.updated_date.with_timezone(&Utc),
+                created_on: f.created_on.with_timezone(&Utc),
+                updated_on: f.updated_on.with_timezone(&Utc),
                 id: f.id,
                 name: f.name,
                 is_actived: f.is_actived,
@@ -59,8 +59,8 @@ impl FlashcardFileRepositoryTrait for FlashcardFileRepository {
             data: Set(flashcard_file_req.data),
             created_by_id: Set(flashcard_file_req.created_by_id),
             updated_by_id: Set(flashcard_file_req.updated_by_id),
-            created_date: Set(Utc::now().fixed_offset()),
-            updated_date: Set(Utc::now().fixed_offset()),
+            created_on: Set(Utc::now().fixed_offset()),
+            updated_on: Set(Utc::now().fixed_offset()),
             is_actived: Set(true),
             ..Default::default()
         };
@@ -90,7 +90,7 @@ impl FlashcardFileRepositoryTrait for FlashcardFileRepository {
         };
 
         flashcard_file.updated_by_id = Set(flashcard_file_req.updated_by_id);
-        flashcard_file.updated_date = Set(Utc::now().fixed_offset());
+        flashcard_file.updated_on = Set(Utc::now().fixed_offset());
         flashcard_file.file_name = Set(flashcard_file_req.file_name);
         flashcard_file.content_type = Set(flashcard_file_req.content_type);
         flashcard_file.data = Set(flashcard_file_req.data);

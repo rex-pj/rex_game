@@ -56,16 +56,30 @@ impl MigrationTrait for Migration {
                             .default(Expr::current_timestamp()),
                     )
                     .col(
-                        ColumnDef::new(UserGameProgress::CreatedDate)
+                        ColumnDef::new(UserGameProgress::CreatedOn)
                             .timestamp_with_time_zone()
                             .not_null()
                             .default(Expr::current_timestamp()),
                     )
                     .col(
-                        ColumnDef::new(UserGameProgress::UpdatedDate)
+                        ColumnDef::new(UserGameProgress::UpdatedOn)
                             .timestamp_with_time_zone()
                             .not_null()
                             .default(Expr::current_timestamp()),
+                    )
+                    .col(ColumnDef::new(UserGameProgress::CreatedById).integer().null())
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk-user_game_progress-created-by-id")
+                            .from(UserGameProgress::Table, UserGameProgress::CreatedById)
+                            .to(User::Table, User::Id),
+                    )
+                    .col(ColumnDef::new(UserGameProgress::UpdatedById).integer().null())
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk-user_game_progress-updated-by-id")
+                            .from(UserGameProgress::Table, UserGameProgress::UpdatedById)
+                            .to(User::Table, User::Id),
                     )
                     .foreign_key(
                         ForeignKey::create()

@@ -42,12 +42,12 @@ impl MigrationTrait for Migration {
                             .to(User::Table, User::Id),
                     )
                     .col(
-                        ColumnDef::new(User::CreatedDate)
+                        ColumnDef::new(User::CreatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(User::UpdatedDate)
+                        ColumnDef::new(User::UpdatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
@@ -84,12 +84,12 @@ impl MigrationTrait for Migration {
                             .to(User::Table, User::Id),
                     )
                     .col(
-                        ColumnDef::new(Role::CreatedDate)
+                        ColumnDef::new(Role::CreatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(Role::UpdatedDate)
+                        ColumnDef::new(Role::UpdatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
@@ -133,12 +133,12 @@ impl MigrationTrait for Migration {
                             .to(User::Table, User::Id),
                     )
                     .col(
-                        ColumnDef::new(UserRole::CreatedDate)
+                        ColumnDef::new(UserRole::CreatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(UserRole::UpdatedDate)
+                        ColumnDef::new(UserRole::UpdatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
@@ -170,12 +170,12 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(FlashcardType::Name).string().not_null())
                     .col(ColumnDef::new(FlashcardType::Description).string())
                     .col(
-                        ColumnDef::new(FlashcardType::CreatedDate)
+                        ColumnDef::new(FlashcardType::CreatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(FlashcardType::UpdatedDate)
+                        ColumnDef::new(FlashcardType::UpdatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
@@ -187,7 +187,7 @@ impl MigrationTrait for Migration {
                     .col(
                         ColumnDef::new(FlashcardType::CreatedById)
                             .integer()
-                            .not_null(),
+                            .null(),
                     )
                     .foreign_key(
                         ForeignKeyCreateStatement::new()
@@ -200,7 +200,7 @@ impl MigrationTrait for Migration {
                     .col(
                         ColumnDef::new(FlashcardType::UpdatedById)
                             .integer()
-                            .not_null(),
+                            .null(),
                     )
                     .foreign_key(
                         ForeignKeyCreateStatement::new()
@@ -235,12 +235,12 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(FlashcardFile::Data).binary().not_null())
                     .col(
-                        ColumnDef::new(FlashcardFile::CreatedDate)
+                        ColumnDef::new(FlashcardFile::CreatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(FlashcardFile::UpdatedDate)
+                        ColumnDef::new(FlashcardFile::UpdatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
@@ -295,12 +295,12 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Flashcard::Description).string())
                     .col(ColumnDef::new(Flashcard::SubDescription).string())
                     .col(
-                        ColumnDef::new(Flashcard::CreatedDate)
+                        ColumnDef::new(Flashcard::CreatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(Flashcard::UpdatedDate)
+                        ColumnDef::new(Flashcard::UpdatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
@@ -374,12 +374,12 @@ impl MigrationTrait for Migration {
                             .to(FlashcardType::Table, FlashcardType::Id),
                     )
                     .col(
-                        ColumnDef::new(FlashcardTypeRelation::CreatedDate)
+                        ColumnDef::new(FlashcardTypeRelation::CreatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(FlashcardTypeRelation::UpdatedDate)
+                        ColumnDef::new(FlashcardTypeRelation::UpdatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )

@@ -2,8 +2,8 @@ export interface Role {
   id: number;
   name: string;
   description: string;
-  created_date: string;
-  updated_date: string;
+  created_on: string;
+  updated_on: string;
   assigned?: boolean; // Optional field to indicate if the role is assigned to the user
 }
 

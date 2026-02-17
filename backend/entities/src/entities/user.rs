@@ -13,16 +13,14 @@ pub struct Model {
     pub password_hash: String,
     pub security_stamp: String,
     pub created_by_id: Option<i32>,
-    pub created_date: DateTimeWithTimeZone,
-    pub updated_date: DateTimeWithTimeZone,
+    pub created_on: DateTimeWithTimeZone,
+    pub updated_on: DateTimeWithTimeZone,
     pub updated_by_id: Option<i32>,
     pub status_id: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::game_session::Entity")]
-    GameSession,
     #[sea_orm(
         belongs_to = "Entity",
         from = "Column::CreatedById",
@@ -39,36 +37,6 @@ pub enum Relation {
         on_delete = "NoAction"
     )]
     SelfRef1,
-    #[sea_orm(has_many = "super::user_achievement::Entity")]
-    UserAchievement,
-    #[sea_orm(has_many = "super::user_game_progress::Entity")]
-    UserGameProgress,
-    #[sea_orm(has_one = "super::user_stats::Entity")]
-    UserStats,
-}
-
-impl Related<super::game_session::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::GameSession.def()
-    }
-}
-
-impl Related<super::user_achievement::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::UserAchievement.def()
-    }
-}
-
-impl Related<super::user_game_progress::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::UserGameProgress.def()
-    }
-}
-
-impl Related<super::user_stats::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::UserStats.def()
-    }
 }
 
 impl ActiveModelBehavior for ActiveModel {}

@@ -4,6 +4,6 @@ use serde::{Deserialize, Serialize};
 pub struct FlashcardTypeCreationDto {
     pub name: String,
     pub description: Option<String>,
-    pub created_by_id: i32,
-    pub updated_by_id: i32,
+    pub created_by_id: Option<i32>,
+    pub updated_by_id: Option<i32>,
 }

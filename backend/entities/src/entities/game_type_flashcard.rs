@@ -3,23 +3,38 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
-#[sea_orm(table_name = "role")]
+#[sea_orm(table_name = "game_type_flashcard")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
-    pub name: String,
-    pub description: Option<String>,
-    pub created_by_id: Option<i32>,
+    #[sea_orm(unique_key = "unique")]
+    pub game_type_id: i32,
+    #[sea_orm(unique_key = "unique")]
+    pub flashcard_id: i32,
     pub created_on: DateTimeWithTimeZone,
     pub updated_on: DateTimeWithTimeZone,
+    pub created_by_id: Option<i32>,
     pub updated_by_id: Option<i32>,
-    pub is_actived: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::role_permission::Entity")]
-    RolePermission,
+    #[sea_orm(
+        belongs_to = "super::flashcard::Entity",
+        from = "Column::FlashcardId",
+        to = "super::flashcard::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    Flashcard,
+    #[sea_orm(
+        belongs_to = "super::game_type::Entity",
+        from = "Column::GameTypeId",
+        to = "super::game_type::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    GameType,
     #[sea_orm(
         belongs_to = "super::user::Entity",
         from = "Column::CreatedById",
@@ -36,19 +51,17 @@ pub enum Relation {
         on_delete = "NoAction"
     )]
     User1,
-    #[sea_orm(has_many = "super::user_role::Entity")]
-    UserRole,
 }
 
-impl Related<super::role_permission::Entity> for Entity {
+impl Related<super::flashcard::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::RolePermission.def()
+        Relation::Flashcard.def()
     }
 }
 
-impl Related<super::user_role::Entity> for Entity {
+impl Related<super::game_type::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::UserRole.def()
+        Relation::GameType.def()
     }
 }
 

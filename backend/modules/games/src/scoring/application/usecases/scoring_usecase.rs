@@ -34,8 +34,8 @@ impl ScoringUseCase {
             description: gt.description,
             icon: gt.icon,
             is_actived: gt.is_actived,
-            created_date: gt.created_date,
-            updated_date: gt.updated_date,
+            created_on: gt.created_on,
+            updated_on: gt.updated_on,
         }
     }
 
@@ -506,8 +506,8 @@ impl ScoringUseCaseTrait for ScoringUseCase {
             description: dto.description,
             icon: dto.icon,
             is_actived: true,
-            created_date: chrono::Utc::now(),
-            updated_date: chrono::Utc::now(),
+            created_on: chrono::Utc::now(),
+            updated_on: chrono::Utc::now(),
         };
         self.repository.create_game_type(model).await
     }
@@ -554,8 +554,8 @@ impl ScoringUseCaseTrait for ScoringUseCase {
                 points: a.points,
                 category: a.category,
                 is_actived: a.is_actived,
-                created_date: a.created_date,
-                updated_date: a.updated_date,
+                created_on: a.created_on,
+                updated_on: a.updated_on,
             })
             .collect();
         Ok(PageListModel { items: list, total_count })
@@ -572,8 +572,8 @@ impl ScoringUseCaseTrait for ScoringUseCase {
             points: a.points,
             category: a.category,
             is_actived: a.is_actived,
-            created_date: a.created_date,
-            updated_date: a.updated_date,
+            created_on: a.created_on,
+            updated_on: a.updated_on,
         }))
     }
 
@@ -588,8 +588,8 @@ impl ScoringUseCaseTrait for ScoringUseCase {
             points: dto.points,
             category: dto.category,
             is_actived: true,
-            created_date: chrono::Utc::now(),
-            updated_date: chrono::Utc::now(),
+            created_on: chrono::Utc::now(),
+            updated_on: chrono::Utc::now(),
         };
         self.repository.create_achievement(model).await
     }
@@ -645,7 +645,7 @@ impl ScoringUseCaseTrait for ScoringUseCase {
                 combo_max: s.combo_max,
                 started_at: s.started_at.to_rfc3339(),
                 completed_at: s.completed_at.map(|dt| dt.to_rfc3339()),
-                created_date: s.created_date.to_rfc3339(),
+                created_on: s.created_on.to_rfc3339(),
             })
             .collect();
         Ok(PageListModel { items: list, total_count })

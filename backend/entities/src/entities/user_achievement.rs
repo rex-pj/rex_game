@@ -12,6 +12,10 @@ pub struct Model {
     #[sea_orm(unique_key = "unique")]
     pub achievement_id: i32,
     pub unlocked_at: DateTimeWithTimeZone,
+    pub created_on: DateTimeWithTimeZone,
+    pub updated_on: DateTimeWithTimeZone,
+    pub created_by_id: Option<i32>,
+    pub updated_by_id: Option<i32>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -26,23 +30,33 @@ pub enum Relation {
     Achievement,
     #[sea_orm(
         belongs_to = "super::user::Entity",
+        from = "Column::CreatedById",
+        to = "super::user::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    User3,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::UpdatedById",
+        to = "super::user::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    User2,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
         from = "Column::UserId",
         to = "super::user::Column::Id",
         on_update = "NoAction",
         on_delete = "Cascade"
     )]
-    User,
+    User1,
 }
 
 impl Related<super::achievement::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Achievement.def()
-    }
-}
-
-impl Related<super::user::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::User.def()
     }
 }
 

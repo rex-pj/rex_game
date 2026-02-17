@@ -5,8 +5,8 @@ export interface GameType {
   description: string;
   icon: string;
   is_actived: boolean;
-  created_date: string;
-  updated_date: string;
+  created_on: string;
+  updated_on: string;
 }
 
 export interface GameTypeRequest {

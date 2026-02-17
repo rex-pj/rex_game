@@ -38,8 +38,8 @@ impl FlashcardTypeRelationRepositoryTrait for FlashcardTypeRelationRepository {
                     flashcard_type_id: Set(f.flashcard_type_id),
                     created_by_id: Set(f.created_by_id),
                     updated_by_id: Set(f.updated_by_id),
-                    created_date: Set(Utc::now().fixed_offset()),
-                    updated_date: Set(Utc::now().fixed_offset()),
+                    created_on: Set(Utc::now().fixed_offset()),
+                    updated_on: Set(Utc::now().fixed_offset()),
                     ..Default::default()
                 });
 
@@ -79,8 +79,8 @@ impl FlashcardTypeRelationRepositoryTrait for FlashcardTypeRelationRepository {
                 flashcard_type_id: f.flashcard_type_id,
                 created_by_id: f.created_by_id,
                 updated_by_id: f.updated_by_id,
-                created_date: f.created_date.with_timezone(&Utc),
-                updated_date: f.updated_date.with_timezone(&Utc),
+                created_on: f.created_on.with_timezone(&Utc),
+                updated_on: f.updated_on.with_timezone(&Utc),
             })
             .collect::<Vec<FlashcardTypeRelationModel>>();
 

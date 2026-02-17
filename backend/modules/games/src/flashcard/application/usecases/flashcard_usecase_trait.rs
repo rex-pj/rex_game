@@ -8,7 +8,7 @@ use std::future::Future;
 pub trait FlashcardUseCaseTrait {
     fn get_paged_list<'a>(
         &'a self,
-        type_name: Option<String>,
+        game_type_code: Option<String>,
         page: u64,
         page_size: u64,
     ) -> impl Future<Output = Result<PageListModel<FlashcardDto>, ApplicationError>>;

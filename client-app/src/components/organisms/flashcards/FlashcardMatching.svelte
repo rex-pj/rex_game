@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { FlashcardApi } from "$lib/api/flashcardApi";
-  import { ACCESS_TOKEN, GAME_FLASHCARD_TYPES } from "$lib/common/contants";
+  import { ACCESS_TOKEN } from "$lib/common/contants";
   import type { Flashcard } from "$lib/models/flashcard";
   import type { GameCard } from "$lib/models/game-card";
   import {
@@ -96,8 +96,8 @@
         tokenKey: ACCESS_TOKEN.USER_ACCESS_TOKEN,
       });
 
-      // Fetch flashcards with pagination to get enough for multiple levels
-      const response = await api.getList(fetch, 1, 50, GAME_FLASHCARD_TYPES.MATCHING);
+      // Fetch flashcards assigned to this game type
+      const response = await api.getList(fetch, 1, 50, "memory_match");
 
       // Handle different response formats
       const flashcards: Flashcard[] = response.items || response.data || [];

@@ -9,8 +9,16 @@ pub struct FlashcardDetailDto {
     pub name: String,
     pub description: Option<String>,
     pub sub_description: Option<String>,
-    pub created_date: DateTime<Utc>,
-    pub updated_date: DateTime<Utc>,
+    pub created_on: DateTime<Utc>,
+    pub updated_on: DateTime<Utc>,
     pub image_id: i32,
     pub flashcard_types: Vec<FlashcardTypeDto>,
+    pub game_types: Vec<FlashcardGameTypeInfo>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct FlashcardGameTypeInfo {
+    pub id: i32,
+    pub code: String,
+    pub name: String,
 }

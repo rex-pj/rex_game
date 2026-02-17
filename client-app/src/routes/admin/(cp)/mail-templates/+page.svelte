@@ -72,8 +72,8 @@
             <td>{item.name}</td>
             <td>{item.subject}</td>
             <td>{@html item.body}</td>
-            <td>{standardizeDate(item.created_date)}</td>
-            <td>{standardizeDate(item.updated_date)}</td>
+            <td>{standardizeDate(item.created_on)}</td>
+            <td>{standardizeDate(item.updated_on)}</td>
             <td>
               {#if canUpdate(data.adminUser) || canCreate(data.adminUser)}
                 <div class="form-check form-switch">

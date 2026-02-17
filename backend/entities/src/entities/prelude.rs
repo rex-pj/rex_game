@@ -7,6 +7,7 @@ pub use super::flashcard_type::Entity as FlashcardType;
 pub use super::flashcard_type_relation::Entity as FlashcardTypeRelation;
 pub use super::game_session::Entity as GameSession;
 pub use super::game_type::Entity as GameType;
+pub use super::game_type_flashcard::Entity as GameTypeFlashcard;
 pub use super::mail_template::Entity as MailTemplate;
 pub use super::permission::Entity as Permission;
 pub use super::role::Entity as Role;

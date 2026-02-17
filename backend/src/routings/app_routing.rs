@@ -427,6 +427,28 @@ impl AppRouting {
                     permissions: vec![PermissionCodes::GameTypeUpdate.as_str().to_string()],
                 }),
             )
+            // Game Type Flashcard Admin
+            .route(
+                "/admin/game-types/{id}/flashcards",
+                get(GameAdminHandler::get_game_type_flashcards).layer(AuthorizeByPermissionLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: vec![PermissionCodes::GameTypeRead.as_str().to_string()],
+                }),
+            )
+            .route(
+                "/admin/game-types/{id}/flashcards",
+                post(GameAdminHandler::assign_flashcards_to_game_type).layer(AuthorizeByPermissionLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: vec![PermissionCodes::GameTypeUpdate.as_str().to_string()],
+                }),
+            )
+            .route(
+                "/admin/game-types/{id}/flashcards/{flashcard_id}",
+                delete(GameAdminHandler::remove_flashcard_from_game_type).layer(AuthorizeByPermissionLayer {
+                    app_state: self.app_state.clone(),
+                    permissions: vec![PermissionCodes::GameTypeUpdate.as_str().to_string()],
+                }),
+            )
             // Achievement Admin
             .route(
                 "/admin/achievements",

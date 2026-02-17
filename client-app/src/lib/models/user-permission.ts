@@ -6,6 +6,6 @@ export interface UserPermission {
   permission_name: string;
   permission_code: string;
   permission_module: string;
-  created_date: string;
-  updated_date: string;
+  created_on: string;
+  updated_on: string;
 }

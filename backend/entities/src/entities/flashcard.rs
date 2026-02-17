@@ -10,8 +10,8 @@ pub struct Model {
     pub name: String,
     pub description: Option<String>,
     pub sub_description: Option<String>,
-    pub created_date: DateTimeWithTimeZone,
-    pub updated_date: DateTimeWithTimeZone,
+    pub created_on: DateTimeWithTimeZone,
+    pub updated_on: DateTimeWithTimeZone,
     pub file_id: i32,
     pub is_actived: bool,
     pub created_by_id: i32,
@@ -30,6 +30,8 @@ pub enum Relation {
     FlashcardFile,
     #[sea_orm(has_many = "super::flashcard_type_relation::Entity")]
     FlashcardTypeRelation,
+    #[sea_orm(has_many = "super::game_type_flashcard::Entity")]
+    GameTypeFlashcard,
     #[sea_orm(
         belongs_to = "super::user::Entity",
         from = "Column::CreatedById",
@@ -57,6 +59,12 @@ impl Related<super::flashcard_file::Entity> for Entity {
 impl Related<super::flashcard_type_relation::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::FlashcardTypeRelation.def()
+    }
+}
+
+impl Related<super::game_type_flashcard::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::GameTypeFlashcard.def()
     }
 }
 

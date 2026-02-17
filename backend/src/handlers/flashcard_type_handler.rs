@@ -130,8 +130,8 @@ impl FlashcardTypeHandler {
         let creation_request = FlashcardTypeCreationDto {
             name: req.name,
             description: req.description,
-            created_by_id: current_user.id,
-            updated_by_id: current_user.id,
+            created_by_id: Some(current_user.id),
+            updated_by_id: Some(current_user.id),
         };
         let inserted_id = _state
             .usecases
@@ -185,7 +185,7 @@ impl FlashcardTypeHandler {
         }
 
         let mut updating = FlashcardTypeUpdationDto {
-            updated_by_id: current_user.id,
+            updated_by_id: Some(current_user.id),
             ..Default::default()
         };
 

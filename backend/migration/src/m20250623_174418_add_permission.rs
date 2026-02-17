@@ -28,12 +28,12 @@ impl MigrationTrait for Migration {
                             .to(User::Table, User::Id),
                     )
                     .col(
-                        ColumnDef::new(Permission::CreatedDate)
+                        ColumnDef::new(Permission::CreatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(Permission::UpdatedDate)
+                        ColumnDef::new(Permission::UpdatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
@@ -85,12 +85,12 @@ impl MigrationTrait for Migration {
                             .to(User::Table, User::Id),
                     )
                     .col(
-                        ColumnDef::new(UserPermission::CreatedDate)
+                        ColumnDef::new(UserPermission::CreatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(UserPermission::UpdatedDate)
+                        ColumnDef::new(UserPermission::UpdatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
@@ -150,12 +150,12 @@ impl MigrationTrait for Migration {
                             .to(User::Table, User::Id),
                     )
                     .col(
-                        ColumnDef::new(RolePermission::CreatedDate)
+                        ColumnDef::new(RolePermission::CreatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(RolePermission::UpdatedDate)
+                        ColumnDef::new(RolePermission::UpdatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )

@@ -87,8 +87,8 @@
                 </span>
               </div>
             </td>
-            <td>{standardizeDate(item.created_date)}</td>
-            <td>{standardizeDate(item.updated_date)}</td>
+            <td>{standardizeDate(item.created_on)}</td>
+            <td>{standardizeDate(item.updated_on)}</td>
             <td>
               <div class="dropdown">
                 <button

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { FlashcardApi } from "$lib/api/flashcardApi";
-  import { ACCESS_TOKEN, GAME_FLASHCARD_TYPES } from "$lib/common/contants";
+  import { ACCESS_TOKEN } from "$lib/common/contants";
   import type { Flashcard } from "$lib/models/flashcard";
   import {
     quizGameState,
@@ -87,12 +87,7 @@
         tokenKey: ACCESS_TOKEN.USER_ACCESS_TOKEN,
       });
 
-      const response = await api.getList(
-        fetch,
-        1,
-        50,
-        GAME_FLASHCARD_TYPES.QUIZ,
-      );
+      const response = await api.getList(fetch, 1, 50, "quiz");
       const flashcards: Flashcard[] = response.items || response.data || [];
 
       if (!flashcards || flashcards.length < 4) {

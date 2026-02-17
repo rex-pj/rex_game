@@ -51,7 +51,7 @@
 </script>
 
 <svelte:head>
-  <title>Achievements - Rex Game</title>
+  <title>Achievements - Qhortus</title>
 </svelte:head>
 
 <div class="container py-4">

@@ -10,7 +10,7 @@
 <div class="flashcard-page">
   <div class="container py-4">
     <div class="welcome-section text-center mb-5">
-      <h1 class="display-4 mb-3">Chào mừng đến với Rex Game</h1>
+      <h1 class="display-4 mb-3">Chào mừng đến với Qhortus</h1>
       <p class="lead text-muted">
         Khám phá và học tập qua các flashcard thú vị. Nâng cao kiến thức của bạn
         mỗi ngày!

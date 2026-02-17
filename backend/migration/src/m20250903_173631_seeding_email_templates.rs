@@ -16,8 +16,8 @@ impl MigrationTrait for Migration {
                 MailTemplate::Body,
                 MailTemplate::IsActived,
                 MailTemplate::IsEnabled,
-                MailTemplate::CreatedDate,
-                MailTemplate::UpdatedDate,
+                MailTemplate::CreatedOn,
+                MailTemplate::UpdatedOn,
             ])
             .values_panic([
                 MailTemplateNames::USER_REGISTRATION_CONFIRMATION.into(),
@@ -55,8 +55,8 @@ impl MigrationTrait for Migration {
                 MailTemplate::Body,
                 MailTemplate::IsActived,
                 MailTemplate::IsEnabled,
-                MailTemplate::CreatedDate,
-                MailTemplate::UpdatedDate,
+                MailTemplate::CreatedOn,
+                MailTemplate::UpdatedOn,
             ])
             .values_panic([
                 MailTemplateNames::USER_REGISTRATION_COMPLETION.into(),
@@ -92,8 +92,8 @@ impl MigrationTrait for Migration {
                 MailTemplate::Body,
                 MailTemplate::IsActived,
                 MailTemplate::IsEnabled,
-                MailTemplate::CreatedDate,
-                MailTemplate::UpdatedDate,
+                MailTemplate::CreatedOn,
+                MailTemplate::UpdatedOn,
             ])
             .values_panic([
                 MailTemplateNames::PASSWORD_RESET_REQUEST.into(),
@@ -129,8 +129,8 @@ impl MigrationTrait for Migration {
                 MailTemplate::Body,
                 MailTemplate::IsActived,
                 MailTemplate::IsEnabled,
-                MailTemplate::CreatedDate,
-                MailTemplate::UpdatedDate,
+                MailTemplate::CreatedOn,
+                MailTemplate::UpdatedOn,
             ])
             .values_panic([
                 MailTemplateNames::PASSWORD_RESET_CONFIRMATION.into(),

@@ -15,5 +15,5 @@ export interface AdminGameSession {
   combo_max: number;
   started_at: string;
   completed_at: string;
-  created_date: string;
+  created_on: string;
 }

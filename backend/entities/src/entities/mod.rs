@@ -9,6 +9,7 @@ pub mod flashcard_type;
 pub mod flashcard_type_relation;
 pub mod game_session;
 pub mod game_type;
+pub mod game_type_flashcard;
 pub mod mail_template;
 pub mod permission;
 pub mod role;

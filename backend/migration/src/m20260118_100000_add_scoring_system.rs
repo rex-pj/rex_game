@@ -45,14 +45,28 @@ impl MigrationTrait for Migration {
                             .default(true),
                     )
                     .col(
-                        ColumnDef::new(GameType::CreatedDate)
+                        ColumnDef::new(GameType::CreatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(GameType::UpdatedDate)
+                        ColumnDef::new(GameType::UpdatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
+                    )
+                    .col(ColumnDef::new(GameType::CreatedById).integer().null())
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk-game_type-created-by-id")
+                            .from(GameType::Table, GameType::CreatedById)
+                            .to(User::Table, User::Id),
+                    )
+                    .col(ColumnDef::new(GameType::UpdatedById).integer().null())
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk-game_type-updated-by-id")
+                            .from(GameType::Table, GameType::UpdatedById)
+                            .to(User::Table, User::Id),
                     )
                     .to_owned(),
             )
@@ -138,9 +152,24 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(GameSession::CompletedAt).timestamp_with_time_zone())
                     .col(
-                        ColumnDef::new(GameSession::CreatedDate)
+                        ColumnDef::new(GameSession::CreatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
+                    )
+                    .col(ColumnDef::new(GameSession::UpdatedOn).timestamp_with_time_zone())
+                    .col(ColumnDef::new(GameSession::CreatedById).integer().null())
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk-game_session-created-by-id")
+                            .from(GameSession::Table, GameSession::CreatedById)
+                            .to(User::Table, User::Id),
+                    )
+                    .col(ColumnDef::new(GameSession::UpdatedById).integer().null())
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk-game_session-updated-by-id")
+                            .from(GameSession::Table, GameSession::UpdatedById)
+                            .to(User::Table, User::Id),
                     )
                     .to_owned(),
             )
@@ -182,14 +211,28 @@ impl MigrationTrait for Migration {
                             .default(true),
                     )
                     .col(
-                        ColumnDef::new(Achievement::CreatedDate)
+                        ColumnDef::new(Achievement::CreatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(Achievement::UpdatedDate)
+                        ColumnDef::new(Achievement::UpdatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
+                    )
+                    .col(ColumnDef::new(Achievement::CreatedById).integer().null())
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk-achievement-created-by-id")
+                            .from(Achievement::Table, Achievement::CreatedById)
+                            .to(User::Table, User::Id),
+                    )
+                    .col(ColumnDef::new(Achievement::UpdatedById).integer().null())
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk-achievement-updated-by-id")
+                            .from(Achievement::Table, Achievement::UpdatedById)
+                            .to(User::Table, User::Id),
                     )
                     .to_owned(),
             )
@@ -235,6 +278,32 @@ impl MigrationTrait for Migration {
                         ColumnDef::new(UserAchievement::UnlockedAt)
                             .timestamp_with_time_zone()
                             .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(UserAchievement::CreatedOn)
+                            .timestamp_with_time_zone()
+                            .not_null()
+                            .default(Expr::current_timestamp()),
+                    )
+                    .col(
+                        ColumnDef::new(UserAchievement::UpdatedOn)
+                            .timestamp_with_time_zone()
+                            .not_null()
+                            .default(Expr::current_timestamp()),
+                    )
+                    .col(ColumnDef::new(UserAchievement::CreatedById).integer().null())
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk-user_achievement-created-by-id")
+                            .from(UserAchievement::Table, UserAchievement::CreatedById)
+                            .to(User::Table, User::Id),
+                    )
+                    .col(ColumnDef::new(UserAchievement::UpdatedById).integer().null())
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk-user_achievement-updated-by-id")
+                            .from(UserAchievement::Table, UserAchievement::UpdatedById)
+                            .to(User::Table, User::Id),
                     )
                     .to_owned(),
             )
@@ -329,9 +398,29 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(UserStats::LastPlayedAt).timestamp_with_time_zone())
                     .col(
-                        ColumnDef::new(UserStats::UpdatedDate)
+                        ColumnDef::new(UserStats::CreatedOn)
+                            .timestamp_with_time_zone()
+                            .not_null()
+                            .default(Expr::current_timestamp()),
+                    )
+                    .col(
+                        ColumnDef::new(UserStats::UpdatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
+                    )
+                    .col(ColumnDef::new(UserStats::CreatedById).integer().null())
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk-user_stats-created-by-id")
+                            .from(UserStats::Table, UserStats::CreatedById)
+                            .to(User::Table, User::Id),
+                    )
+                    .col(ColumnDef::new(UserStats::UpdatedById).integer().null())
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk-user_stats-updated-by-id")
+                            .from(UserStats::Table, UserStats::UpdatedById)
+                            .to(User::Table, User::Id),
                     )
                     .to_owned(),
             )

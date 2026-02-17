@@ -1,20 +1,14 @@
 use sea_orm_migration::prelude::*;
 
 #[derive(DeriveIden)]
-pub enum GameType {
+pub enum GameTypeFlashcard {
     Table,
     #[sea_orm(iden = "id")]
     Id,
-    #[sea_orm(iden = "code")]
-    Code,
-    #[sea_orm(iden = "name")]
-    Name,
-    #[sea_orm(iden = "description")]
-    Description,
-    #[sea_orm(iden = "icon")]
-    Icon,
-    #[sea_orm(iden = "is_actived")]
-    IsActived,
+    #[sea_orm(iden = "game_type_id")]
+    GameTypeId,
+    #[sea_orm(iden = "flashcard_id")]
+    FlashcardId,
     #[sea_orm(iden = "created_on")]
     CreatedOn,
     #[sea_orm(iden = "created_by_id")]

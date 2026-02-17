@@ -37,7 +37,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: backend-binary
-          path: backend/target/release/rex_game
+          path: |
+            backend/target/release/rex_game
+            backend/target/release/migration
 
   # Job 2: Build Frontend
   build-frontend:
@@ -102,14 +104,13 @@ jobs:
 
       - name: Deploy Backend
         run: |
-          # Make binary executable
+          # Make binaries executable
           chmod +x ./artifacts/backend/rex_game
+          chmod +x ./artifacts/backend/migration
 
-          # Copy binary to server
+          # Copy binaries to server
           scp ./artifacts/backend/rex_game ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/rex_game
-
-          # Copy migrations
-          scp -r ./backend/migration ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/migration
+          scp ./artifacts/backend/migration ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/migration_bin
 
           # Deploy on server
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'ENDSSH'
@@ -121,18 +122,17 @@ jobs:
               sudo cp /var/www/rex-game/backend/target/release/rex_game /var/www/rex-game/backend/target/release/rex_game.bak
             fi
 
-            # Copy new binary
+            # Copy new binaries
             sudo mkdir -p /var/www/rex-game/backend/target/release
             sudo mv /tmp/rex_game /var/www/rex-game/backend/target/release/
+            sudo mv /tmp/migration_bin /var/www/rex-game/backend/target/release/migration
             sudo chown www-data:www-data /var/www/rex-game/backend/target/release/rex_game
+            sudo chown www-data:www-data /var/www/rex-game/backend/target/release/migration
 
-            # Copy migrations
-            sudo rm -rf /var/www/rex-game/backend/migration
-            sudo mv /tmp/migration /var/www/rex-game/backend/
-            sudo chown -R www-data:www-data /var/www/rex-game/backend/migration
-
-            # Run migrations (if migration binary exists)
-            # cd /var/www/rex-game/backend && APP_ENV=prod ./target/release/migration up
+            # Run migrations
+            cd /var/www/rex-game/backend
+            export $(grep -v '^#' environments/.env.prod | xargs)
+            sudo -E ./target/release/migration up
 
             # Start service
             sudo systemctl start rex-backend

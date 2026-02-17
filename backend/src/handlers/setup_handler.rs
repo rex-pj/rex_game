@@ -64,8 +64,8 @@ async fn set_installation_status(
         // Update existing record
         let mut active_model: system_settings::ActiveModel = model.into();
         active_model.value = Set(value.to_string());
-        active_model.updated_date = Set(chrono::Utc::now().into());
-        active_model.created_date = Set(chrono::Utc::now().into());
+        active_model.updated_on = Set(chrono::Utc::now().into());
+        active_model.created_on = Set(chrono::Utc::now().into());
         active_model.update(txn).await?;
     }
     Ok(())

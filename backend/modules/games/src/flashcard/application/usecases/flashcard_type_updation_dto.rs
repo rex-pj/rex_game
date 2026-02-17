@@ -2,5 +2,5 @@
 pub struct FlashcardTypeUpdationDto {
     pub name: String,
     pub description: Option<String>,
-    pub updated_by_id: i32,
+    pub updated_by_id: Option<i32>,
 }

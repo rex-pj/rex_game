@@ -2,11 +2,11 @@ use crate::flashcard::domain::{
     models::flashcard_type_model::FlashcardTypeModel,
     repositories::flashcard_type_repository_trait::FlashcardTypeRepositoryTrait,
 };
+use chrono::Utc;
 use rex_game_entities::entities::{
     flashcard_type::{self, Entity as FlashcardType},
     flashcard_type_relation::{self, Entity as FlashcardTypeRelation},
 };
-use chrono::Utc;
 use rex_game_shared::domain::models::page_list_model::PageListModel;
 use rex_game_shared::InfraError;
 use sea_orm::{
@@ -41,7 +41,7 @@ impl FlashcardTypeRepositoryTrait for FlashcardTypeRepository {
             query = query.filter(Condition::all().add(flashcard_type::Column::Name.eq(i)))
         }
 
-        query = query.order_by(flashcard_type::Column::UpdatedDate, sea_orm::Order::Desc);
+        query = query.order_by(flashcard_type::Column::UpdatedOn, sea_orm::Order::Desc);
 
         let total_count = match query.clone().count(db).await {
             Ok(count) => count,
@@ -60,8 +60,8 @@ impl FlashcardTypeRepositoryTrait for FlashcardTypeRepository {
                         id: i.id,
                         name: i.name,
                         description: i.description,
-                        created_date: i.created_date.with_timezone(&Utc),
-                        updated_date: i.updated_date.with_timezone(&Utc),
+                        created_on: i.created_on.with_timezone(&Utc),
+                        updated_on: i.updated_on.with_timezone(&Utc),
                         created_by_id: i.created_by_id,
                         updated_by_id: i.updated_by_id,
                         is_actived: i.is_actived,
@@ -86,8 +86,8 @@ impl FlashcardTypeRepositoryTrait for FlashcardTypeRepository {
                     id: f.id,
                     name: f.name,
                     description: f.description,
-                    created_date: f.created_date.with_timezone(&Utc),
-                    updated_date: f.updated_date.with_timezone(&Utc),
+                    created_on: f.created_on.with_timezone(&Utc),
+                    updated_on: f.updated_on.with_timezone(&Utc),
                     created_by_id: f.created_by_id,
                     updated_by_id: f.updated_by_id,
                     is_actived: f.is_actived,
@@ -127,8 +127,8 @@ impl FlashcardTypeRepositoryTrait for FlashcardTypeRepository {
                 id: i.id,
                 name: i.name,
                 description: i.description,
-                created_date: i.created_date.with_timezone(&Utc),
-                updated_date: i.updated_date.with_timezone(&Utc),
+                created_on: i.created_on.with_timezone(&Utc),
+                updated_on: i.updated_on.with_timezone(&Utc),
                 created_by_id: i.created_by_id,
                 updated_by_id: i.updated_by_id,
                 is_actived: i.is_actived,
@@ -146,8 +146,8 @@ impl FlashcardTypeRepositoryTrait for FlashcardTypeRepository {
             description: Set(flashcard_type_req.description),
             created_by_id: Set(flashcard_type_req.created_by_id),
             updated_by_id: Set(flashcard_type_req.updated_by_id),
-            created_date: Set(Utc::now().fixed_offset()),
-            updated_date: Set(Utc::now().fixed_offset()),
+            created_on: Set(Utc::now().fixed_offset()),
+            updated_on: Set(Utc::now().fixed_offset()),
             is_actived: Set(true),
             ..Default::default()
         };
@@ -179,7 +179,7 @@ impl FlashcardTypeRepositoryTrait for FlashcardTypeRepository {
         };
 
         flashcard_type.updated_by_id = Set(flashcard_type_req.updated_by_id);
-        flashcard_type.updated_date = Set(Utc::now().fixed_offset());
+        flashcard_type.updated_on = Set(Utc::now().fixed_offset());
         flashcard_type.description = Set(flashcard_type_req.description);
         flashcard_type.name = Set(flashcard_type_req.name);
         flashcard_type.is_actived = Set(flashcard_type_req.is_actived);

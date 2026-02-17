@@ -12,8 +12,8 @@ pub struct Model {
     pub content_type: String,
     #[sea_orm(column_type = "VarBinary(StringLen::None)")]
     pub data: Vec<u8>,
-    pub created_date: DateTimeWithTimeZone,
-    pub updated_date: DateTimeWithTimeZone,
+    pub created_on: DateTimeWithTimeZone,
+    pub updated_on: DateTimeWithTimeZone,
     pub is_actived: bool,
     pub created_by_id: i32,
     pub updated_by_id: i32,

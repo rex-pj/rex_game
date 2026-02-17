@@ -29,12 +29,12 @@ impl MigrationTrait for Migration {
                             .to(User::Table, User::Id),
                     )
                     .col(
-                        ColumnDef::new(MailTemplate::CreatedDate)
+                        ColumnDef::new(MailTemplate::CreatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(MailTemplate::UpdatedDate)
+                        ColumnDef::new(MailTemplate::UpdatedOn)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )

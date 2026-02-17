@@ -37,8 +37,8 @@ impl PermissionRepositoryTrait for PermissionRepository {
             module: Set(permission_req.module),
             created_by_id: Set(permission_req.created_by_id),
             updated_by_id: Set(permission_req.updated_by_id),
-            created_date: Set(Utc::now().fixed_offset()),
-            updated_date: Set(Utc::now().fixed_offset()),
+            created_on: Set(Utc::now().fixed_offset()),
+            updated_on: Set(Utc::now().fixed_offset()),
             is_actived: Set(true),
             ..Default::default()
         };
@@ -159,13 +159,13 @@ impl PermissionRepositoryTrait for PermissionRepository {
                 permission::Column::Description,
                 permission::Column::Code,
                 permission::Column::Module,
-                permission::Column::CreatedDate,
-                permission::Column::UpdatedDate,
+                permission::Column::CreatedOn,
+                permission::Column::UpdatedOn,
                 permission::Column::CreatedById,
                 permission::Column::UpdatedById,
                 permission::Column::IsActived,
             ])
-            .order_by(permission::Column::UpdatedDate, sea_orm::Order::Desc);
+            .order_by(permission::Column::UpdatedOn, sea_orm::Order::Desc);
 
         match page_size_option {
             Some(page_size) if page > 0 => {
@@ -234,7 +234,7 @@ impl PermissionRepositoryTrait for PermissionRepository {
         permission.code = Set(permission_req.code);
         permission.module = Set(permission_req.module);
         permission.is_actived = Set(permission_req.is_actived);
-        permission.updated_date = Set(Utc::now().fixed_offset());
+        permission.updated_on = Set(Utc::now().fixed_offset());
 
         match Permission::update(permission).exec(db).await {
             Ok(_) => Ok(true),
@@ -250,8 +250,8 @@ fn map_entity_to_model(permission: permission::Model) -> PermissionModel {
         description: permission.description,
         code: permission.code,
         module: permission.module,
-        created_date: permission.created_date.with_timezone(&Utc),
-        updated_date: permission.updated_date.with_timezone(&Utc),
+        created_on: permission.created_on.with_timezone(&Utc),
+        updated_on: permission.updated_on.with_timezone(&Utc),
         created_by_id: permission.created_by_id,
         updated_by_id: permission.updated_by_id,
         is_actived: permission.is_actived,

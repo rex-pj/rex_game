@@ -33,8 +33,8 @@ impl RoleRepositoryTrait for RoleRepository {
             description: Set(role_req.description),
             created_by_id: Set(role_req.created_by_id),
             updated_by_id: Set(role_req.updated_by_id),
-            created_date: Set(Utc::now().fixed_offset()),
-            updated_date: Set(Utc::now().fixed_offset()),
+            created_on: Set(Utc::now().fixed_offset()),
+            updated_on: Set(Utc::now().fixed_offset()),
             is_actived: Set(true),
             ..Default::default()
         };
@@ -126,7 +126,7 @@ impl RoleRepositoryTrait for RoleRepository {
             query = query.filter(role::Column::Description.eq(n));
         }
 
-        query = query.order_by(role::Column::UpdatedDate, sea_orm::Order::Desc);
+        query = query.order_by(role::Column::UpdatedOn, sea_orm::Order::Desc);
 
         match page_size_option {
             Some(page_size) if page > 0 => {
@@ -192,7 +192,7 @@ impl RoleRepositoryTrait for RoleRepository {
         role.description = Set(role_req.description);
         role.is_actived = Set(role_req.is_actived);
         role.name = Set(role_req.name);
-        role.updated_date = Set(Utc::now().fixed_offset());
+        role.updated_on = Set(Utc::now().fixed_offset());
 
         match Role::update(role).exec(db).await {
             Ok(_) => Ok(true),
@@ -206,8 +206,8 @@ fn map_entity_to_model(role: role::Model) -> RoleModel {
         id: role.id,
         name: role.name,
         description: role.description,
-        created_date: role.created_date.with_timezone(&Utc),
-        updated_date: role.updated_date.with_timezone(&Utc),
+        created_on: role.created_on.with_timezone(&Utc),
+        updated_on: role.updated_on.with_timezone(&Utc),
         created_by_id: role.created_by_id,
         updated_by_id: role.updated_by_id,
         is_actived: role.is_actived,

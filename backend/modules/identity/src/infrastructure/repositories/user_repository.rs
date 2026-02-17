@@ -63,7 +63,7 @@ impl UserRepositoryTrait for UserRepository {
         }
 
         query = query
-            .order_by(user::Column::UpdatedDate, sea_orm::Order::Desc)
+            .order_by(user::Column::UpdatedOn, sea_orm::Order::Desc)
             .distinct();
 
         let paginator = query.paginate(db, page_size);
@@ -85,8 +85,8 @@ impl UserRepositoryTrait for UserRepository {
                 display_name: i.display_name,
                 email: i.email,
                 status_id: i.status_id,
-                created_date: i.created_date.with_timezone(&Utc),
-                updated_date: i.updated_date.with_timezone(&Utc),
+                created_on: i.created_on.with_timezone(&Utc),
+                updated_on: i.updated_on.with_timezone(&Utc),
                 created_by_id: i.created_by_id,
                 updated_by_id: i.updated_by_id,
                 ..Default::default()
@@ -110,8 +110,8 @@ impl UserRepositoryTrait for UserRepository {
             status_id: Set(user_req.status_id),
             created_by_id: Set(user_req.created_by_id),
             updated_by_id: Set(user_req.updated_by_id),
-            created_date: Set(Utc::now().fixed_offset()),
-            updated_date: Set(Utc::now().fixed_offset()),
+            created_on: Set(Utc::now().fixed_offset()),
+            updated_on: Set(Utc::now().fixed_offset()),
             ..Default::default()
         };
 
@@ -159,8 +159,8 @@ impl UserRepositoryTrait for UserRepository {
             status_id: Set(user_req.status_id),
             created_by_id: Set(user_req.created_by_id),
             updated_by_id: Set(user_req.updated_by_id),
-            created_date: Set(Utc::now().fixed_offset()),
-            updated_date: Set(Utc::now().fixed_offset()),
+            created_on: Set(Utc::now().fixed_offset()),
+            updated_on: Set(Utc::now().fixed_offset()),
             ..Default::default()
         };
 
@@ -259,7 +259,7 @@ impl UserRepositoryTrait for UserRepository {
         };
 
         existing_user.updated_by_id = Set(user_req.updated_by_id);
-        existing_user.updated_date = Set(Utc::now().fixed_offset());
+        existing_user.updated_on = Set(Utc::now().fixed_offset());
         existing_user.display_name = Set(user_req.display_name);
         existing_user.email = Set(user_req.email);
         existing_user.name = Set(user_req.name);
@@ -282,8 +282,8 @@ fn map_entity_to_model(f: user::Model) -> UserModel {
         password_hash: f.password_hash,
         security_stamp: f.security_stamp,
         status_id: f.status_id,
-        created_date: f.created_date.with_timezone(&Utc),
-        updated_date: f.updated_date.with_timezone(&Utc),
+        created_on: f.created_on.with_timezone(&Utc),
+        updated_on: f.updated_on.with_timezone(&Utc),
         created_by_id: f.created_by_id,
         updated_by_id: f.updated_by_id,
     }

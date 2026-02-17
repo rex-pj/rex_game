@@ -1,10 +1,12 @@
 import { get, writable, type Writable } from "svelte/store";
 import { FlashcardApi } from "$lib/api/flashcardApi";
 import { FlashcardTypeApi } from "$lib/api/flashcardTypeApi";
+import { GameTypeAdminApi } from "$lib/api/gameTypeAdminApi";
 import Cookies from "js-cookie";
 import type { Pager } from "../../../../components/molecules/pagination/pager";
 import type { Flashcard, FlashcardDetail, FlashcardRequest } from "$lib/models/flashcard";
 import type { FlashcardType } from "$lib/models/flashcard-type";
+import type { GameType } from "$lib/models/game-type";
 import { getImageBase64Url } from "$lib/helpers/imageHelper";
 import * as accessService from "$lib/services/accessService";
 import type { CurrentUser } from "$lib/models/current-user";
@@ -15,6 +17,9 @@ const flashcardService: FlashcardApi = new FlashcardApi(new AdminClientApiOption
 const flashcardTypeService: FlashcardTypeApi = new FlashcardTypeApi(
   new AdminClientApiOptions(Cookies)
 );
+const gameTypeService: GameTypeAdminApi = new GameTypeAdminApi(
+  new AdminClientApiOptions(Cookies)
+);
 export const items: Writable<Flashcard[]> = writable([]);
 export const pager: Writable<Pager> = writable({ currentPage: 1, totalPages: 0 });
 const itemsPerPage = 10;
@@ -22,6 +27,7 @@ export const showCreationModal = writable(false);
 export const creationError = writable("");
 export const isSubmitting = writable(false);
 export const flashcardTypeSuggestions: Writable<FlashcardType[]> = writable([]);
+export const gameTypeSuggestions: Writable<GameType[]> = writable([]);
 export const edittingData: Writable<FlashcardRequest> = writable({
   id: 0,
   name: "",
@@ -72,6 +78,11 @@ export const create = async (data: FlashcardRequest) => {
       formData.append(`type_ids[${index}]`, item.toString());
     });
   }
+  if (data.game_type_ids) {
+    data.game_type_ids.forEach((item, index) => {
+      formData.append(`game_type_ids[${index}]`, item.toString());
+    });
+  }
 
   if (data.image_data !== undefined && data.image_data !== null) {
     formData.append("image_data", data.image_data);
@@ -101,6 +112,11 @@ export const update = async (id: number, data: FlashcardRequest) => {
   if (data.type_ids) {
     data.type_ids.forEach((item, index) => {
       formData.append(`type_ids[${index}]`, item.toString());
+    });
+  }
+  if (data.game_type_ids) {
+    data.game_type_ids.forEach((item, index) => {
+      formData.append(`game_type_ids[${index}]`, item.toString());
     });
   }
 
@@ -160,11 +176,15 @@ export const getById = async (id: number) => {
 export const toggleCreationModal = async (isShown: boolean = false) => {
   showCreationModal.set(isShown);
   if (isShown) {
-    await flashcardTypeService.getList(fetch).then((data) => {
-      flashcardTypeSuggestions.set(data.items);
-    });
+      const [typeData, gameTypeData] = await Promise.all([
+        flashcardTypeService.getList(fetch),
+        gameTypeService.getList(fetch, 1, 100),
+      ]);
+      flashcardTypeSuggestions.set(typeData.items);
+      gameTypeSuggestions.set(gameTypeData.items);
   } else {
     flashcardTypeSuggestions.set([]);
+    gameTypeSuggestions.set([]);
   }
   edittingData.set({
     id: 0,
@@ -176,9 +196,13 @@ export const toggleCreationModal = async (isShown: boolean = false) => {
 };
 
 export const openEditingModal = async (id: number) => {
-  await flashcardTypeService.getList(fetch).then((data) => {
-    flashcardTypeSuggestions.set(data.items);
-  });
+  const [typeData, gameTypeData] = await Promise.all([
+    flashcardTypeService.getList(fetch),
+    gameTypeService.getList(fetch, 1, 100),
+  ]);
+  flashcardTypeSuggestions.set(typeData.items);
+  gameTypeSuggestions.set(gameTypeData.items);
+
   getById(id).then(async (response: FlashcardDetail) => {
     if (response) {
       const imageBase64Url = await getImageBase64Url(response.image_id);
@@ -188,10 +212,22 @@ export const openEditingModal = async (id: number) => {
         description: response.description,
         sub_description: response.sub_description ?? null,
         original_image_url: imageBase64Url,
+        type_ids: response.flashcard_types
+          ? response.flashcard_types.map((type: FlashcardType) => type.id)
+          : [],
         types: response.flashcard_types
           ? response.flashcard_types.map((type: FlashcardType) => ({
               value: type.id,
               label: type.name,
+            }))
+          : [],
+        game_type_ids: response.game_types
+          ? response.game_types.map((gt) => gt.id)
+          : [],
+        game_types: response.game_types
+          ? response.game_types.map((gt) => ({
+              value: gt.id,
+              label: gt.name,
             }))
           : [],
       };
