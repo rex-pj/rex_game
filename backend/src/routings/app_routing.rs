@@ -15,6 +15,7 @@ use crate::{
     handlers::{
         authentication_handler::AuthenticationHandler, flashcard_handler::FlashcardHandler,
         flashcard_type_handler::FlashcardTypeHandler, game_admin_handler::GameAdminHandler,
+        health_handler::HealthHandler,
         mail_template_handler::MailTemplateHandler, permission_handler::PermissionHandler,
         role_handler::RoleHandler, scoring_handler::ScoringHandler,
         setup_handler::SetupHandler, user_handler::UserHandler,
@@ -123,7 +124,10 @@ impl AppRouting {
                 async move { limiter.middleware(req, next).await }
             }));
 
+        let health_routes = Router::new().route("/health", get(HealthHandler::check));
+
         router
+            .merge(health_routes)
             .merge(auth_routes)
             .merge(password_routes)
             .merge(general_routes)
