@@ -192,7 +192,7 @@ jobs:
             sudo cp /tmp/frontend-package-lock.json /var/www/rex-game/client-app/package-lock.json
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-            cd /var/www/rex-game/client-app && sudo npm ci --omit=dev
+            cd /var/www/rex-game/client-app && sudo env "PATH=$PATH" npm ci --omit=dev
 
             # Set ownership
             sudo chown -R www-data:www-data /var/www/rex-game/client-app/build
