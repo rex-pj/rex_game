@@ -2,10 +2,14 @@
   import type { LayoutProps } from "../$types";
   import {
     canReadAccesses,
+    canReadAchievements,
     canReadFlashcards,
     canReadFlashcardTypes,
+    canReadGameSessions,
+    canReadGameTypes,
     canReadPermissions,
     canReadRoles,
+    canReadUserStats,
     canReadUsers,
   } from "$lib/services/accessService";
 
@@ -20,24 +24,38 @@
     },
     {
       href: "/admin/flashcard-types",
-      icon: "fas fa-tags fa-2x text-success",
+      icon: "fas fa-layer-group fa-2x text-success",
       title: "Flashcard Types",
       desc: "Manage flashcard types.",
       canRead: canReadFlashcardTypes(data.adminUser),
     },
     {
-      href: "/admin/permissions",
-      icon: "fas fa-key fa-2x text-warning",
-      title: "Permissions",
-      desc: "Set up and control access permissions.",
-      canRead: canReadPermissions(data.adminUser),
+      href: "/admin/game-types",
+      icon: "fas fa-gamepad fa-2x text-primary",
+      title: "Game Types",
+      desc: "Manage game types and assign flashcards.",
+      canRead: canReadGameTypes(data.adminUser),
     },
     {
-      href: "/admin/roles",
-      icon: "fas fa-user-shield fa-2x text-info",
-      title: "Roles",
-      desc: "Create and assign roles to users.",
-      canRead: canReadRoles(data.adminUser),
+      href: "/admin/achievements",
+      icon: "fas fa-trophy fa-2x text-warning",
+      title: "Achievements",
+      desc: "Manage achievements and rewards.",
+      canRead: canReadAchievements(data.adminUser),
+    },
+    {
+      href: "/admin/game-sessions",
+      icon: "fas fa-clock-rotate-left fa-2x text-info",
+      title: "Game Sessions",
+      desc: "View and manage game sessions.",
+      canRead: canReadGameSessions(data.adminUser),
+    },
+    {
+      href: "/admin/user-stats",
+      icon: "fas fa-chart-line fa-2x text-success",
+      title: "User Stats",
+      desc: "View and reset user statistics.",
+      canRead: canReadUserStats(data.adminUser),
     },
     {
       href: "/admin/users",
@@ -47,15 +65,29 @@
       canRead: canReadUsers(data.adminUser),
     },
     {
+      href: "/admin/roles",
+      icon: "fas fa-user-shield fa-2x text-info",
+      title: "Roles",
+      desc: "Create and assign roles to users.",
+      canRead: canReadRoles(data.adminUser),
+    },
+    {
+      href: "/admin/permissions",
+      icon: "fas fa-key fa-2x text-warning",
+      title: "Permissions",
+      desc: "Set up and control access permissions.",
+      canRead: canReadPermissions(data.adminUser),
+    },
+    {
       href: "/admin/accesses",
-      icon: "fas fa-door-open fa-2x text-secondary",
+      icon: "fas fa-user-lock fa-2x text-secondary",
       title: "Accesses",
       desc: "Manage user and role access rights.",
       canRead: canReadAccesses(data.adminUser),
     },
     {
       href: "/admin/mail-templates",
-      icon: "fa-solid fa-envelope-open-text",
+      icon: "fas fa-envelope-open-text fa-2x text-secondary",
       title: "Mail Templates",
       desc: "Manage mail templates.",
       canRead: canReadAccesses(data.adminUser),
@@ -82,4 +114,3 @@
     {/each}
   </div>
 </div>
-<!-- Phần còn lại giữ nguyên -->

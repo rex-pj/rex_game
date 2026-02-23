@@ -26,6 +26,12 @@
   };
 </script>
 
+<svelte:head>
+  <title>Đăng nhập — Qhortus</title>
+  <meta name="description" content="Đăng nhập vào Qhortus để tiếp tục học flashcard và theo dõi tiến trình của bạn." />
+  <meta name="robots" content="noindex, nofollow" />
+</svelte:head>
+
 <div class="auth-wrapper">
   <div class="container vh-100 d-flex align-items-center justify-content-center">
     <div class="row w-100 auth-card shadow rounded overflow-hidden" style="max-width: 900px;">

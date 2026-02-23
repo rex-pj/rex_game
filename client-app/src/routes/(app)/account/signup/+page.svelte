@@ -13,6 +13,12 @@
   }
 </script>
 
+<svelte:head>
+  <title>Đăng ký tài khoản — Qhortus</title>
+  <meta name="description" content="Tạo tài khoản miễn phí trên Qhortus để bắt đầu học flashcard qua game ngay hôm nay!" />
+  <meta name="robots" content="noindex, nofollow" />
+</svelte:head>
+
 {#if !data.currentUser}
   <div class="auth-wrapper">
     <div class="container vh-100 d-flex align-items-center justify-content-center">
@@ -21,8 +27,7 @@
         <div class="col-md-6 auth-intro text-white d-flex flex-column justify-content-center p-5">
           <h1 class="mb-3">Chào mừng bạn!</h1>
           <p>
-            Đăng ký tài khoản để trải nghiệm các tính năng tuyệt vời và học tập vui vẻ cùng Rex
-            Game!
+            Đăng ký tài khoản để trải nghiệm các tính năng tuyệt vời và học tập vui vẻ cùng qHortus!
           </p>
         </div>
 

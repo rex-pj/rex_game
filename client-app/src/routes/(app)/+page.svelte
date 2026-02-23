@@ -6,6 +6,14 @@
   import FlashcardSpelling from "../../components/organisms/flashcards/FlashcardSpelling.svelte";
 </script>
 
+<svelte:head>
+  <title>Qhortus — Học flashcard qua game thú vị</title>
+  <meta name="description" content="Học flashcard theo cách gamified với Quiz, Ghép đôi, Spelling và Speed Match. Nâng cao kiến thức mỗi ngày cùng Qhortus!" />
+  <meta property="og:title" content="Qhortus — Học flashcard qua game thú vị" />
+  <meta property="og:description" content="Học flashcard theo cách gamified với Quiz, Ghép đôi, Spelling và Speed Match." />
+  <meta property="og:url" content="/" />
+</svelte:head>
+
 <div class="home-wrapper">
   <div class="container py-5">
     <div class="welcome-section text-center mb-5">

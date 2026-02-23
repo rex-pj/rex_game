@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from "$app/state";
   import { onMount } from "svelte";
   import "bootstrap/dist/css/bootstrap.min.css";
   import "../assets/css/base.css";
@@ -10,5 +11,9 @@
     await import("bootstrap");
   });
 </script>
+
+<svelte:head>
+  <link rel="canonical" href={page.url.href} />
+</svelte:head>
 
 {@render children()}

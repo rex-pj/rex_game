@@ -38,7 +38,11 @@
 </script>
 
 <svelte:head>
-  <title>Leaderboard - Qhortus</title>
+  <title>Leaderboard — Xếp hạng người chơi — Qhortus</title>
+  <meta name="description" content="Xem bảng xếp hạng toàn cầu trên Qhortus. Ai đang đứng đầu về điểm số, chuỗi ngày liên tiếp và độ chính xác?" />
+  <meta property="og:title" content="Leaderboard — Xếp hạng người chơi — Qhortus" />
+  <meta property="og:description" content="Xem bảng xếp hạng toàn cầu. Cạnh tranh, leo hạng và khẳng định vị trí của bạn!" />
+  <meta property="og:url" content="/leaderboard" />
 </svelte:head>
 
 <div class="container py-4">

@@ -1,6 +1,6 @@
-# Contributing to Rex Game
+# Contributing to qHortus
 
-Thank you for your interest in contributing to Rex Game! This document provides guidelines and instructions for contributing to the project.
+Thank you for your interest in contributing to qHortus! This document provides guidelines and instructions for contributing to the project.
 
 ---
 
@@ -543,7 +543,7 @@ If you have questions about contributing:
 
 ## 10. Thank You!
 
-Your contributions make Rex Game better for everyone. We appreciate your time and effort!
+Your contributions make qHortus better for everyone. We appreciate your time and effort!
 
 ---
 

@@ -1,6 +1,6 @@
-# Rex Game API Documentation
+# qHortus API Documentation
 
-This document provides comprehensive documentation for the Rex Game REST API.
+This document provides comprehensive documentation for the qHortus REST API.
 
 ---
 

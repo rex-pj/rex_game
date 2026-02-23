@@ -1,4 +1,4 @@
-# Rex Game
+# qHortus
 
 A web-based educational flashcard game designed for interactive learning through gamified experiences.
 
@@ -11,7 +11,7 @@ A web-based educational flashcard game designed for interactive learning through
 
 ## 1. About
 
-Rex Game is an interactive web-based flashcard learning platform that makes education fun through gamification. Originally created as a learning tool, it features multiple game modes, progress tracking, achievements, and leaderboards to encourage continuous learning.
+qHortus is an interactive web-based flashcard learning platform that makes education fun through gamification. Originally created as a learning tool, it features multiple game modes, progress tracking, achievements, and leaderboards to encourage continuous learning.
 
 ### Key Features
 
@@ -287,7 +287,7 @@ CORS_ALLOW_ORIGINS=http://localhost:5173,https://localhost:5173
 # Email - Resend (https://resend.com)
 EMAIL_PROVIDER=resend
 RESEND_API_KEY=re_xxxxxxxxxx
-EMAIL_FROM_NAME=Rex Game
+EMAIL_FROM_NAME=qHortus
 EMAIL_FROM_ADDRESS=onboarding@resend.dev
 
 # Platform URLs

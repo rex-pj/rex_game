@@ -51,7 +51,11 @@
 </script>
 
 <svelte:head>
-  <title>Achievements - Qhortus</title>
+  <title>Thành tích — Achievements — Qhortus</title>
+  <meta name="description" content="Khám phá và mở khóa các thành tích trong Qhortus. Chinh phục quiz hoàn hảo, chuỗi ngày liên tiếp và nhiều mốc thú vị khác!" />
+  <meta property="og:title" content="Thành tích — Achievements — Qhortus" />
+  <meta property="og:description" content="Mở khóa thành tích qua các thử thách học tập. Bạn đã chinh phục được bao nhiêu?" />
+  <meta property="og:url" content="/achievements" />
 </svelte:head>
 
 <div class="container py-4">

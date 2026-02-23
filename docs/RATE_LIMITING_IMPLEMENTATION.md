@@ -123,7 +123,7 @@ export RUST_LOG=rex_game=trace,sqlx=debug
   "threadId": "main",
   "file": "src/startup.rs",
   "line": 53,
-  "message": "Starting Rex Game Backend Server"
+  "message": "Starting qHortus Backend Server"
 }
 ```
 
@@ -141,14 +141,14 @@ export RUST_LOG=rex_game=trace,sqlx=debug
   "timestamp": "2026-01-17T10:30:46.789Z",
   "level": "INFO",
   "target": "rex_game::startup",
-  "message": "✅ Rex Game Backend is running at: http://localhost:3400"
+  "message": "✅ qHortus Backend is running at: http://localhost:3400"
 }
 ```
 
 ### Startup Messages
 
 ```
-✅ Rex Game Backend is running at: http://localhost:3400
+✅ qHortus Backend is running at: http://localhost:3400
 🛡️  Rate limiting enabled: Auth (5/sec), API (30/sec), Password (3/min)
 📊 Logging level: INFO (set RUST_LOG env var to change)
 ```

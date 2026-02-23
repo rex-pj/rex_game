@@ -1,6 +1,6 @@
-# Rex Game - Deployment Guide
+# qHortus - Deployment Guide
 
-This guide walks you through deploying the Rex Game application to Google Compute Engine with CI/CD using GitHub Actions.
+This guide walks you through deploying the qHortus application to Google Compute Engine with CI/CD using GitHub Actions.
 
 ## Table of Contents
 
@@ -63,7 +63,7 @@ Before starting, ensure you have:
 
 - [ ] Google Cloud Platform account with billing enabled
 - [ ] Domain name (optional but recommended for SSL)
-- [ ] GitHub repository with the Rex Game code
+- [ ] GitHub repository with the qHortus code
 - [ ] Basic knowledge of Linux command line
 
 ---
@@ -250,7 +250,7 @@ sudo ufw status
 EMAIL_PROVIDER=resend
 RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxx
 EMAIL_FROM_ADDRESS=noreply@yourdomain.com
-EMAIL_FROM_NAME="Rex Game"
+EMAIL_FROM_NAME="qHortus"
 ```
 
 ---
@@ -281,7 +281,7 @@ nano /var/www/rex-game/backend/environments/.env.prod
 
 ```bash
 # ============================================================
-# Rex Game Backend - Production Environment
+# qHortus Backend - Production Environment
 # ============================================================
 
 # Database
@@ -299,7 +299,7 @@ CORS_ALLOW_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
 EMAIL_PROVIDER=resend
 RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxx
 EMAIL_FROM_ADDRESS=noreply@yourdomain.com
-EMAIL_FROM_NAME="Rex Game"
+EMAIL_FROM_NAME="qHortus"
 
 # Platform URLs
 PLATFORM_URL=https://yourdomain.com
@@ -449,7 +449,7 @@ sudo nano /etc/systemd/system/rex-backend.service
 
 ```ini
 [Unit]
-Description=Rex Game Backend API
+Description=qHortus Backend API
 After=network.target postgresql.service
 Wants=postgresql.service
 
@@ -484,7 +484,7 @@ sudo nano /etc/systemd/system/rex-frontend.service
 
 ```ini
 [Unit]
-Description=Rex Game Frontend (SvelteKit)
+Description=qHortus Frontend (SvelteKit)
 After=network.target
 
 [Service]

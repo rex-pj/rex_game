@@ -1,6 +1,6 @@
-# Rex Game Database Schema
+# qHortus Database Schema
 
-This document describes the database schema and entity relationships for Rex Game.
+This document describes the database schema and entity relationships for qHortus.
 
 ---
 
@@ -22,7 +22,7 @@ This document describes the database schema and entity relationships for Rex Gam
 
 ## 1. Overview
 
-Rex Game uses PostgreSQL as its primary database with SeaORM as the ORM layer. The schema follows Domain-Driven Design principles with clear separation between different bounded contexts.
+qHortus uses PostgreSQL as its primary database with SeaORM as the ORM layer. The schema follows Domain-Driven Design principles with clear separation between different bounded contexts.
 
 ### Database Statistics
 

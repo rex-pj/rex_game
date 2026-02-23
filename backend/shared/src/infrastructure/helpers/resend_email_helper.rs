@@ -41,7 +41,7 @@ impl ResendEmailHelper {
         let from_email = std::env::var("EMAIL_FROM_ADDRESS")
             .map_err(|_| "EMAIL_FROM_ADDRESS not set".to_string())?;
         let from_name =
-            std::env::var("EMAIL_FROM_NAME").unwrap_or_else(|_| "Rex Game".to_string());
+            std::env::var("EMAIL_FROM_NAME").unwrap_or_else(|_| "qHortus".to_string());
 
         Ok(Self::new(api_key, from_email, from_name))
     }

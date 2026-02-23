@@ -55,7 +55,7 @@ pub async fn start() {
         .json()
         .init();
 
-    tracing::info!("Starting Rex Game Backend Server");
+    tracing::info!("Starting qHortus Backend Server");
 
     let configuration_helper = Arc::new(ConfigurationHelper::new());
     let connection_str = configuration_helper.get("DATABASE_URL");

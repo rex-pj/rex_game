@@ -10,14 +10,14 @@ static DEFAULTS: Lazy<HashMap<&'static str, &'static str>> = Lazy::new(|| {
     let mut m = HashMap::new();
     m.insert("SERVER_HOST", "0.0.0.0");
     m.insert("SERVER_PORT", "3400");
-    m.insert("APP_NAME", "Rex Game");
+    m.insert("APP_NAME", "qHortus");
     m.insert("JWT_CLIENT_ID", "rex_game");
     m.insert("JWT_EXPIRATION", "10000000000");
     m.insert("JWT_REFRESH_EXPIRATION", "1000000000");
     m.insert("EMAIL_PROVIDER", "smtp");
     m.insert("SMTP_HOST", "smtp.gmail.com");
     m.insert("SMTP_PORT", "587");
-    m.insert("PLATFORM_NAME", "Rex Game");
+    m.insert("PLATFORM_NAME", "qHortus");
     m
 });
 

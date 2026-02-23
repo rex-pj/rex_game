@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /account/confirm
+Disallow: /account/reset-password
+Disallow: /account/forgot-password-success
+Disallow: /account/signup-success
+
+Sitemap: /sitemap.xml
