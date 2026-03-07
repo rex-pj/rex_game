@@ -161,7 +161,7 @@
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     color: white;
     display: flex;
     align-items: center;
@@ -170,17 +170,20 @@
     font-size: 1.1rem;
   }
 
+  /* #1 — Gold */
   .table-warning .avatar-circle {
-    background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
   }
 
+  /* #2 — Silver */
   .table-secondary .avatar-circle {
-    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-    color: #333;
+    background: linear-gradient(135deg, #e2e8f0 0%, #9ca3af 100%);
+    color: #334155;
   }
 
+  /* #3 — Bronze */
   .table-info .avatar-circle {
-    background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
+    background: linear-gradient(135deg, #d97706 0%, #92400e 100%);
   }
 
   /* Rank medal colors */

@@ -4,7 +4,10 @@
   import type { CurrentUser } from "$lib/models/current-user";
   import * as accessService from "$lib/services/accessService";
 
-  let navItems = [{ name: "Flashcard", href: "/flashcard", actived: true }];
+  let navItems = [
+    { name: "Flashcard", href: "/flashcard", actived: true },
+    { name: "Giới thiệu", href: "/about", actived: false },
+  ];
   const { currentUser }: { currentUser: CurrentUser } = $props();
   async function logout() {
     await accessService.logout();

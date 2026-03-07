@@ -25,10 +25,13 @@
       <div class="row w-100 auth-card shadow rounded overflow-hidden" style="max-width: 900px;">
         <!-- Khung giới thiệu bên trái -->
         <div class="col-md-6 auth-intro text-white d-flex flex-column justify-content-center p-5">
-          <h1 class="mb-3">Chào mừng bạn!</h1>
-          <p>
-            Đăng ký tài khoản để trải nghiệm các tính năng tuyệt vời và học tập vui vẻ cùng qHortus!
-          </p>
+          <h1 class="mb-3">Bạn bè đang leo rank.<br/>Còn bạn? 🚀</h1>
+          <ul class="list-unstyled mt-2" style="line-height: 2;">
+            <li><i class="fa-solid fa-check me-2" style="color:#93c5fd"></i>Lưu điểm cao và streak của bạn</li>
+            <li><i class="fa-solid fa-check me-2" style="color:#93c5fd"></i>Lên bảng xếp hạng toàn server</li>
+            <li><i class="fa-solid fa-check me-2" style="color:#93c5fd"></i>Mở khóa thành tích và huy hiệu</li>
+            <li><i class="fa-solid fa-check me-2" style="color:#93c5fd"></i>Không cần thẻ tín dụng</li>
+          </ul>
         </div>
 
         <!-- Khung đăng ký bên phải -->
@@ -148,9 +151,9 @@
     font-weight: 700;
   }
 
-  /* Text in intro section */
-  .auth-intro p {
-    font-size: 1.1rem;
-    line-height: 1.6;
+  /* List in intro section */
+  .auth-intro ul {
+    font-size: 1rem;
+    opacity: 0.92;
   }
 </style>

@@ -508,3 +508,35 @@ body {
     transform: rotate(360deg);
   }
 }
+
+/* ========================================
+   MOBILE UX FIXES
+   ======================================== */
+
+/* Prevent iOS from zooming on input focus (font-size < 16px triggers zoom) */
+@media (max-width: 768px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Prevent accidental text selection on game interactive elements */
+.tab-content,
+.tab-pane,
+.card,
+.flashcard,
+.game-card {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Re-enable selection inside actual input fields */
+.tab-content input,
+.tab-pane input,
+.tab-content textarea,
+.tab-pane textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}

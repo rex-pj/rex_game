@@ -5,27 +5,41 @@
 <footer class="footer">
   <div class="container">
     <div class="row text-center text-md-start">
-      <div class="col-md-2 mb-3">
-        <enhanced:img class="footer-logo" src="../../assets/imgs/logo.png" alt="logo" />
+      <div class="col-md-4 mb-4">
+        <a class="footer-brand" href="/">
+          <enhanced:img class="footer-logo" src="../../assets/imgs/logo.png" alt="logo" />
+          <span class="footer-brand-name">Qhortus</span>
+        </a>
+        <p class="footer-text mt-3">Nền tảng học flashcard qua game tương tác. Nâng cao kiến thức mỗi ngày!</p>
       </div>
-      <div class="col-md-2 mb-3">
+      <div class="col-md-3 mb-4">
+        <h5 class="footer-heading">Khám phá</h5>
+        <ul class="footer-list">
+          <li><a href="/flashcard" class="footer-link">Chơi Flashcard</a></li>
+          <li><a href="/leaderboard" class="footer-link">Bảng xếp hạng</a></li>
+          <li><a href="/achievements" class="footer-link">Thành tích</a></li>
+          <li><a href="/about" class="footer-link">Giới thiệu</a></li>
+        </ul>
+      </div>
+      <div class="col-md-3 mb-4">
+        <h5 class="footer-heading">Pháp lý</h5>
+        <ul class="footer-list">
+          <li><a href="/privacy-policy" class="footer-link">Chính sách bảo mật</a></li>
+          <li><a href="/privacy-policy#terms" class="footer-link">Điều khoản sử dụng</a></li>
+        </ul>
+      </div>
+      <div class="col-md-2 mb-4">
         <h5 class="footer-heading">Liên hệ</h5>
-        <p class="footer-text mb-0">Email: contact@qhortus.com</p>
-      </div>
-      <div class="col-md-2 mb-3">
-        <h5 class="footer-heading">Giới thiệu</h5>
-        <p class="footer-text mb-0">Tìm hiểu về sứ mệnh của chúng tôi.</p>
-      </div>
-      <div class="col-md-2 mb-3">
-        <h5 class="footer-heading">Cửa hàng</h5>
-        <p class="footer-text mb-0">Khám phá bộ sưu tập đồ chơi.</p>
-      </div>
-      <div class="col-md-2 mb-3">
-        <h5 class="footer-heading">Youtube</h5>
-        <a href="https://youtube.com" target="_blank" class="footer-link">Truy cập kênh</a>
+        <ul class="footer-list">
+          <li>
+            <a href="mailto:contact@qhortus.com" class="footer-link">
+              <i class="fa-solid fa-envelope me-1"></i>Email
+            </a>
+          </li>
+        </ul>
       </div>
     </div>
-    <div class="text-center mt-4">
+    <div class="text-center mt-3 pt-3 border-top border-white border-opacity-25">
       <p class="copyright mb-0">&copy; {currentYear} Qhortus. Bản quyền được bảo hộ.</p>
     </div>
   </div>
@@ -54,34 +68,52 @@
     line-height: 1.6;
   }
 
+  .footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+
+  .footer-brand-name {
+    font-family: var(--font-family-primary);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--white);
+  }
+
+  .footer-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .footer-list li {
+    margin-bottom: 0.5rem;
+  }
+
   .footer-link {
     font-family: var(--font-family-secondary);
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(255, 255, 255, 0.85);
     text-decoration: none;
     transition: all var(--transition-fast);
     display: inline-block;
+    font-size: 0.95rem;
   }
 
   .footer-link:hover {
-    color: var(--secondary-color);
-    transform: translateY(-2px);
+    color: var(--white);
+    transform: translateX(3px);
   }
 
   .copyright {
     font-family: var(--font-family-secondary);
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.8);
-    padding-top: 1rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.7);
   }
 
   .footer-logo {
-    max-width: 80px;
+    max-width: 40px;
     height: auto;
-    transition: all var(--transition-normal);
-  }
-
-  .footer-logo:hover {
-    transform: scale(1.1) rotate(5deg);
   }
 </style>

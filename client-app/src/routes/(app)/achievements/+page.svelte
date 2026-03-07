@@ -126,7 +126,7 @@
 
 <style>
   .bg-gradient-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   }
 
   .achievement-card {
@@ -135,12 +135,12 @@
   }
 
   .achievement-card.unlocked {
-    background: linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%);
-    border-color: #4caf50;
+    background: linear-gradient(135deg, #6ee7b7 0%, #10b981 100%);
+    border-color: #10b981;
   }
 
   .achievement-card.unlocked .achievement-icon {
-    color: #2e7d32;
+    color: #065f46;
   }
 
   .achievement-card.locked {

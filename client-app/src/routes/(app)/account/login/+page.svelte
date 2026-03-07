@@ -37,9 +37,9 @@
     <div class="row w-100 auth-card shadow rounded overflow-hidden" style="max-width: 900px;">
       <!-- Intro bên trái -->
       <div class="col-md-6 auth-intro text-white d-flex flex-column justify-content-center p-5">
-        <h2 class="mb-3">Chào mừng trở lại!</h2>
+        <h2 class="mb-3">Streak của bạn đang chờ! 🔥</h2>
         <p>
-          Đăng nhập để tiếp tục truy cập vào tài khoản của bạn và khám phá nhiều tính năng hấp dẫn.
+          Bỏ một ngày là mất streak. Đăng nhập ngay — bạn bè bạn đang leo bảng đấy.
         </p>
       </div>
       <!-- Khung đăng nhập bên phải -->
