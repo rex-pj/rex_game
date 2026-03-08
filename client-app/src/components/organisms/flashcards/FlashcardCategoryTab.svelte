@@ -1,48 +1,33 @@
-<ul class="nav nav-pills nav-fill" id="pills-tab" role="tablist">
-  <li class="nav-item" role="presentation">
-    <span
-      class="nav-link cloud-button active"
-      id="pills-matching-tab"
-      data-bs-toggle="pill"
-      data-bs-target="#pills-matching"
-      role="tab"
-      aria-controls="pills-matching"
-      aria-selected="false"><span>Ghép cặp</span></span
-    >
-  </li>
-  <li class="nav-item" role="presentation">
-    <span
-      class="nav-link cloud-button"
-      id="pills-quiz-tab"
-      data-bs-toggle="pill"
-      data-bs-target="#pills-quiz"
-      role="tab"
-      aria-controls="pills-quiz"
-      aria-selected="true"><span>Trắc nghiệm</span></span
-    >
-  </li>
-  <li class="nav-item" role="presentation">
-    <span
-      class="nav-link cloud-button"
-      id="pills-spelling-tab"
-      data-bs-toggle="pill"
-      data-bs-target="#pills-spelling"
-      role="tab"
-      aria-controls="pills-spelling"
-      aria-selected="false"><span>Đánh Vần</span></span
-    >
-  </li>
-  <li class="nav-item" role="presentation">
-    <span
-      class="nav-link cloud-button"
-      id="pills-speed-match-tab"
-      data-bs-toggle="pill"
-      data-bs-target="#pills-speed-match"
-      role="tab"
-      aria-controls="pills-speed-match"
-      aria-selected="false"><span>Tốc độ</span></span
-    >
-  </li>
+<script lang="ts">
+  interface Props {
+    activeMode: string;
+    onTabChange: (mode: string) => void;
+  }
+
+  let { activeMode, onTabChange }: Props = $props();
+
+  const tabs = [
+    { mode: 'matching',    label: 'Ghép cặp' },
+    { mode: 'quiz',        label: 'Trắc nghiệm' },
+    { mode: 'spelling',    label: 'Đánh Vần' },
+    { mode: 'speed-match', label: 'Tốc độ' },
+  ];
+</script>
+
+<ul class="nav nav-pills nav-fill" role="tablist">
+  {#each tabs as tab}
+    <li class="nav-item" role="presentation">
+      <button
+        class="nav-link cloud-button"
+        class:active={activeMode === tab.mode}
+        role="tab"
+        aria-selected={activeMode === tab.mode}
+        onclick={() => onTabChange(tab.mode)}
+      >
+        <span>{tab.label}</span>
+      </button>
+    </li>
+  {/each}
 </ul>
 
 <style>
@@ -74,6 +59,7 @@
     color: var(--text-primary);
     cursor: pointer;
     transition: background 0.8s ease;
+    width: 100%;
   }
 
   .nav-pills .nav-link.active {
@@ -93,7 +79,6 @@
       transform 0.8s ease;
   }
 
-  /* Small cloud parts */
   .cloud-button::before {
     width: 80px;
     height: 80px;
@@ -138,22 +123,20 @@
     box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
   }
 
-  /* Gentle floating animation */
   @keyframes float {
-    0%,
-    100% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-4px);
-    }
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-4px); }
   }
 
   .cloud-button {
     animation: float 3s ease-in-out infinite;
   }
 
-  /* Responsive for tablets */
+  .cloud-button.active {
+    animation: none;
+  }
+
+  /* Responsive — tablets */
   @media (max-width: 992px) {
     .nav-pills {
       margin: 30px 0 10px 0;
@@ -190,7 +173,7 @@
     }
   }
 
-  /* Responsive for mobile */
+  /* Responsive — mobile */
   @media (max-width: 576px) {
     .nav-pills {
       margin: 20px 0 10px 0;
@@ -214,7 +197,6 @@
       font-size: 0.9rem;
     }
 
-    /* Hide cloud decorations on mobile */
     .cloud-button::before,
     .cloud-button::after {
       display: none;

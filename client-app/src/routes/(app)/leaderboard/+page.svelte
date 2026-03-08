@@ -183,7 +183,7 @@
 
   /* #3 — Bronze */
   .table-info .avatar-circle {
-    background: linear-gradient(135deg, #d97706 0%, #92400e 100%);
+    background: linear-gradient(135deg, #cd7f32 0%, #a0522d 100%);
   }
 
   /* Rank medal colors */

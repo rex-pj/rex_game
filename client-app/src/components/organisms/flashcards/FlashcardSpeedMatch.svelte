@@ -24,6 +24,7 @@
   } from "$lib/stores/speed-match-game.store";
   import type { GameProgress } from "$lib/api/scoringApi";
   import { getAccuracy } from "$lib/helpers/speedMatchHelpers";
+  import { playSound, initSound } from "$lib/utils/sound";
   import Cookies from "js-cookie";
 
   // Props
@@ -132,6 +133,7 @@
 
     const isCorrect = userSaysMatch === pair.isMatch;
     lastAnswerCorrect = isCorrect;
+    playSound(isCorrect ? 'correct' : 'wrong');
 
     answerSpeedMatch(userSaysMatch);
 
@@ -164,8 +166,28 @@
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   }
 
+  // Sound — level complete and achievement
+  let _prevSpeedState = '';
+  $effect(() => {
+    const state = $speedMatchState;
+    if (state === 'completed' && _prevSpeedState !== 'completed') {
+      setTimeout(() => playSound('levelComplete'), 300);
+    }
+    _prevSpeedState = state;
+  });
+
+  let _prevSpeedAchievementCount = 0;
+  $effect(() => {
+    const count = $speedMatchNewAchievements.length;
+    if (count > 0 && count > _prevSpeedAchievementCount) {
+      playSound('achievement');
+    }
+    _prevSpeedAchievementCount = count;
+  });
+
   // Lifecycle
   onMount(() => {
+    initSound();
     checkSavedProgress();
   });
 

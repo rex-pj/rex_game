@@ -29,7 +29,33 @@
   import type { GameProgress } from "$lib/api/scoringApi";
   import { getHint, getAccuracy, scrambleLetters } from "$lib/helpers/spellingHelpers";
   import { formatTime } from "$lib/helpers/quizHelpers";
+  import { playSound, initSound } from "$lib/utils/sound";
+  import { browser } from "$app/environment";
   import Cookies from "js-cookie";
+
+  /** Đọc một chữ cái — giọng chậm, cao cho trẻ nhỏ */
+  function speakLetter(letter: string) {
+    if (!browser || !('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(letter.toUpperCase());
+    utter.lang = 'vi-VN';
+    utter.rate = 0.7;   // chậm hơn bình thường
+    utter.pitch = 1.3;  // cao hơn — thân thiện với trẻ
+    utter.volume = 1;
+    window.speechSynthesis.speak(utter);
+  }
+
+  /** Đọc toàn bộ từ */
+  function speakWord(word: string) {
+    if (!browser || !('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(word);
+    utter.lang = 'vi-VN';
+    utter.rate = 0.65;
+    utter.pitch = 1.2;
+    utter.volume = 1;
+    window.speechSynthesis.speak(utter);
+  }
 
   // Props
   interface Props {
@@ -60,6 +86,8 @@
       userInput = "";
       lastAnswerCorrect = null;
       lastCorrectAnswer = "";
+      // Tự động đọc từ sau 600ms để animation câu hỏi hiện xong
+      setTimeout(() => speakWord($currentSpellingQuestion!.correctAnswer), 600);
     }
   });
 
@@ -150,6 +178,7 @@
    */
   function handleLetterClick(letter: string, index: number) {
     if ($spellingState !== "idle") return;
+    speakLetter(letter);
     userInput += letter;
     // Remove used letter from bank
     letterBank = letterBank.filter((_, i) => i !== index);
@@ -177,6 +206,7 @@
     const isCorrect = userInput.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase();
     lastAnswerCorrect = isCorrect;
     lastCorrectAnswer = question.correctAnswer;
+    playSound(isCorrect ? 'correct' : 'wrong');
 
     submitSpellingAnswer(userInput);
   }
@@ -211,8 +241,28 @@
     await resetSpelling();
   }
 
+  // Sound — level complete and achievement
+  let _prevSpellingState = '';
+  $effect(() => {
+    const state = $spellingState;
+    if (state === 'completed' && _prevSpellingState !== 'completed') {
+      setTimeout(() => playSound('levelComplete'), 300);
+    }
+    _prevSpellingState = state;
+  });
+
+  let _prevSpellingAchievementCount = 0;
+  $effect(() => {
+    const count = $spellingNewAchievements.length;
+    if (count > 0 && count > _prevSpellingAchievementCount) {
+      playSound('achievement');
+    }
+    _prevSpellingAchievementCount = count;
+  });
+
   // Lifecycle
   onMount(() => {
+    initSound();
     checkSavedProgress();
   });
 
@@ -341,17 +391,28 @@
     <!-- Question Area -->
     {#if $currentSpellingQuestion}
       <div class="question-area">
-        <!-- Image -->
-        <div class="question-image-container">
-          <div
-            class="question-image"
-            style="background-image: url({$currentSpellingQuestion.imageUrl});"
-          ></div>
+        <!-- Image + nút nghe từ -->
+        <div class="question-image-wrapper">
+          <div class="question-image-container">
+            <div
+              class="question-image"
+              style="background-image: url({$currentSpellingQuestion.imageUrl});"
+            ></div>
+          </div>
+          <button
+            class="btn-speak-word"
+            onclick={() => speakWord($currentSpellingQuestion!.correctAnswer)}
+            title="Nghe lại từ"
+            aria-label="Nghe lại từ"
+          >
+            <i class="fa-solid fa-volume-high"></i>
+          </button>
         </div>
 
         <!-- Question Text -->
         <div class="question-text">
           <h3>Đánh vần tên hình ảnh này</h3>
+          <p class="question-hint-text">Nhấn vào từng chữ cái để nghe</p>
         </div>
 
         <!-- Hint Section -->
@@ -647,9 +708,15 @@
     gap: 20px;
   }
 
+  .question-image-wrapper {
+    position: relative;
+    width: 250px;
+    max-width: 100%;
+    flex-shrink: 0;
+  }
+
   .question-image-container {
     width: 100%;
-    max-width: 250px;
     aspect-ratio: 1;
     border-radius: 20px;
     overflow: hidden;
@@ -663,6 +730,42 @@
     background-size: cover;
     background-position: center;
     background-color: #f8fafc;
+  }
+
+  /* Nút loa — nghe lại từ */
+  .btn-speak-word {
+    position: absolute;
+    bottom: -14px;
+    right: -14px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border: 3px solid white;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .btn-speak-word:hover {
+    transform: scale(1.15);
+    box-shadow: 0 6px 18px rgba(59, 130, 246, 0.5);
+  }
+
+  .btn-speak-word:active {
+    transform: scale(0.95);
+  }
+
+  /* Gợi ý nhỏ dưới tiêu đề */
+  .question-hint-text {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    margin: 4px 0 0;
   }
 
   .question-text h3 {
@@ -1203,8 +1306,8 @@
       justify-content: center;
     }
 
-    .question-image-container {
-      max-width: 200px;
+    .question-image-wrapper {
+      width: 200px;
     }
 
     .input-text {
@@ -1237,8 +1340,8 @@
       border-radius: 16px;
     }
 
-    .question-image-container {
-      max-width: 180px;
+    .question-image-wrapper {
+      width: 180px;
     }
 
     .question-text h3 {

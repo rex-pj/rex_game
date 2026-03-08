@@ -1,28 +1,55 @@
-<script>
+<script lang="ts">
+  import { onMount } from "svelte";
+  import { goto } from "$app/navigation";
+  import { page } from "$app/state";
   import FlashcardCategoryTab from "../../components/organisms/flashcards/FlashcardCategoryTab.svelte";
   import FlashcardMatching from "../../components/organisms/flashcards/FlashcardMatching.svelte";
   import FlashcardQuiz from "../../components/organisms/flashcards/FlashcardQuiz.svelte";
   import FlashcardSpeedMatch from "../../components/organisms/flashcards/FlashcardSpeedMatch.svelte";
   import FlashcardSpelling from "../../components/organisms/flashcards/FlashcardSpelling.svelte";
   import OnboardingTour from "../../components/organisms/OnboardingTour.svelte";
+
+  const VALID_MODES = ["matching", "quiz", "spelling", "speed-match"];
+  let activeMode = $state("matching");
+
+  onMount(() => {
+    const mode = page.url.searchParams.get("mode");
+    if (mode && VALID_MODES.includes(mode)) {
+      activeMode = mode;
+    }
+  });
+
+  function handleModeChange(mode: string) {
+    activeMode = mode;
+    goto(`?mode=${mode}`, { replaceState: true });
+  }
 </script>
 
 <svelte:head>
   <title>Qhortus — Học flashcard qua game thú vị</title>
-  <meta name="description" content="Học flashcard theo cách gamified với Quiz, Ghép đôi, Spelling và Speed Match. Nâng cao kiến thức mỗi ngày cùng Qhortus!" />
+  <meta
+    name="description"
+    content="Học flashcard theo cách gamified với Quiz, Ghép đôi, Spelling và Speed Match. Nâng cao kiến thức mỗi ngày cùng Qhortus!"
+  />
   <meta property="og:title" content="Qhortus — Học flashcard qua game thú vị" />
-  <meta property="og:description" content="Học flashcard theo cách gamified với Quiz, Ghép đôi, Spelling và Speed Match." />
+  <meta
+    property="og:description"
+    content="Học flashcard theo cách gamified với Quiz, Ghép đôi, Spelling và Speed Match."
+  />
   <meta property="og:url" content="/" />
 </svelte:head>
 
 <div class="home-wrapper">
-
   <!-- Hero Section -->
   <section class="hero-section text-center py-5">
     <div class="container">
-      <h1 class="display-4 fw-bold mb-3">Học mãi mà vẫn quên?<br/>Thử cách não thực sự ghi nhớ.</h1>
+      <h1 class="display-4 fw-bold mb-3">
+        Học mãi mà vẫn quên?<br />Thử cách não thực sự ghi nhớ.
+      </h1>
       <p class="lead text-muted mx-auto mb-4" style="max-width: 580px;">
-        Áp lực thời gian + phần thưởng + cạnh tranh = công thức ghi nhớ thực sự. Qhortus biến mỗi lần ôn bài thành trận đấu — 5 phút đủ để não nhớ cả tuần.
+        Áp lực thời gian + phần thưởng + cạnh tranh = công thức ghi nhớ thực sự.
+        Qhortus biến mỗi lần ôn bài thành trận đấu — 5 phút đủ để não nhớ cả
+        tuần.
       </p>
       <div class="d-flex gap-3 justify-content-center flex-wrap mb-5">
         <a href="#game-section" class="btn btn-primary btn-lg px-4">
@@ -60,43 +87,31 @@
   <!-- Game Section -->
   <div class="container py-4" id="game-section">
     <h2 class="fw-bold mb-4 text-center">Chọn chủ đề và bắt đầu</h2>
-    <FlashcardCategoryTab></FlashcardCategoryTab>
-    <div class="tab-content" id="pills-tabContent">
+    <FlashcardCategoryTab {activeMode} onTabChange={handleModeChange} />
+    <div class="tab-content">
       <div
-        class="tab-pane show active"
-        id="pills-matching"
+        class="tab-pane {activeMode === 'matching' ? 'show active' : ''}"
         role="tabpanel"
-        aria-labelledby="pills-matching-tab"
-        tabindex="0"
       >
-        <FlashcardMatching></FlashcardMatching>
+        <FlashcardMatching />
       </div>
       <div
-        class="tab-pane"
-        id="pills-quiz"
+        class="tab-pane {activeMode === 'quiz' ? 'show active' : ''}"
         role="tabpanel"
-        aria-labelledby="pills-quiz-tab"
-        tabindex="0"
       >
-        <FlashcardQuiz></FlashcardQuiz>
+        <FlashcardQuiz />
       </div>
       <div
-        class="tab-pane"
-        id="pills-spelling"
+        class="tab-pane {activeMode === 'spelling' ? 'show active' : ''}"
         role="tabpanel"
-        aria-labelledby="pills-spelling-tab"
-        tabindex="0"
       >
-        <FlashcardSpelling></FlashcardSpelling>
+        <FlashcardSpelling />
       </div>
       <div
-        class="tab-pane"
-        id="pills-speed-match"
+        class="tab-pane {activeMode === 'speed-match' ? 'show active' : ''}"
         role="tabpanel"
-        aria-labelledby="pills-speed-match-tab"
-        tabindex="0"
       >
-        <FlashcardSpeedMatch></FlashcardSpeedMatch>
+        <FlashcardSpeedMatch />
       </div>
     </div>
   </div>
@@ -106,8 +121,12 @@
 
 <style>
   .hero-section {
-    background: linear-gradient(160deg, rgba(59,130,246,0.06) 0%, rgba(139,92,246,0.06) 100%);
-    border-bottom: 1px solid rgba(59,130,246,0.1);
+    background: linear-gradient(
+      160deg,
+      rgba(59, 130, 246, 0.06) 0%,
+      rgba(139, 92, 246, 0.06) 100%
+    );
+    border-bottom: 1px solid rgba(59, 130, 246, 0.1);
   }
 
   .hero-section h1 {
@@ -117,12 +136,12 @@
 
   .feature-badge {
     background: white;
-    border: 1px solid rgba(0,0,0,0.1);
+    border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 999px;
     padding: 6px 16px;
     font-size: 0.9rem;
     font-weight: 500;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
   }
 
   .home-wrapper {
@@ -153,9 +172,14 @@
   }
 
   .tab-pane {
-    padding: 5px 0px;
+    display: none;
+    padding: 5px 0;
     border-radius: 3px;
     background-color: var(--background-color);
+  }
+
+  .tab-pane.show.active {
+    display: block;
   }
 
   /* Responsive for tablets */

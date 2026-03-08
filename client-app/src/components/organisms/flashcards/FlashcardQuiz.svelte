@@ -23,6 +23,7 @@
   } from "$lib/stores/quiz-game.store";
   import type { GameProgress } from "$lib/api/scoringApi";
   import { formatTime, getAccuracy } from "$lib/helpers/quizHelpers";
+  import { playSound, initSound } from "$lib/utils/sound";
   import Cookies from "js-cookie";
 
   // Props
@@ -170,8 +171,35 @@
     return "disabled";
   }
 
+  // Sound — fire on answer and level complete
+  let _prevQuizState = '';
+  $effect(() => {
+    const state = $quizGameState;
+    const question = $currentQuestion;
+
+    if (state === 'answered' && _prevQuizState !== 'answered' && question?.answered) {
+      playSound(question.isCorrect ? 'correct' : 'wrong');
+    }
+
+    if (state === 'completed' && _prevQuizState !== 'completed') {
+      setTimeout(() => playSound('levelComplete'), 300);
+    }
+
+    _prevQuizState = state;
+  });
+
+  let _prevQuizAchievementCount = 0;
+  $effect(() => {
+    const count = $quizNewAchievements.length;
+    if (count > 0 && count > _prevQuizAchievementCount) {
+      playSound('achievement');
+    }
+    _prevQuizAchievementCount = count;
+  });
+
   // Lifecycle
   onMount(() => {
+    initSound();
     checkSavedProgress();
   });
 

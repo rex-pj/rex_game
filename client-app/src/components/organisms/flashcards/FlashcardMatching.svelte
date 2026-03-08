@@ -21,6 +21,7 @@
     startNewGame,
   } from "$lib/stores/flashcard-game.store";
   import type { GameProgress } from "$lib/api/scoringApi";
+  import { playSound, initSound } from "$lib/utils/sound";
   import Cookies from "js-cookie";
 
   // Props (Svelte 5 runes)
@@ -137,6 +138,7 @@
    * Handle card click
    */
   function handleCardClick(card: GameCard) {
+    playSound('flip');
     storeFlipCard(card);
   }
 
@@ -147,12 +149,47 @@
     await resetGame();
   }
 
+  // Sound — track state transitions to detect correct/wrong match
+  let _prevGameState = '';
+  let _prevMatchedCount = 0;
+
+  $effect(() => {
+    const state = $gameState;
+    const matched = $gameCards.filter((c) => c.matched).length;
+
+    if (_prevGameState === 'checking' && state === 'idle') {
+      if (matched > _prevMatchedCount) {
+        playSound('correct');
+      } else {
+        playSound('wrong');
+      }
+    }
+
+    if (state === 'completed' && _prevGameState !== 'completed') {
+      setTimeout(() => playSound('levelComplete'), 300);
+    }
+
+    _prevGameState = state;
+    _prevMatchedCount = matched;
+  });
+
+  // Achievement sound
+  let _prevAchievementCount = 0;
+  $effect(() => {
+    const count = $newAchievements.length;
+    if (count > 0 && count > _prevAchievementCount) {
+      playSound('achievement');
+    }
+    _prevAchievementCount = count;
+  });
+
   // Lifecycle
   function handleResize() {
     innerWidth = window.innerWidth;
   }
 
   onMount(() => {
+    initSound();
     window.addEventListener("resize", handleResize);
     checkSavedProgress();
   });
