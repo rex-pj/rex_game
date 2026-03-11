@@ -85,19 +85,28 @@ export function initSound(): boolean {
 			const audio = new Audio(SOUND_FILES[name]);
 			audio.preload = 'auto';
 			audio.volume = SOUND_VOLUMES[name];
+			audio.load(); // best-effort — works on desktop/Android, iOS may ignore before gesture
 			return audio;
 		});
 	}
 
-	// On first user gesture, call load() on all elements to trigger preload on iOS.
-	// iOS Safari often ignores preload="auto" until a gesture has occurred.
-	const triggerPreload = () => {
+	// iOS Safari ignores preload and load() before a user gesture.
+	// Warm-up trick: on first gesture, play() then immediately pause() each element.
+	// This forces iOS to buffer the audio data without actually playing anything audible.
+	const warmUp = () => {
 		for (const pool of Object.values(_pools)) {
-			pool?.forEach((a) => a.load());
+			pool?.forEach((a) => {
+				a.play()
+					.then(() => {
+						a.pause();
+						a.currentTime = 0;
+					})
+					.catch(() => {});
+			});
 		}
 	};
-	document.addEventListener('touchstart', triggerPreload, { once: true, passive: true });
-	document.addEventListener('click', triggerPreload, { once: true });
+	document.addEventListener('touchstart', warmUp, { once: true, passive: true });
+	document.addEventListener('click', warmUp, { once: true });
 
 	return _muted;
 }
