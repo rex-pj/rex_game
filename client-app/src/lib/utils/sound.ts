@@ -94,12 +94,14 @@ export function initSound(): boolean {
 	// Warm-up trick: on first gesture, play() then immediately pause() each element.
 	// This forces iOS to buffer the audio data without actually playing anything audible.
 	const warmUp = () => {
-		for (const pool of Object.values(_pools)) {
-			pool?.forEach((a) => {
+		for (const name of Object.keys(_pools) as SoundName[]) {
+			_pools[name]?.forEach((a) => {
+				a.volume = 0; // silence before play — no audible blip
 				a.play()
 					.then(() => {
 						a.pause();
 						a.currentTime = 0;
+						a.volume = _muted ? 0 : SOUND_VOLUMES[name]; // restore
 					})
 					.catch(() => {});
 			});
