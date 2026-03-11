@@ -90,25 +90,21 @@ export function initSound(): boolean {
 		});
 	}
 
-	// iOS Safari ignores preload and load() before a user gesture.
-	// Warm-up trick: on first gesture, play() then immediately pause() each element.
-	// This forces iOS to buffer the audio data without actually playing anything audible.
-	const warmUp = () => {
-		for (const name of Object.keys(_pools) as SoundName[]) {
-			_pools[name]?.forEach((a) => {
-				a.volume = 0; // silence before play — no audible blip
-				a.play()
-					.then(() => {
-						a.pause();
-						a.currentTime = 0;
-						a.volume = _muted ? 0 : SOUND_VOLUMES[name]; // restore
-					})
-					.catch(() => {});
-			});
-		}
+	// iOS Safari requires at least one successful play() call before any audio can play.
+	// One silent play() is enough to unlock media policy for the entire page —
+	// all pool elements become playable after this without another gesture.
+	const unlockIOS = () => {
+		const primer = new Audio(SOUND_FILES['correct']);
+		primer.volume = 0;
+		primer.play()
+			.then(() => {
+				primer.pause();
+				primer.currentTime = 0;
+			})
+			.catch(() => {});
 	};
-	document.addEventListener('touchstart', warmUp, { once: true, passive: true });
-	document.addEventListener('click', warmUp, { once: true });
+	document.addEventListener('touchstart', unlockIOS, { once: true, passive: true });
+	document.addEventListener('click', unlockIOS, { once: true });
 
 	return _muted;
 }
