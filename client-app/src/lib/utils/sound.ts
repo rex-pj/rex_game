@@ -102,17 +102,19 @@ async function _doUnlock(): Promise<void> {
 	if (!_ctx) {
 		_ctx = _createContext();
 	}
+
+	// IMPORTANT: source.start() MUST be called synchronously within the gesture handler
+	// call stack — before any await. iOS Safari checks the call stack to determine if
+	// audio is being triggered by a real user gesture. Any await breaks this chain.
+	const silent = _ctx.createBuffer(1, 1, 22050);
+	const source = _ctx.createBufferSource();
+	source.buffer = silent;
+	source.connect(_ctx.destination);
+	source.start(0); // iOS unlock happens here — synchronous, in gesture context
+
+	// Async work can happen after the synchronous unlock
 	try {
 		await _ctx.resume();
-
-		// iOS Safari unlock: must start an AudioBufferSourceNode within the gesture context.
-		// resume() alone is not sufficient on older iOS versions.
-		const silent = _ctx.createBuffer(1, 1, 22050);
-		const source = _ctx.createBufferSource();
-		source.buffer = silent;
-		source.connect(_ctx.destination);
-		source.start(0);
-
 		// Wait for all in-flight fetches to complete before decoding.
 		// This handles slow networks where files aren't fetched yet when user taps.
 		await Promise.all((Object.keys(SOUND_FILES) as SoundName[]).map(_fetchRaw));
