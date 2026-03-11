@@ -30,6 +30,7 @@
   import { getHint, getAccuracy, scrambleLetters } from "$lib/helpers/spellingHelpers";
   import { formatTime } from "$lib/helpers/quizHelpers";
   import { playSound, initSound } from "$lib/utils/sound";
+  import Confetti from "../Confetti.svelte";
   import { browser } from "$app/environment";
   import Cookies from "js-cookie";
 
@@ -305,6 +306,7 @@
       <button class="btn btn-primary" onclick={() => loadFlashcards()}>Thử lại</button>
     </div>
   {:else if $spellingState === "completed"}
+    <Confetti />
     <!-- Results State -->
     <div class="results-container">
       <div class="results-card">

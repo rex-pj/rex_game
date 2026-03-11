@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
@@ -9,20 +9,20 @@
   import FlashcardSpelling from "../../../components/organisms/flashcards/FlashcardSpelling.svelte";
   import { toggleMute, initSound } from "$lib/utils/sound";
 
-  const VALID_MODES = ['matching', 'quiz', 'spelling', 'speed-match'];
+  const VALID_MODES = ["matching", "quiz", "spelling", "speed-match"];
 
   let muted = $state(false);
-  let activeMode = $state('matching');
+  let activeMode = $state("matching");
 
   onMount(() => {
     muted = initSound();
-    const mode = page.url.searchParams.get('mode');
+    const mode = page.url.searchParams.get("mode");
     if (mode && VALID_MODES.includes(mode)) {
       activeMode = mode;
     }
   });
 
-  function handleModeChange(mode) {
+  function handleModeChange(mode: string) {
     activeMode = mode;
     goto(`?mode=${mode}`, { replaceState: true });
   }
@@ -34,9 +34,15 @@
 
 <svelte:head>
   <title>Chơi Flashcard — Qhortus</title>
-  <meta name="description" content="Chọn chủ đề và bắt đầu học với các bộ flashcard đa dạng. Luyện tập qua Quiz, Ghép đôi, Spelling và Speed Match." />
+  <meta
+    name="description"
+    content="Chọn chủ đề và bắt đầu học với các bộ flashcard đa dạng. Luyện tập qua Quiz, Ghép đôi, Spelling và Speed Match."
+  />
   <meta property="og:title" content="Chơi Flashcard — Qhortus" />
-  <meta property="og:description" content="Chọn chủ đề và bắt đầu học với các bộ flashcard đa dạng." />
+  <meta
+    property="og:description"
+    content="Chọn chủ đề và bắt đầu học với các bộ flashcard đa dạng."
+  />
   <meta property="og:url" content="/flashcard" />
 </svelte:head>
 
@@ -45,7 +51,8 @@
     <div class="welcome-section text-center mb-5 position-relative">
       <h1 class="display-4 mb-3">Hôm nay chinh phục bộ nào? 🎮</h1>
       <p class="lead text-muted">
-        Chọn chủ đề, chọn chế độ — rồi thử beat điểm cao nhất của chính mình. Mỗi lần chơi là một lần não ghi nhớ sâu hơn.
+        Chọn chủ đề, chọn chế độ — rồi thử beat điểm cao nhất của chính mình.
+        Mỗi lần chơi là một lần não ghi nhớ sâu hơn.
       </p>
       <button
         class="btn-mute"
@@ -61,16 +68,28 @@
 
     <div class="tab-content">
       <!-- Game components stay mounted to preserve state when switching tabs -->
-      <div class="tab-pane {activeMode === 'matching' ? 'show active' : ''}" role="tabpanel">
+      <div
+        class="tab-pane {activeMode === 'matching' ? 'show active' : ''}"
+        role="tabpanel"
+      >
         <FlashcardMatching />
       </div>
-      <div class="tab-pane {activeMode === 'quiz' ? 'show active' : ''}" role="tabpanel">
+      <div
+        class="tab-pane {activeMode === 'quiz' ? 'show active' : ''}"
+        role="tabpanel"
+      >
         <FlashcardQuiz />
       </div>
-      <div class="tab-pane {activeMode === 'spelling' ? 'show active' : ''}" role="tabpanel">
+      <div
+        class="tab-pane {activeMode === 'spelling' ? 'show active' : ''}"
+        role="tabpanel"
+      >
         <FlashcardSpelling />
       </div>
-      <div class="tab-pane {activeMode === 'speed-match' ? 'show active' : ''}" role="tabpanel">
+      <div
+        class="tab-pane {activeMode === 'speed-match' ? 'show active' : ''}"
+        role="tabpanel"
+      >
         <FlashcardSpeedMatch />
       </div>
     </div>

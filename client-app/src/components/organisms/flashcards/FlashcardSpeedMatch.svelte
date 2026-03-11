@@ -25,6 +25,7 @@
   import type { GameProgress } from "$lib/api/scoringApi";
   import { getAccuracy } from "$lib/helpers/speedMatchHelpers";
   import { playSound, initSound } from "$lib/utils/sound";
+  import Confetti from "../Confetti.svelte";
   import Cookies from "js-cookie";
 
   // Props
@@ -240,6 +241,7 @@
       >
     </div>
   {:else if $speedMatchState === "completed"}
+    <Confetti />
     <!-- Results State -->
     <div class="results-container">
       <div class="results-card">

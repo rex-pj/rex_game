@@ -22,6 +22,7 @@
   } from "$lib/stores/flashcard-game.store";
   import type { GameProgress } from "$lib/api/scoringApi";
   import { playSound, initSound } from "$lib/utils/sound";
+  import Confetti from "../Confetti.svelte";
   import Cookies from "js-cookie";
 
   // Props (Svelte 5 runes)
@@ -312,13 +313,9 @@
       </div>
     </div>
 
-    <!-- Fireworks on Level Complete -->
+    <!-- Confetti on Level Complete -->
     {#if $gameState === "completed"}
-      <div class="fireworks">
-        <div class="explosion"></div>
-        <div class="explosion"></div>
-        <div class="explosion"></div>
-      </div>
+      <Confetti />
       <div class="level-complete-message">
         <h2><i class="fa-solid fa-trophy"></i> Hoàn thành Màn {$gameStats.level}!</h2>
         <p>Chuẩn bị màn tiếp theo...</p>
@@ -859,57 +856,6 @@
     }
   }
 
-  /* Fireworks Animation */
-  .fireworks {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-  }
-
-  .explosion {
-    width: 50px;
-    height: 50px;
-    background-color: transparent;
-    border-radius: 50%;
-    position: absolute;
-    animation: explode 1s ease-out infinite;
-  }
-
-  .explosion:nth-child(1) {
-    background-color: red;
-    animation-delay: 0s;
-    left: 20%;
-  }
-
-  .explosion:nth-child(2) {
-    background-color: yellow;
-    animation-delay: 0.2s;
-    left: 50%;
-  }
-
-  .explosion:nth-child(3) {
-    background-color: blue;
-    animation-delay: 0.4s;
-    left: 80%;
-  }
-
-  @keyframes explode {
-    0% {
-      transform: scale(0.5);
-      opacity: 1;
-    }
-    100% {
-      transform: scale(5);
-      opacity: 0;
-    }
-  }
 
   /* Level Complete Message */
   .level-complete-message {

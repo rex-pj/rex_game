@@ -24,6 +24,7 @@
   import type { GameProgress } from "$lib/api/scoringApi";
   import { formatTime, getAccuracy } from "$lib/helpers/quizHelpers";
   import { playSound, initSound } from "$lib/utils/sound";
+  import Confetti from "../Confetti.svelte";
   import { browser } from "$app/environment";
   import Cookies from "js-cookie";
 
@@ -266,6 +267,7 @@
       >
     </div>
   {:else if $quizGameState === "completed"}
+    <Confetti />
     <!-- Results State -->
     <div class="results-container">
       <div class="results-card">
