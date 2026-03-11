@@ -1,6 +1,6 @@
 export async function load({ url }) {
   const email = url.searchParams.get("email") || "";
   return {
-    email: decodeURIComponent(email), // Giải mã email
+    email: decodeURIComponent(email), // Decode email from URL param
   };
 }

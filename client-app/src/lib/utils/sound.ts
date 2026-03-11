@@ -1,10 +1,10 @@
 /**
  * Sound Manager — qHortus Game Audio
  *
- * Dùng Web Audio API (AudioBuffer) thay vì HTMLAudioElement để:
- *   - Zero latency: play từ decoded buffer, không cần seek
- *   - Không lẫn âm: mỗi lần play là 1 BufferSourceNode độc lập
- *   - Đồng thời: correct + levelComplete có thể play cùng lúc
+ * Uses Web Audio API (AudioBuffer) instead of HTMLAudioElement for:
+ *   - Zero latency: plays directly from decoded buffer, no seek needed
+ *   - No sound overlap: each play creates an independent BufferSourceNode
+ *   - Simultaneous sounds: correct + levelComplete can play at the same time
  *
  * Usage:
  *   import { playSound, toggleMute, initSound, isMuted } from '$lib/utils/sound';
@@ -46,7 +46,7 @@ function _getContext(): AudioContext | null {
 	if (!_ctx) {
 		_ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
 	}
-	// Resume nếu bị suspend do autoplay policy của browser
+	// Resume if suspended by browser autoplay policy
 	if (_ctx.state === 'suspended') {
 		_ctx.resume();
 	}
@@ -61,17 +61,17 @@ async function _loadBuffer(name: SoundName): Promise<void> {
 		const arrayBuf = await res.arrayBuffer();
 		_buffers[name] = await ctx.decodeAudioData(arrayBuf);
 	} catch {
-		// Fail silently — file không tồn tại hoặc format không support
+		// Fail silently — file missing or unsupported format
 	}
 }
 
-/** Preload & decode tất cả sound files. Gọi sớm để zero-latency khi play. */
+/** Preload & decode all sound files. Call early for zero-latency playback. */
 export function preloadSounds(): void {
 	if (!browser) return;
 	(Object.keys(SOUND_FILES) as SoundName[]).forEach(_loadBuffer);
 }
 
-/** Load mute preference từ localStorage. Gọi trong onMount. */
+/** Load mute preference from localStorage. Call in onMount. */
 export function initSound(): boolean {
 	if (!browser) return false;
 	_muted = localStorage.getItem(STORAGE_KEY) === 'true';
@@ -79,7 +79,7 @@ export function initSound(): boolean {
 	return _muted;
 }
 
-/** Play sound tức thì từ decoded buffer. Silently ignored nếu muted hoặc chưa load xong. */
+/** Play a sound instantly from decoded buffer. Silently ignored if muted or buffer not loaded yet. */
 export function playSound(name: SoundName): void {
 	if (_muted || !browser) return;
 	const ctx = _getContext();
@@ -87,7 +87,7 @@ export function playSound(name: SoundName): void {
 	const buffer = _buffers[name];
 	if (!buffer) return;
 
-	// Mỗi lần play = 1 source node riêng → không bao giờ cắt nhau
+	// Each play = independent source node → sounds never interrupt each other
 	const source = ctx.createBufferSource();
 	const gain = ctx.createGain();
 	source.buffer = buffer;
@@ -97,7 +97,7 @@ export function playSound(name: SoundName): void {
 	source.start(0);
 }
 
-/** Toggle mute, persist sang localStorage. Trả về trạng thái mới. */
+/** Toggle mute, persisted to localStorage. Returns new muted state. */
 export function toggleMute(): boolean {
 	_muted = !_muted;
 	if (browser) {

@@ -27,7 +27,7 @@
   import { browser } from "$app/environment";
   import Cookies from "js-cookie";
 
-  /** Đọc một từ tiếng Anh — giọng chậm, thân thiện với trẻ */
+  /** Read an English word aloud — slow rate, child-friendly */
   function speakWord(word: string) {
     if (!browser || !('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();

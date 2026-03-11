@@ -33,19 +33,19 @@
   import { browser } from "$app/environment";
   import Cookies from "js-cookie";
 
-  /** Đọc một chữ cái — giọng chậm, cao cho trẻ nhỏ */
+  /** Read a single letter — slow rate, higher pitch for young children */
   function speakLetter(letter: string) {
     if (!browser || !('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(letter.toUpperCase());
+    const utter = new SpeechSynthesisUtterance(letter.toLowerCase());
     utter.lang = 'en';
-    utter.rate = 0.7;   // chậm hơn bình thường
-    utter.pitch = 1.3;  // cao hơn — thân thiện với trẻ
+    utter.rate = 0.7;   // slower than default
+    utter.pitch = 1.3;  // higher pitch — child-friendly
     utter.volume = 1;
     window.speechSynthesis.speak(utter);
   }
 
-  /** Đọc toàn bộ từ */
+  /** Read the full word aloud */
   function speakWord(word: string) {
     if (!browser || !('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
@@ -730,7 +730,7 @@
     background-color: #f8fafc;
   }
 
-  /* Nút loa — nghe lại từ */
+  /* Speaker button — replay word */
   .btn-speak-word {
     position: absolute;
     bottom: -14px;
@@ -759,7 +759,7 @@
     transform: scale(0.95);
   }
 
-  /* Gợi ý nhỏ dưới tiêu đề */
+  /* Small hint text below the heading */
   .question-hint-text {
     font-size: 0.85rem;
     color: #94a3b8;

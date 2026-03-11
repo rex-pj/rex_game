@@ -60,7 +60,7 @@
     <FlashcardCategoryTab {activeMode} onTabChange={handleModeChange} />
 
     <div class="tab-content">
-      <!-- Các game component luôn mounted để giữ state khi switch tab -->
+      <!-- Game components stay mounted to preserve state when switching tabs -->
       <div class="tab-pane {activeMode === 'matching' ? 'show active' : ''}" role="tabpanel">
         <FlashcardMatching />
       </div>
@@ -121,7 +121,7 @@
     border-radius: 0 0 8px 8px;
   }
 
-  /* Ẩn tab pane không active — giữ component mounted để không mất game state */
+  /* Hide inactive tab panes — components stay mounted to preserve game state */
   .tab-pane {
     display: none;
     padding: 5px 0;
