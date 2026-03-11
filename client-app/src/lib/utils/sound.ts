@@ -81,6 +81,13 @@ function _fetchRaw(name: SoundName): Promise<void> {
 	return _fetchPromises[name]!;
 }
 
+function _decode(ctx: AudioContext, raw: ArrayBuffer): Promise<AudioBuffer> {
+	// Use callback form for Safari < 14.1 compatibility.
+	// Promise form of decodeAudioData returns undefined on older Safari,
+	// so `await ctx.decodeAudioData(buf)` silently stores undefined in _buffers.
+	return new Promise((resolve, reject) => ctx.decodeAudioData(raw.slice(0), resolve, reject));
+}
+
 async function _decodeAll(): Promise<void> {
 	if (!_ctx) return;
 	const ctx = _ctx;
@@ -89,8 +96,7 @@ async function _decodeAll(): Promise<void> {
 			const raw = _rawBuffers[name];
 			if (!raw || _buffers[name]) return;
 			try {
-				// slice() because decodeAudioData transfers (detaches) the ArrayBuffer
-				_buffers[name] = await ctx.decodeAudioData(raw.slice(0));
+				_buffers[name] = await _decode(ctx, raw);
 			} catch {
 				// Unsupported format or corrupt file — fail silently
 			}
@@ -103,18 +109,25 @@ async function _doUnlock(): Promise<void> {
 		_ctx = _createContext();
 	}
 
-	// IMPORTANT: source.start() MUST be called synchronously within the gesture handler
-	// call stack — before any await. iOS Safari checks the call stack to determine if
-	// audio is being triggered by a real user gesture. Any await breaks this chain.
+	// IMPORTANT: Both resume() and source.start() must be called synchronously
+	// within the gesture handler call stack — before any await.
+	// iOS Safari tracks the gesture context only through the synchronous call stack.
+	// Any await breaks the chain and iOS will ignore the unlock attempt.
+	//
+	// Strategy:
+	//   - Call resume() synchronously → save the Promise (do NOT await yet)
+	//   - Call source.start() synchronously → old iOS unlock mechanism
+	//   - Then await the saved Promise → no gesture context needed at this point
+	const resumePromise = _ctx.resume(); // synchronous call, gesture context intact
 	const silent = _ctx.createBuffer(1, 1, 22050);
 	const source = _ctx.createBufferSource();
 	source.buffer = silent;
 	source.connect(_ctx.destination);
-	source.start(0); // iOS unlock happens here — synchronous, in gesture context
+	source.start(0); // old iOS unlock mechanism, also synchronous
 
-	// Async work can happen after the synchronous unlock
+	// Async work — gesture context is no longer required from this point
 	try {
-		await _ctx.resume();
+		await resumePromise;
 		// Wait for all in-flight fetches to complete before decoding.
 		// This handles slow networks where files aren't fetched yet when user taps.
 		await Promise.all((Object.keys(SOUND_FILES) as SoundName[]).map(_fetchRaw));
@@ -169,7 +182,9 @@ export function playSound(name: SoundName): void {
 	const ctx = _ctx;
 	const volume = SOUND_VOLUMES[name];
 
-	if (ctx.state === 'suspended') {
+	// Check !== 'running' to also handle iOS Safari's 'interrupted' state
+	// (triggered by phone call, Siri, tab losing focus) which resume() alone cannot fix
+	if (ctx.state !== 'running') {
 		ctx.resume().then(() => _playBuffer(ctx, buffer, volume));
 	} else {
 		_playBuffer(ctx, buffer, volume);
