@@ -46,10 +46,6 @@ function _getContext(): AudioContext | null {
 	if (!_ctx) {
 		_ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
 	}
-	// Resume if suspended by browser autoplay policy
-	if (_ctx.state === 'suspended') {
-		_ctx.resume();
-	}
 	return _ctx;
 }
 
@@ -75,8 +71,29 @@ export function preloadSounds(): void {
 export function initSound(): boolean {
 	if (!browser) return false;
 	_muted = localStorage.getItem(STORAGE_KEY) === 'true';
+
+	// Mobile browsers suspend AudioContext until the first user gesture.
+	// Register a one-time listener so the context is resumed as soon as the
+	// user touches or clicks anything — before the first playSound() call.
+	const resumeCtx = () => {
+		_getContext()?.resume();
+	};
+	window.addEventListener('touchstart', resumeCtx, { once: true, passive: true });
+	window.addEventListener('pointerdown', resumeCtx, { once: true });
+
 	preloadSounds();
 	return _muted;
+}
+
+function _playBuffer(ctx: AudioContext, buffer: AudioBuffer, volume: number): void {
+	// Each play = independent source node → sounds never interrupt each other
+	const source = ctx.createBufferSource();
+	const gain = ctx.createGain();
+	source.buffer = buffer;
+	gain.gain.value = volume;
+	source.connect(gain);
+	gain.connect(ctx.destination);
+	source.start(0);
 }
 
 /** Play a sound instantly from decoded buffer. Silently ignored if muted or buffer not loaded yet. */
@@ -87,14 +104,15 @@ export function playSound(name: SoundName): void {
 	const buffer = _buffers[name];
 	if (!buffer) return;
 
-	// Each play = independent source node → sounds never interrupt each other
-	const source = ctx.createBufferSource();
-	const gain = ctx.createGain();
-	source.buffer = buffer;
-	gain.gain.value = SOUND_VOLUMES[name];
-	source.connect(gain);
-	gain.connect(ctx.destination);
-	source.start(0);
+	const volume = SOUND_VOLUMES[name];
+
+	// On mobile the context may still be suspended on the first gesture.
+	// Resume it first, then play — this adds no perceptible delay when already running.
+	if (ctx.state === 'suspended') {
+		ctx.resume().then(() => _playBuffer(ctx, buffer, volume));
+	} else {
+		_playBuffer(ctx, buffer, volume);
+	}
 }
 
 /** Toggle mute, persisted to localStorage. Returns new muted state. */
