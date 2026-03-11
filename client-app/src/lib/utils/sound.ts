@@ -49,7 +49,6 @@ const UNLOCK_EVENTS = ['touchstart', 'touchend', 'click', 'keydown'] as const;
 
 let _muted = false;
 let _ctx: AudioContext | null = null;
-let _unlocking = false; // sync guard — prevents concurrent unlock attempts
 
 // Decoded AudioBuffers ready to play
 const _buffers: Partial<Record<SoundName, AudioBuffer>> = {};
@@ -79,8 +78,17 @@ function _fetchRaw(name: SoundName): Promise<void> {
 }
 
 function _decode(ctx: AudioContext, raw: ArrayBuffer): Promise<AudioBuffer> {
-	// Callback form for Safari < 14.1 — Promise form returns undefined on older Safari
-	return new Promise((resolve, reject) => ctx.decodeAudioData(raw.slice(0), resolve, reject));
+	return new Promise((resolve, reject) => {
+		try {
+			// slice(0) creates a copy — decodeAudioData detaches (transfers) the original
+			const promise = ctx.decodeAudioData(raw.slice(0), resolve, reject);
+			// Some Safari versions both call the callback AND return a Promise.
+			// Catching the Promise prevents an Uncaught rejection in those versions.
+			if (promise) promise.catch(reject);
+		} catch (err) {
+			reject(err);
+		}
+	});
 }
 
 async function _decodeAll(): Promise<void> {
@@ -100,19 +108,17 @@ async function _decodeAll(): Promise<void> {
 }
 
 function _unlockHandler(): void {
-	// Sync guard — a single tap fires multiple events (touchstart, touchend, click)
-	// _unlocking prevents them from triggering concurrent unlock attempts
-	if (_unlocking || !_ctx) return;
-	_unlocking = true;
+	if (!_ctx) return;
 
-	// Remove all listeners immediately — we only need to unlock once
-	UNLOCK_EVENTS.forEach((e) => document.removeEventListener(e, _unlockHandler, true));
+	// If already running from a previous event in this tap sequence, clean up and exit
+	if (_ctx.state === 'running') {
+		UNLOCK_EVENTS.forEach((e) => document.removeEventListener(e, _unlockHandler, true));
+		return;
+	}
 
 	// resume() and source.start() MUST be synchronous — before any await.
 	// iOS Safari only recognises the user gesture within the synchronous call stack.
-	if (_ctx.state !== 'running') {
-		_ctx.resume(); // fire-and-forget — do NOT await
-	}
+	_ctx.resume().catch(() => {});
 
 	// Silent 1-sample buffer — required unlock for older iOS Safari (< iOS 13)
 	const silent = _ctx.createBuffer(1, 1, 22050);
@@ -126,12 +132,15 @@ function _unlockHandler(): void {
 		(source as unknown as { noteOn: (t: number) => void }).noteOn(0);
 	}
 
-	// Async work — gesture context no longer required from this point
-	Promise.all((Object.keys(SOUND_FILES) as SoundName[]).map(_fetchRaw))
-		.then(() => _decodeAll())
-		.catch(() => {
-			// Unlock failed — audio will not work on this device
-		});
+	// Do NOT remove listeners immediately here.
+	// iOS Safari often rejects resume() from 'touchstart' (may be a scroll gesture).
+	// We leave 'touchend' and 'click' listeners intact as fallbacks.
+	// Only clean up after confirming the context is truly running.
+	setTimeout(() => {
+		if (_ctx?.state === 'running') {
+			UNLOCK_EVENTS.forEach((e) => document.removeEventListener(e, _unlockHandler, true));
+		}
+	}, 100);
 }
 
 function _resumeIfNeeded(): void {
@@ -155,23 +164,26 @@ export function initSound(): boolean {
 		// user interaction re-triggers the full unlock sequence.
 		_ctx.onstatechange = () => {
 			if (_ctx?.state === ('interrupted' as AudioContextState)) {
-				_unlocking = false;
 				// Re-register gesture listeners so user can re-unlock by tapping
 				UNLOCK_EVENTS.forEach((e) =>
-					document.addEventListener(e, _unlockHandler, { capture: true, once: true })
+					document.addEventListener(e, _unlockHandler, { capture: true })
 				);
 			}
 		};
 	}
 
-	// Fetch raw audio data immediately — no AudioContext needed for this step
-	(Object.keys(SOUND_FILES) as SoundName[]).forEach(_fetchRaw);
+	// Fetch and decode sounds immediately in the background.
+	// AudioContext can decode even while suspended — no need to wait for a gesture.
+	// This ensures _buffers are ready before the first playSound() call.
+	Promise.all((Object.keys(SOUND_FILES) as SoundName[]).map(_fetchRaw))
+		.then(() => _decodeAll())
+		.catch(() => {});
 
-	// Register on document with capture:true — fires before any component handler,
-	// giving the unlock the earliest possible call in the gesture's event chain.
-	// 'touchstart', 'touchend', 'click', 'keydown' covers all devices.
+	// Register without { once: true } — _unlockHandler manages its own removal
+	// only after confirming ctx.state === 'running' (via setTimeout check).
+	// This prevents premature removal if iOS rejects touchstart as a scroll gesture.
 	UNLOCK_EVENTS.forEach((e) =>
-		document.addEventListener(e, _unlockHandler, { capture: true, once: true })
+		document.addEventListener(e, _unlockHandler, { capture: true })
 	);
 
 	// Resume when user returns to the tab after backgrounding the app
