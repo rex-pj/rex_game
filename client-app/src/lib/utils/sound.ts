@@ -6,6 +6,16 @@
  *   - No sound overlap: each play creates an independent BufferSourceNode
  *   - Simultaneous sounds: correct + levelComplete can play at the same time
  *
+ * iOS Safari unlock strategy:
+ *   1. Fetch raw ArrayBuffers immediately on init (no AudioContext needed)
+ *   2. On first user gesture: create AudioContext, play a silent 1-sample buffer
+ *      (required "unlock" step for iOS Safari), then decode all sounds
+ *   3. playSound() works normally after unlock
+ *
+ *   Key design: _unlockPromise is a singleton — concurrent gesture events
+ *   (touchstart + pointerdown on the same tap) share the same Promise,
+ *   eliminating race conditions.
+ *
  * Usage:
  *   import { playSound, toggleMute, initSound, isMuted } from '$lib/utils/sound';
  *
@@ -19,7 +29,7 @@ import { browser } from '$app/environment';
 export type SoundName = 'flip' | 'correct' | 'wrong' | 'levelComplete' | 'achievement';
 
 const SOUND_FILES: Record<SoundName, string> = {
-	flip: '/sounds/flashcard_flip.ogg',
+	flip: '/sounds/flashcard_flip.wav',
 	correct: '/sounds/correct.wav',
 	wrong: '/sounds/wrong.wav',
 	levelComplete: '/sounds/levelcompletesplash.wav',
@@ -39,49 +49,101 @@ const STORAGE_KEY = 'qhortus_sound_muted';
 
 let _muted = false;
 let _ctx: AudioContext | null = null;
+
+// Singleton Promise — prevents concurrent _unlock() executions (touchstart + pointerdown race)
+let _unlockPromise: Promise<void> | null = null;
+
+// Decoded AudioBuffers ready to play
 const _buffers: Partial<Record<SoundName, AudioBuffer>> = {};
+// Raw ArrayBuffers fetched before AudioContext exists
+const _rawBuffers: Partial<Record<SoundName, ArrayBuffer>> = {};
+// In-flight fetch promises — prevents duplicate fetches
+const _fetchPromises: Partial<Record<SoundName, Promise<void>>> = {};
 
-function _getContext(): AudioContext | null {
-	if (!browser) return null;
+function _createContext(): AudioContext {
+	return new (window.AudioContext ||
+		(window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+}
+
+function _fetchRaw(name: SoundName): Promise<void> {
+	// Return existing promise if already fetching or fetched
+	if (_fetchPromises[name]) return _fetchPromises[name]!;
+	_fetchPromises[name] = (async () => {
+		try {
+			const res = await fetch(SOUND_FILES[name]);
+			if (res.ok) {
+				_rawBuffers[name] = await res.arrayBuffer();
+			}
+		} catch {
+			// Network error or file missing — fail silently
+		}
+	})();
+	return _fetchPromises[name]!;
+}
+
+async function _decodeAll(): Promise<void> {
+	if (!_ctx) return;
+	const ctx = _ctx;
+	await Promise.all(
+		(Object.keys(SOUND_FILES) as SoundName[]).map(async (name) => {
+			const raw = _rawBuffers[name];
+			if (!raw || _buffers[name]) return;
+			try {
+				// slice() because decodeAudioData transfers (detaches) the ArrayBuffer
+				_buffers[name] = await ctx.decodeAudioData(raw.slice(0));
+			} catch {
+				// Unsupported format or corrupt file — fail silently
+			}
+		})
+	);
+}
+
+async function _doUnlock(): Promise<void> {
 	if (!_ctx) {
-		_ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+		_ctx = _createContext();
 	}
-	return _ctx;
-}
-
-async function _loadBuffer(name: SoundName): Promise<void> {
-	const ctx = _getContext();
-	if (!ctx || _buffers[name]) return;
 	try {
-		const res = await fetch(SOUND_FILES[name]);
-		const arrayBuf = await res.arrayBuffer();
-		_buffers[name] = await ctx.decodeAudioData(arrayBuf);
+		await _ctx.resume();
+
+		// iOS Safari unlock: must start an AudioBufferSourceNode within the gesture context.
+		// resume() alone is not sufficient on older iOS versions.
+		const silent = _ctx.createBuffer(1, 1, 22050);
+		const source = _ctx.createBufferSource();
+		source.buffer = silent;
+		source.connect(_ctx.destination);
+		source.start(0);
+
+		// Wait for all in-flight fetches to complete before decoding.
+		// This handles slow networks where files aren't fetched yet when user taps.
+		await Promise.all((Object.keys(SOUND_FILES) as SoundName[]).map(_fetchRaw));
+		await _decodeAll();
 	} catch {
-		// Fail silently — file missing or unsupported format
+		// Unlock failed — audio will not work on this device
 	}
 }
 
-/** Preload & decode all sound files. Call early for zero-latency playback. */
-export function preloadSounds(): void {
-	if (!browser) return;
-	(Object.keys(SOUND_FILES) as SoundName[]).forEach(_loadBuffer);
+/** Returns the singleton unlock Promise. Safe to call concurrently. */
+function _unlock(): Promise<void> {
+	if (!_unlockPromise) {
+		_unlockPromise = _doUnlock();
+	}
+	return _unlockPromise;
 }
 
-/** Load mute preference from localStorage. Call in onMount. */
+/** Load mute preference from localStorage and start prefetching audio files. Call in onMount. */
 export function initSound(): boolean {
 	if (!browser) return false;
 	_muted = localStorage.getItem(STORAGE_KEY) === 'true';
 
-	// Mobile browsers suspend AudioContext until the first user gesture.
-	// Register a one-time listener so the context is resumed as soon as the
-	// user touches or clicks anything — before the first playSound() call.
-	const resumeCtx = () => {
-		_getContext()?.resume();
-	};
-	window.addEventListener('touchstart', resumeCtx, { once: true, passive: true });
-	window.addEventListener('pointerdown', resumeCtx, { once: true });
+	// Fetch raw audio data immediately — no AudioContext needed for this step
+	(Object.keys(SOUND_FILES) as SoundName[]).forEach(_fetchRaw);
 
-	preloadSounds();
+	// Unlock AudioContext on the first user gesture.
+	// Both touchstart and pointerdown are registered — on mobile a single tap fires both,
+	// but _unlock() is a singleton Promise so concurrent calls are safe.
+	window.addEventListener('touchstart', _unlock, { once: true, passive: true });
+	window.addEventListener('pointerdown', _unlock, { once: true });
+
 	return _muted;
 }
 
@@ -96,18 +158,15 @@ function _playBuffer(ctx: AudioContext, buffer: AudioBuffer, volume: number): vo
 	source.start(0);
 }
 
-/** Play a sound instantly from decoded buffer. Silently ignored if muted or buffer not loaded yet. */
+/** Play a sound instantly from decoded buffer. Silently ignored if muted or not yet unlocked. */
 export function playSound(name: SoundName): void {
-	if (_muted || !browser) return;
-	const ctx = _getContext();
-	if (!ctx) return;
+	if (_muted || !browser || !_ctx) return;
 	const buffer = _buffers[name];
 	if (!buffer) return;
 
+	const ctx = _ctx;
 	const volume = SOUND_VOLUMES[name];
 
-	// On mobile the context may still be suspended on the first gesture.
-	// Resume it first, then play — this adds no perceptible delay when already running.
 	if (ctx.state === 'suspended') {
 		ctx.resume().then(() => _playBuffer(ctx, buffer, volume));
 	} else {
