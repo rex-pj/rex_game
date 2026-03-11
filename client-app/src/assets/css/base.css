@@ -63,6 +63,14 @@ h1, h2, h3, h4, h5, h6 {
   --transition-normal: 0.3s ease-in-out;
   --transition-slow: 0.5s ease-in-out;
 
+  /* Gamification Colors — Leaderboard & Achievements */
+  --color-gold: #f59e0b;
+  --color-gold-light: #fbbf24;
+  --color-silver: #9ca3af;
+  --color-silver-light: #e2e8f0;
+  --color-bronze: #cd7f32;
+  --color-bronze-dark: #a0522d;
+
   /* Legacy variables for compatibility */
   --purple-light: #f6d8ff;
   --black: #2c3e50;

@@ -24,7 +24,21 @@
   import type { GameProgress } from "$lib/api/scoringApi";
   import { formatTime, getAccuracy } from "$lib/helpers/quizHelpers";
   import { playSound, initSound } from "$lib/utils/sound";
+  import { browser } from "$app/environment";
   import Cookies from "js-cookie";
+
+  /** Đọc một từ tiếng Anh — giọng chậm, thân thiện với trẻ */
+  function speakWord(word: string) {
+    if (!browser || !('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(word);
+    utter.lang = 'en';
+    utter.rate = 0.75;
+    utter.pitch = 1.2;
+    utter.volume = 1;
+    window.speechSynthesis.speak(utter);
+  }
+
 
   // Props
   interface Props {
@@ -353,18 +367,29 @@
         <!-- Question Text -->
         <div class="question-text">
           <h3>Đây là hình ảnh gì?</h3>
+          <p class="question-hint-text">Nhấn vào từng lựa chọn để nghe</p>
         </div>
 
         <!-- Answer Options -->
         <div class="options-grid">
           {#each $currentQuestion.options as option}
-            <button
-              class="option-btn {getOptionClass(option)}"
-              onclick={() => handleOptionClick(option)}
-              disabled={$quizGameState !== "idle"}
-            >
-              {option}
-            </button>
+            <div class="option-wrapper">
+              <button
+                class="btn-speak-option"
+                onclick={() => speakWord(option)}
+                aria-label="Nghe từ {option}"
+                title="Nghe từ"
+              >
+                <i class="fa-solid fa-volume-high"></i>
+              </button>
+              <button
+                class="option-btn {getOptionClass(option)}"
+                onclick={() => handleOptionClick(option)}
+                disabled={$quizGameState !== "idle"}
+              >
+                {option}
+              </button>
+            </div>
           {/each}
         </div>
 
@@ -694,6 +719,12 @@
     margin: 0;
   }
 
+  .question-hint-text {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    margin: 4px 0 0;
+  }
+
   /* Options */
   .options-grid {
     display: grid;
@@ -703,8 +734,39 @@
     max-width: 500px;
   }
 
+  .option-wrapper {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .btn-speak-option {
+    flex-shrink: 0;
+    width: 44px;
+    background: rgba(139, 92, 246, 0.08);
+    border: 2px solid rgba(139, 92, 246, 0.25);
+    border-radius: 12px;
+    color: #7c3aed;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+
+  .btn-speak-option:hover {
+    background: rgba(139, 92, 246, 0.18);
+    border-color: #8b5cf6;
+  }
+
+  .btn-speak-option:active {
+    transform: scale(0.92);
+  }
+
   .option-btn {
-    padding: 16px 20px;
+    flex: 1;
+    padding: 16px 12px;
     font-size: 16px;
     font-weight: 600;
     background: white;

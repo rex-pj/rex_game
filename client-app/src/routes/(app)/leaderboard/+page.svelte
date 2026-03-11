@@ -172,33 +172,33 @@
 
   /* #1 — Gold */
   .table-warning .avatar-circle {
-    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    background: linear-gradient(135deg, var(--color-gold-light) 0%, var(--color-gold) 100%);
   }
 
   /* #2 — Silver */
   .table-secondary .avatar-circle {
-    background: linear-gradient(135deg, #e2e8f0 0%, #9ca3af 100%);
+    background: linear-gradient(135deg, var(--color-silver-light) 0%, var(--color-silver) 100%);
     color: #334155;
   }
 
   /* #3 — Bronze */
   .table-info .avatar-circle {
-    background: linear-gradient(135deg, #cd7f32 0%, #a0522d 100%);
+    background: linear-gradient(135deg, var(--color-bronze) 0%, var(--color-bronze-dark) 100%);
   }
 
   /* Rank medal colors */
   .rank-gold {
-    color: #fbbf24;
+    color: var(--color-gold-light);
     text-shadow: 0 2px 4px rgba(251, 191, 36, 0.4);
   }
 
   .rank-silver {
-    color: #9ca3af;
+    color: var(--color-silver);
     text-shadow: 0 2px 4px rgba(156, 163, 175, 0.4);
   }
 
   .rank-bronze {
-    color: #cd7f32;
+    color: var(--color-bronze);
     text-shadow: 0 2px 4px rgba(205, 127, 50, 0.4);
   }
 

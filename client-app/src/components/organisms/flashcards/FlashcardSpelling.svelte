@@ -38,7 +38,7 @@
     if (!browser || !('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(letter.toUpperCase());
-    utter.lang = 'vi-VN';
+    utter.lang = 'en';
     utter.rate = 0.7;   // chậm hơn bình thường
     utter.pitch = 1.3;  // cao hơn — thân thiện với trẻ
     utter.volume = 1;
@@ -50,7 +50,7 @@
     if (!browser || !('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(word);
-    utter.lang = 'vi-VN';
+    utter.lang = 'en';
     utter.rate = 0.65;
     utter.pitch = 1.2;
     utter.volume = 1;
@@ -86,8 +86,6 @@
       userInput = "";
       lastAnswerCorrect = null;
       lastCorrectAnswer = "";
-      // Tự động đọc từ sau 600ms để animation câu hỏi hiện xong
-      setTimeout(() => speakWord($currentSpellingQuestion!.correctAnswer), 600);
     }
   });
 
