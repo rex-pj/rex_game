@@ -7,14 +7,10 @@
  *   - Simultaneous sounds: correct + levelComplete can play at the same time
  *
  * iOS Safari unlock strategy:
- *   1. Fetch raw ArrayBuffers immediately on init (no AudioContext needed)
- *   2. On first user gesture: create AudioContext, play a silent 1-sample buffer
- *      (required "unlock" step for iOS Safari), then decode all sounds
- *   3. playSound() works normally after unlock
- *
- *   Key design: _unlockPromise is a singleton — concurrent gesture events
- *   (touchstart + pointerdown on the same tap) share the same Promise,
- *   eliminating race conditions.
+ *   1. Create AudioContext in initSound() (onMount) — early, not lazily
+ *   2. Register gesture listeners on document with capture:true for all input events
+ *   3. On first gesture: synchronously call resume() + source.start() (no await before either)
+ *   4. Handle visibilitychange (tab hidden/shown) and onstatechange (iOS interrupted)
  *
  * Usage:
  *   import { playSound, toggleMute, initSound, isMuted } from '$lib/utils/sound';
@@ -47,11 +43,13 @@ const SOUND_VOLUMES: Record<SoundName, number> = {
 
 const STORAGE_KEY = 'qhortus_sound_muted';
 
+// Gesture events to listen for — registered with capture:true so they fire
+// before any component handler, giving audio the earliest possible unlock.
+const UNLOCK_EVENTS = ['touchstart', 'touchend', 'click', 'keydown'] as const;
+
 let _muted = false;
 let _ctx: AudioContext | null = null;
-
-// Singleton Promise — prevents concurrent _unlock() executions (touchstart + pointerdown race)
-let _unlockPromise: Promise<void> | null = null;
+let _unlocking = false; // sync guard — prevents concurrent unlock attempts
 
 // Decoded AudioBuffers ready to play
 const _buffers: Partial<Record<SoundName, AudioBuffer>> = {};
@@ -66,7 +64,6 @@ function _createContext(): AudioContext {
 }
 
 function _fetchRaw(name: SoundName): Promise<void> {
-	// Return existing promise if already fetching or fetched
 	if (_fetchPromises[name]) return _fetchPromises[name]!;
 	_fetchPromises[name] = (async () => {
 		try {
@@ -82,9 +79,7 @@ function _fetchRaw(name: SoundName): Promise<void> {
 }
 
 function _decode(ctx: AudioContext, raw: ArrayBuffer): Promise<AudioBuffer> {
-	// Use callback form for Safari < 14.1 compatibility.
-	// Promise form of decodeAudioData returns undefined on older Safari,
-	// so `await ctx.decodeAudioData(buf)` silently stores undefined in _buffers.
+	// Callback form for Safari < 14.1 — Promise form returns undefined on older Safari
 	return new Promise((resolve, reject) => ctx.decodeAudioData(raw.slice(0), resolve, reject));
 }
 
@@ -104,44 +99,45 @@ async function _decodeAll(): Promise<void> {
 	);
 }
 
-async function _doUnlock(): Promise<void> {
-	// _ctx is created early in initSound(), so it always exists here
-	if (!_ctx) return;
+function _unlockHandler(): void {
+	// Sync guard — a single tap fires multiple events (touchstart, touchend, click)
+	// _unlocking prevents them from triggering concurrent unlock attempts
+	if (_unlocking || !_ctx) return;
+	_unlocking = true;
 
-	// resume() and source.start() must both be synchronous — no await before them.
-	// iOS Safari only recognises the gesture in the synchronous call stack.
-	if (_ctx.state === 'suspended' || _ctx.state === 'interrupted' as AudioContextState) {
-		_ctx.resume(); // fire-and-forget — do NOT await here
+	// Remove all listeners immediately — we only need to unlock once
+	UNLOCK_EVENTS.forEach((e) => document.removeEventListener(e, _unlockHandler, true));
+
+	// resume() and source.start() MUST be synchronous — before any await.
+	// iOS Safari only recognises the user gesture within the synchronous call stack.
+	if (_ctx.state !== 'running') {
+		_ctx.resume(); // fire-and-forget — do NOT await
 	}
 
-	// Play a silent 1-sample buffer — required unlock mechanism for older iOS Safari
+	// Silent 1-sample buffer — required unlock for older iOS Safari (< iOS 13)
 	const silent = _ctx.createBuffer(1, 1, 22050);
 	const source = _ctx.createBufferSource();
 	source.buffer = silent;
 	source.connect(_ctx.destination);
-	// noteOn(0) fallback for very old Safari that predates source.start()
 	if (typeof source.start === 'function') {
 		source.start(0);
 	} else {
+		// noteOn() was the old API name in very early WebKit
 		(source as unknown as { noteOn: (t: number) => void }).noteOn(0);
 	}
 
 	// Async work — gesture context no longer required from this point
-	try {
-		// Wait for all in-flight fetches to complete before decoding
-		await Promise.all((Object.keys(SOUND_FILES) as SoundName[]).map(_fetchRaw));
-		await _decodeAll();
-	} catch {
-		// Unlock failed — audio will not work on this device
-	}
+	Promise.all((Object.keys(SOUND_FILES) as SoundName[]).map(_fetchRaw))
+		.then(() => _decodeAll())
+		.catch(() => {
+			// Unlock failed — audio will not work on this device
+		});
 }
 
-/** Returns the singleton unlock Promise. Safe to call concurrently. */
-function _unlock(): Promise<void> {
-	if (!_unlockPromise) {
-		_unlockPromise = _doUnlock();
+function _resumeIfNeeded(): void {
+	if (_ctx && _ctx.state !== 'running') {
+		_ctx.resume().catch(() => {});
 	}
-	return _unlockPromise;
 }
 
 /** Load mute preference from localStorage and start prefetching audio files. Call in onMount. */
@@ -149,20 +145,41 @@ export function initSound(): boolean {
 	if (!browser) return false;
 	_muted = localStorage.getItem(STORAGE_KEY) === 'true';
 
-	// Create AudioContext early (not lazily in the gesture handler).
-	// iOS Safari is more reliable when the context already exists before the gesture fires.
+	// Create AudioContext early — iOS Safari is more reliable when the context
+	// already exists before the gesture fires rather than being created inside it
 	if (!_ctx) {
 		_ctx = _createContext();
+
+		// Handle iOS 'interrupted' state (phone call, Siri, app backgrounded).
+		// When interrupted, resume() hangs indefinitely — reset unlock so next
+		// user interaction re-triggers the full unlock sequence.
+		_ctx.onstatechange = () => {
+			if (_ctx?.state === ('interrupted' as AudioContextState)) {
+				_unlocking = false;
+				// Re-register gesture listeners so user can re-unlock by tapping
+				UNLOCK_EVENTS.forEach((e) =>
+					document.addEventListener(e, _unlockHandler, { capture: true, once: true })
+				);
+			}
+		};
 	}
 
 	// Fetch raw audio data immediately — no AudioContext needed for this step
 	(Object.keys(SOUND_FILES) as SoundName[]).forEach(_fetchRaw);
 
-	// Use 'click' and 'touchend' instead of 'touchstart'/'pointerdown'.
-	// 'touchstart' can fire during a scroll gesture and may not count as a valid
-	// audio gesture on iOS Safari. 'click' and 'touchend' are more reliable.
-	window.addEventListener('click', _unlock, { once: true });
-	window.addEventListener('touchend', _unlock, { once: true, passive: true });
+	// Register on document with capture:true — fires before any component handler,
+	// giving the unlock the earliest possible call in the gesture's event chain.
+	// 'touchstart', 'touchend', 'click', 'keydown' covers all devices.
+	UNLOCK_EVENTS.forEach((e) =>
+		document.addEventListener(e, _unlockHandler, { capture: true, once: true })
+	);
+
+	// Resume when user returns to the tab after backgrounding the app
+	document.addEventListener('visibilitychange', () => {
+		if (!document.hidden) {
+			_resumeIfNeeded();
+		}
+	});
 
 	return _muted;
 }
@@ -187,10 +204,9 @@ export function playSound(name: SoundName): void {
 	const ctx = _ctx;
 	const volume = SOUND_VOLUMES[name];
 
-	// Check !== 'running' to also handle iOS Safari's 'interrupted' state
-	// (triggered by phone call, Siri, tab losing focus) which resume() alone cannot fix
+	// !== 'running' catches both 'suspended' and iOS 'interrupted'
 	if (ctx.state !== 'running') {
-		ctx.resume().then(() => _playBuffer(ctx, buffer, volume));
+		ctx.resume().then(() => _playBuffer(ctx, buffer, volume)).catch(() => {});
 	} else {
 		_playBuffer(ctx, buffer, volume);
 	}
